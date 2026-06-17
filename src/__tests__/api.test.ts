@@ -102,6 +102,36 @@ describe('API Client Structure', () => {
   })
 })
 
+describe('authApi login normalization', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('normalizes backend login responses with nested tokens', async () => {
+    const mockedAxios = vi.mocked(axios)
+    mockedAxios.post.mockResolvedValueOnce({
+      data: {
+        code: 200,
+        data: {
+          user: { id: 1, phone: '13800000000', role: 'admin' },
+          tokens: {
+            access_token: 'access-token',
+            refresh_token: 'refresh-token',
+            token_type: 'bearer',
+          },
+        },
+      },
+    })
+
+    const { authApi } = await import('@/api')
+    const result = await authApi.login('13800000000', '888888')
+
+    expect(result.access_token).toBe('access-token')
+    expect(result.refresh_token).toBe('refresh-token')
+    expect(result.user?.role).toBe('admin')
+  })
+})
+
 describe('tokenStorage', () => {
   beforeEach(() => {
     localStorage.clear()

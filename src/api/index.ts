@@ -36,6 +36,17 @@ export interface LoginResponse {
   user?: CurrentUser
 }
 
+interface NestedLoginResponse {
+  user?: CurrentUser
+  tokens?: LoginResponse & {
+    expires_in?: number
+    access_jti?: string
+    refresh_jti?: string
+    access_expires_at?: string
+    refresh_expires_at?: string
+  }
+}
+
 export interface UserItem extends CurrentUser {
   created_at?: string
   online?: boolean
@@ -155,10 +166,20 @@ const unwrap = async <T>(promise: Promise<{ data: ApiResponse<T> }>): Promise<T>
   return response.data.data
 }
 
+const normalizeLoginResponse = (payload: LoginResponse | NestedLoginResponse): LoginResponse => {
+  if ('tokens' in payload && payload.tokens) {
+    return {
+      ...payload.tokens,
+      user: payload.user,
+    }
+  }
+  return payload as LoginResponse
+}
+
 export const authApi = {
   sendCode: (phone: string) => unwrap(api.post('/auth/send-code', { phone })),
-  login: (phone: string, code: string) => unwrap<LoginResponse>(api.post('/auth/login', { phone, code })),
-  register: (phone: string, code: string) => unwrap<LoginResponse>(api.post('/auth/register', { phone, code })),
+  login: async (phone: string, code: string) => normalizeLoginResponse(await unwrap<LoginResponse | NestedLoginResponse>(api.post('/auth/login', { phone, code }))),
+  register: async (phone: string, code: string) => normalizeLoginResponse(await unwrap<LoginResponse | NestedLoginResponse>(api.post('/auth/register', { phone, code }))),
   refresh: (refreshToken: string) => unwrap<LoginResponse>(api.post('/auth/refresh', { refresh_token: refreshToken })),
   me: () => unwrap<CurrentUser>(api.get('/auth/me')),
   logout: () => unwrap(api.post('/auth/logout')),
