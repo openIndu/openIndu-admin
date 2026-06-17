@@ -16,6 +16,8 @@ import { DocumentUpload } from './pages/documents/DocumentUpload'
 import { SoftwareList } from './pages/software/SoftwareList'
 import { SoftwareUpload } from './pages/software/SoftwareUpload'
 import { SettingsView } from './pages/settings/SettingsView'
+import { OnlineStats } from './pages/stats/OnlineStats'
+import { AuditLogs } from './pages/stats/AuditLogs'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
@@ -43,6 +45,8 @@ export const router = createBrowserRouter([
               { path: '/software', element: <SoftwareList /> },
               { path: '/software/upload', element: <SoftwareUpload /> },
               { path: '/settings', element: <SettingsView /> },
+              { path: '/stats', element: <OnlineStats /> },
+              { path: '/stats/audit', element: <AuditLogs /> },
             ],
           },
         ],
