@@ -79,7 +79,7 @@ export function Login() {
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
             <ShieldCheck className="h-6 w-6" />
           </div>
-          <CardTitle>openIndu 管理后台</CardTitle>
+          <CardTitle>openIndu 社区管理平台</CardTitle>
           <CardDescription>{mode === 'login' ? '手机号验证码登录' : '手机号验证码注册'}</CardDescription>
         </CardHeader>
         <CardContent>
