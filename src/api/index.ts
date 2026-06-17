@@ -166,6 +166,13 @@ const unwrap = async <T>(promise: Promise<{ data: ApiResponse<T> }>): Promise<T>
   return response.data.data
 }
 
+const unwrapItems = async <T>(promise: Promise<{ data: ApiResponse<T[] | { items?: T[] }> }>): Promise<T[]> => {
+  const response = await promise
+  const payload = response.data.data
+  if (Array.isArray(payload)) return payload
+  return payload.items ?? []
+}
+
 const normalizeLoginResponse = (payload: LoginResponse | NestedLoginResponse): LoginResponse => {
   if ('tokens' in payload && payload.tokens) {
     return {
@@ -230,8 +237,10 @@ export const portalApi = {
 }
 
 export const configApi = {
-  list: () => unwrap<SystemConfig[]>(api.get('/config')),
-  update: (configs: Array<Pick<SystemConfig, 'config_key' | 'config_value'>>) => unwrap(api.put('/config', { configs })),
+  list: () => unwrapItems<SystemConfig>(api.get('/config')),
+  update: (configs: Array<Pick<SystemConfig, 'config_key' | 'config_value'>>) => unwrap(api.put('/config', {
+    items: configs.map((item) => ({ key: item.config_key, value: item.config_value })),
+  })),
 }
 
 export const syncApi = {

@@ -102,6 +102,43 @@ describe('API Client Structure', () => {
   })
 })
 
+describe('configApi response normalization', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('normalizes config list responses with items wrapper', async () => {
+    const mockedAxios = vi.mocked(axios)
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        code: 200,
+        data: {
+          items: [
+            { config_key: 'embedding_model', config_value: 'BAAI/bge-m3' },
+          ],
+        },
+      },
+    })
+
+    const { configApi } = await import('@/api')
+    const result = await configApi.list()
+
+    expect(result).toEqual([{ config_key: 'embedding_model', config_value: 'BAAI/bge-m3' }])
+  })
+
+  it('sends config updates using backend items/key/value schema', async () => {
+    const mockedAxios = vi.mocked(axios)
+    mockedAxios.put.mockResolvedValueOnce({ data: { code: 200, data: { items: [] } } })
+
+    const { configApi } = await import('@/api')
+    await configApi.update([{ config_key: 'rag_chunk_size', config_value: '512' }])
+
+    expect(mockedAxios.put).toHaveBeenCalledWith('/config', {
+      items: [{ key: 'rag_chunk_size', value: '512' }],
+    })
+  })
+})
+
 describe('authApi login normalization', () => {
   beforeEach(() => {
     vi.clearAllMocks()
