@@ -22,5 +22,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "src/vite-env.d.ts", "src/__tests__"]
+  "include": ["src", "src/vite-env.d.ts"],
+  "exclude": ["src/__tests__", "e2e"]
 }
