@@ -13,9 +13,12 @@ export function CarouselManager() {
   const [file, setFile] = useState<File | null>(null)
   const [title, setTitle] = useState('')
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editSortOrder, setEditSortOrder] = useState('')
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['portal', 'carousel'] })
   const uploadMutation = useMutation({ mutationFn: portalApi.uploadCarousel, onSuccess: invalidate })
   const deleteMutation = useMutation({ mutationFn: portalApi.deleteCarousel, onSuccess: invalidate })
+  const updateMutation = useMutation({ mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) => portalApi.updateCarousel(id, payload), onSuccess: invalidate })
 
   const handleUpload = () => {
     if (!file) return
@@ -25,6 +28,18 @@ export function CarouselManager() {
     uploadMutation.mutate(formData)
     setFile(null)
     setTitle('')
+  }
+
+  const handleToggleActive = (id: number, current: boolean | undefined) => {
+    updateMutation.mutate({ id, payload: { is_active: !current } })
+  }
+
+  const handleUpdateSortOrder = (id: number) => {
+    const num = parseInt(editSortOrder, 10)
+    if (isNaN(num)) return
+    updateMutation.mutate({ id, payload: { sort_order: num } })
+    setEditingId(null)
+    setEditSortOrder('')
   }
 
   return (
@@ -53,8 +68,33 @@ export function CarouselManager() {
                   <TableRow key={item.id}>
                     <TableCell>{item.title ?? '-'}</TableCell>
                     <TableCell className="max-w-xs truncate">{item.image_url}</TableCell>
-                    <TableCell>{item.sort_order ?? '-'}</TableCell>
-                    <TableCell>{item.is_active === false ? '停用' : '启用'}</TableCell>
+                    <TableCell>
+                      {editingId === item.id ? (
+                        <div className="flex items-center gap-2">
+                          <Input className="w-20" type="number" value={editSortOrder} onChange={(event) => setEditSortOrder(event.target.value)} />
+                          <Button size="sm" variant="outline" onClick={() => handleUpdateSortOrder(item.id)}>确定</Button>
+                          <Button size="sm" variant="ghost" onClick={() => { setEditingId(null); setEditSortOrder('') }}>取消</Button>
+                        </div>
+                      ) : (
+                        <span
+                          className="cursor-pointer text-primary hover:underline"
+                          onClick={() => { setEditingId(item.id); setEditSortOrder(String(item.sort_order ?? 0)) }}
+                        >
+                          {item.sort_order ?? '-'}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <label className="flex cursor-pointer items-center gap-2">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-gray-300"
+                          checked={item.is_active !== false}
+                          onChange={() => handleToggleActive(item.id, item.is_active)}
+                        />
+                        <span className="text-sm">{item.is_active === false ? '停用' : '启用'}</span>
+                      </label>
+                    </TableCell>
                     <TableCell><Button size="sm" variant="destructive" onClick={() => setDeletingId(item.id)}>删除</Button></TableCell>
                   </TableRow>
                 ))}

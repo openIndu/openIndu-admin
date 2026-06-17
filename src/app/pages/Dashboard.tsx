@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
-import { FileText, Settings, UploadCloud, Users } from 'lucide-react'
+import { FileText, MapPin, Settings, UploadCloud, Users } from 'lucide-react'
 import { documentApi, softwareApi, statsApi, userApi } from '@/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
@@ -25,6 +25,8 @@ export function Dashboard() {
     { label: '软件总数', value: softwareQuery.data?.total, icon: UploadCloud, loading: softwareQuery.isLoading, error: softwareQuery.isError },
   ]
 
+  const geoDistribution = onlineQuery.data?.geo_distribution
+
   return (
     <div className="space-y-6">
       <div>
@@ -48,6 +50,29 @@ export function Dashboard() {
           )
         })}
       </div>
+
+      {geoDistribution && geoDistribution.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              在线用户地理分布
+            </CardTitle>
+            <CardDescription>当前在线用户的地区分布统计。</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {geoDistribution.map((geo) => (
+                <div key={geo.name} className="flex items-center justify-between rounded-lg border px-4 py-3">
+                  <span className="text-sm font-medium">{geo.name}</span>
+                  <span className="text-sm text-muted-foreground">{geo.count} 人在线</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card>
         <CardHeader>
           <CardTitle>快捷入口</CardTitle>
