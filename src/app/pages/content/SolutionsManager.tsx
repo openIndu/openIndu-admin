@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { ConfirmDialog } from '../../components/ui/dialog'
 import { Input } from '../../components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
+import { Badge } from '../../components/ui/badge'
+import { Monitor } from 'lucide-react'
 
 export function SolutionsManager() {
   const queryClient = useQueryClient()
@@ -54,6 +56,58 @@ export function SolutionsManager() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Preview Cards */}
+      {query.data && query.data.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Monitor className="h-5 w-5" />
+              前台预览
+            </CardTitle>
+            <CardDescription>解决方案在前台页面的卡片展示效果。</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {query.data.filter((item) => item.is_active !== false).slice(0, 6).map((item) => (
+                <div key={item.id} className="overflow-hidden rounded-lg border transition-shadow hover:shadow-md">
+                  <div className="relative flex h-36 items-center justify-center bg-muted">
+                    {item.icon ? (
+                      <span className="text-3xl">{item.icon}</span>
+                    ) : (
+                      <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                        <Monitor className="h-6 w-6" />
+                        <span className="text-sm">无图标</span>
+                      </div>
+                    )}
+                    <div className="absolute right-2 top-2">
+                      <Badge variant="success" className="text-xs">已启用</Badge>
+                    </div>
+                  </div>
+                  <div className="p-3">
+                    <h4 className="mb-1 line-clamp-1 text-sm font-semibold">{item.title || '(无标题)'}</h4>
+                    {item.description && (
+                      <p className="mb-2 line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">排序: {item.sort_order ?? '-'}</span>
+                      {item.link && (
+                        <span className="max-w-[120px] truncate text-xs text-primary">{item.link}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {query.data.filter((item) => item.is_active !== false).length === 0 && (
+                <div className="col-span-full py-8 text-center text-sm text-muted-foreground">
+                  暂无启用的解决方案可供预览
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardContent className="pt-6">
           {query.isLoading ? <div className="text-muted-foreground">正在加载...</div> : null}

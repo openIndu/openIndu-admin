@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router'
-import { BarChart3, FileText, Image, Settings, UploadCloud, Users } from 'lucide-react'
+import { BarChart3, FileText, Image, Settings, Shield, UploadCloud, Users } from 'lucide-react'
 import { cn } from './ui/utils'
 
 const navItems = [
@@ -9,6 +9,8 @@ const navItems = [
   { to: '/documents', label: '文档管理', icon: FileText },
   { to: '/software', label: '软件管理', icon: UploadCloud },
   { to: '/settings', label: '系统配置', icon: Settings },
+  { to: '/stats', label: '在线统计', icon: BarChart3 },
+  { to: '/stats/audit', label: '审计日志', icon: Shield },
 ]
 
 export function Sidebar() {
