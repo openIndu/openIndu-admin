@@ -9,10 +9,16 @@ import { ConfirmDialog } from '../../components/ui/dialog'
 import { Select } from '../../components/ui/select'
 
 const roleOptions = [
-  { value: 'user', label: 'user' },
-  { value: 'member', label: 'member' },
-  { value: 'admin', label: 'admin' },
+  { value: 'user', label: '普通用户' },
+  { value: 'member', label: '会员' },
+  { value: 'admin', label: '管理员' },
 ]
+
+const roleLabels: Record<Role, string> = {
+  user: '普通用户',
+  member: '会员',
+  admin: '管理员',
+}
 
 export function UserDetail() {
   const { id } = useParams()
@@ -47,7 +53,7 @@ export function UserDetail() {
           <div className="space-y-4">
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-lg border p-4"><div className="text-sm text-muted-foreground">手机号</div><div className="mt-1 font-medium">{query.data.phone}</div></div>
-              <div className="rounded-lg border p-4"><div className="text-sm text-muted-foreground">角色</div><Badge className="mt-1">{query.data.role}</Badge></div>
+              <div className="rounded-lg border p-4"><div className="text-sm text-muted-foreground">角色</div><Badge className="mt-1">{roleLabels[query.data.role]}</Badge></div>
               <div className="rounded-lg border p-4"><div className="text-sm text-muted-foreground">最后登录</div><div className="mt-1">{query.data.last_login ?? '-'}</div></div>
               <div className="rounded-lg border p-4"><div className="text-sm text-muted-foreground">登录 IP</div><div className="mt-1">{query.data.login_ip ?? '-'}</div></div>
             </div>

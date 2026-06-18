@@ -11,10 +11,16 @@ import { Select } from '../../components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
 
 const roleOptions = [
-  { value: 'user', label: 'user' },
-  { value: 'member', label: 'member' },
-  { value: 'admin', label: 'admin' },
+  { value: 'user', label: '普通用户' },
+  { value: 'member', label: '会员' },
+  { value: 'admin', label: '管理员' },
 ]
+
+const roleLabels: Record<Role, string> = {
+  user: '普通用户',
+  member: '会员',
+  admin: '管理员',
+}
 
 const formatDate = (dateStr?: string) => {
   if (!dateStr) return '-'
@@ -66,7 +72,7 @@ export function UserList() {
                 {query.data.items.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell><Link className="text-primary hover:underline" to={`/users/${user.id}`}>{user.phone}</Link></TableCell>
-                    <TableCell><Badge variant={user.role === 'admin' ? 'default' : user.role === 'member' ? 'secondary' : 'outline'}>{user.role}</Badge></TableCell>
+                    <TableCell><Badge variant={user.role === 'admin' ? 'default' : user.role === 'member' ? 'secondary' : 'outline'}>{roleLabels[user.role]}</Badge></TableCell>
                     <TableCell>{formatDate(user.created_at)}</TableCell>
                     <TableCell><span className="inline-flex items-center gap-2"><span className={`h-2 w-2 rounded-full ${user.online ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />{user.online ? '在线' : '离线'}</span></TableCell>
                     <TableCell>{user.last_login ?? '-'}</TableCell>
