@@ -1,2 +1,13 @@
 @import './tailwind.css';
 @import './theme.css';
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

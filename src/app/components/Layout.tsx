@@ -3,6 +3,7 @@ import { LogOut, UserCircle } from 'lucide-react'
 import { useAuth } from '@/store/auth'
 import { Button } from './ui/button'
 import { Sidebar } from './Sidebar'
+import { ToastContainer } from './Toast'
 
 export function Layout() {
   const { user, logout } = useAuth()
@@ -35,6 +36,7 @@ export function Layout() {
           <Outlet />
         </main>
       </div>
+      <ToastContainer />
     </div>
   )
 }

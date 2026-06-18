@@ -125,9 +125,18 @@ api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiResponse<unknown>>) => {
     if (error.response?.status === 401) {
+      const detail = (error.response.data as { detail?: string })?.detail ?? ''
+      if (detail) {
+        window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: detail, type: 'error' } }))
+      }
       tokenStorage.clear()
       if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
+        const isForceLogout = detail.includes('已被撤销') || detail.includes('强制登出')
+        if (isForceLogout) {
+          setTimeout(() => { window.location.href = '/login' }, 2000)
+        } else {
+          window.location.href = '/login'
+        }
       }
     }
     return Promise.reject(error)
@@ -219,7 +228,7 @@ export interface DashboardStats {
 export const statsApi = {
   online: () => unwrap<OnlineStats>(api.get('/stats/online')),
   dashboard: () => unwrap<DashboardStats>(api.get('/stats/dashboard')),
-  loginHistory: (params: { page?: number; size?: number; keyword?: string } = {}) => unwrap<PageResult<Record<string, unknown>>>(api.get('/stats/login-history', { params })),
+  loginHistory: (params: { page?: number; size?: number; keyword?: string; status?: string } = {}) => unwrap<PageResult<Record<string, unknown>>>(api.get('/stats/login-history', { params })),
 }
 
 export const adminApi = {
