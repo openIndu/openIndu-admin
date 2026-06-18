@@ -205,7 +205,27 @@ export const syncApi = {
   logs: (params: { page?: number; size?: number } = {}) => unwrap<PageResult<SyncLog>>(api.get('/sync/logs', { params })),
 }
 
+export interface DashboardStats {
+  total_users: number
+  total_docs: number
+  total_software: number
+  new_users_30d: number
+  online_count: number
+  daily_registrations: Array<{ date: string; count: number }>
+  daily_logins: Array<{ date: string; count: number }>
+  geo_distribution: Array<{ name: string; count: number }>
+}
+
 export const statsApi = {
   online: () => unwrap<OnlineStats>(api.get('/stats/online')),
-  loginHistory: (params: { page?: number; size?: number } = {}) => unwrap<PageResult<Record<string, unknown>>>(api.get('/stats/login-history', { params })),
+  dashboard: () => unwrap<DashboardStats>(api.get('/stats/dashboard')),
+  loginHistory: (params: { page?: number; size?: number; keyword?: string } = {}) => unwrap<PageResult<Record<string, unknown>>>(api.get('/stats/login-history', { params })),
+}
+
+export const adminApi = {
+  auditLogs: (params: { page?: number; page_size?: number; admin_keyword?: string; target_keyword?: string; action?: string } = {}) =>
+    api.get('/admin/audit-logs', { params }).then((r) => {
+      const data = (r.data.data ?? r.data) as { items?: Record<string, unknown>[]; total?: number }
+      return data
+    }),
 }
