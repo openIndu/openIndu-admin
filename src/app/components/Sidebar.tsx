@@ -1,10 +1,9 @@
 import { NavLink } from 'react-router'
-import { BarChart3, FileText, Image, Settings, Shield, UploadCloud, Users } from 'lucide-react'
+import { BarChart3, FileText, Settings, Shield, UploadCloud, Users } from 'lucide-react'
 import { cn } from './ui/utils'
 
 const navItems = [
   { to: '/dashboard', label: '仪表盘', icon: BarChart3 },
-  { to: '/content/solutions', label: '官网内容', icon: Image },
   { to: '/users', label: '用户管理', icon: Users },
   { to: '/documents', label: '文档管理', icon: FileText },
   { to: '/software', label: '软件管理', icon: UploadCloud },

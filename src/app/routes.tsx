@@ -4,10 +4,6 @@ import { AuthGuard } from './components/AuthGuard'
 import { Layout } from './components/Layout'
 import { Login } from './pages/Login'
 import { Dashboard } from './pages/Dashboard'
-import { SolutionsManager } from './pages/content/SolutionsManager'
-import { CarouselManager } from './pages/content/CarouselManager'
-import { BenefitsManager } from './pages/content/BenefitsManager'
-import { FooterManager } from './pages/content/FooterManager'
 import { UserList } from './pages/users/UserList'
 import { UserDetail } from './pages/users/UserDetail'
 import { DocumentList } from './pages/documents/DocumentList'
@@ -31,11 +27,6 @@ export const router = createBrowserRouter([
           {
             element: <AdminGuard />,
             children: [
-              { path: '/content', element: <Navigate to="/content/solutions" replace /> },
-              { path: '/content/solutions', element: <SolutionsManager /> },
-              { path: '/content/carousel', element: <CarouselManager /> },
-              { path: '/content/benefits', element: <BenefitsManager /> },
-              { path: '/content/footer', element: <FooterManager /> },
               { path: '/users', element: <UserList /> },
               { path: '/users/:id', element: <UserDetail /> },
               { path: '/documents', element: <DocumentList /> },
