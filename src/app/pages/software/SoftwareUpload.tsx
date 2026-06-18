@@ -58,8 +58,15 @@ export function SoftwareUpload() {
           <label className="space-y-2">版本<Input value={version} onChange={(event) => setVersion(event.target.value)} placeholder="如 V18 / 2.1.0" required /></label>
           <label className="space-y-2">说明<Input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="可选说明" /></label>
           <label className="space-y-2">软件包<Input type="file" accept=".zip,.exe,.msi,.rar,.7z" onChange={(event) => setFile(event.target.files?.[0] ?? null)} required /></label>
-          {mutation.isError ? <div className="text-sm text-destructive">上传失败，请检查文件和网络</div> : null}
-          <div className="flex gap-3"><Button type="submit" disabled={!file || !brand || !category || !version || mutation.isPending}>{mutation.isPending ? '上传中...' : '上传'}</Button><Button type="button" variant="outline" onClick={() => navigate('/software')}>取消</Button></div>
+          {mutation.isError ? (
+            <div className="text-sm text-destructive">
+              {(() => {
+                const err = mutation.error as { response?: { data?: { detail?: string; message?: string } } }
+                return err?.response?.data?.detail || err?.response?.data?.message || '上传失败，请检查文件和网络'
+              })()}
+            </div>
+          ) : null}
+          <div className="mt-6 flex gap-3"><Button type="submit" disabled={!file || !brand || !category || !version || mutation.isPending}>{mutation.isPending ? '上传中...' : '上传'}</Button><Button type="button" variant="outline" onClick={() => navigate('/software')}>取消</Button></div>
         </form>
       </CardContent>
     </Card>

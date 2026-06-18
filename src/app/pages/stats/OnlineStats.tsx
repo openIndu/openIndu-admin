@@ -16,7 +16,12 @@ export function OnlineStats() {
     queryFn: () => statsApi.loginHistory({ page, size: pageSize }),
   })
 
-  const geoDistribution = onlineQuery.data?.geo_distribution ?? []
+  const rawGeo = onlineQuery.data?.geo_distribution
+  const geoDistribution: Array<{ name: string; count: number }> = Array.isArray(rawGeo)
+    ? rawGeo
+    : rawGeo && typeof rawGeo === 'object'
+      ? Object.entries(rawGeo as Record<string, number>).map(([name, count]) => ({ name, count }))
+      : []
   const loginRecords = historyQuery.data?.items ?? []
   const loginTotal = historyQuery.data?.total ?? 0
   const totalPages = Math.ceil(loginTotal / pageSize)
@@ -128,11 +133,13 @@ export function OnlineStats() {
                 <TableBody>
                   {loginRecords.map((record: Record<string, unknown>, idx: number) => (
                     <TableRow key={(record.id as number) ?? idx}>
-                      <TableCell className="font-medium">{String(record.username ?? '-')}</TableCell>
-                      <TableCell>{String(record.ip ?? '-')}</TableCell>
-                      <TableCell>{String(record.location ?? '-')}</TableCell>
+                      <TableCell className="font-medium">{String(record.username ?? record.user_id ?? '-')}</TableCell>
+                      <TableCell>{String(record.ip ?? record.ip_address ?? '-')}</TableCell>
+                      <TableCell>{String(record.location ?? record.geo_location ?? '-')}</TableCell>
                       <TableCell>
-                        {record.login_time ? new Date(record.login_time as string).toLocaleString('zh-CN') : '-'}
+                        {(record.login_time ?? record.last_active_at)
+                          ? new Date((record.login_time ?? record.last_active_at) as string).toLocaleString('zh-CN')
+                          : '-'}
                       </TableCell>
                     </TableRow>
                   ))}
