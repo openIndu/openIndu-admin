@@ -4,7 +4,7 @@ import { cn } from './ui/utils'
 
 const navItems = [
   { to: '/dashboard', label: '仪表盘', icon: BarChart3 },
-  { to: '/content/hero', label: '官网内容', icon: Image },
+  { to: '/content/solutions', label: '官网内容', icon: Image },
   { to: '/users', label: '用户管理', icon: Users },
   { to: '/documents', label: '文档管理', icon: FileText },
   { to: '/software', label: '软件管理', icon: UploadCloud },

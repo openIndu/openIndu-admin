@@ -4,7 +4,6 @@ import { AuthGuard } from './components/AuthGuard'
 import { Layout } from './components/Layout'
 import { Login } from './pages/Login'
 import { Dashboard } from './pages/Dashboard'
-import { HeroManager } from './pages/content/HeroManager'
 import { SolutionsManager } from './pages/content/SolutionsManager'
 import { CarouselManager } from './pages/content/CarouselManager'
 import { BenefitsManager } from './pages/content/BenefitsManager'
@@ -32,8 +31,7 @@ export const router = createBrowserRouter([
           {
             element: <AdminGuard />,
             children: [
-              { path: '/content', element: <Navigate to="/content/hero" replace /> },
-              { path: '/content/hero', element: <HeroManager /> },
+              { path: '/content', element: <Navigate to="/content/solutions" replace /> },
               { path: '/content/solutions', element: <SolutionsManager /> },
               { path: '/content/carousel', element: <CarouselManager /> },
               { path: '/content/benefits', element: <BenefitsManager /> },
