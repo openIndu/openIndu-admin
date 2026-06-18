@@ -5,11 +5,14 @@ import { useAuth } from '@/store/auth'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
+import { AlertTriangle } from 'lucide-react'
 
 export function Login() {
   const navigate = useNavigate()
   const { loginWithResponse, isAuthenticated } = useAuth()
   const [mode, setMode] = useState<'login' | 'register'>('login')
+  const [forceLogoutMsg, setForceLogoutMsg] = useState<string | null>(null)
+  const [bannerVisible, setBannerVisible] = useState(false)
   const [phone, setPhone] = useState('')
   const [code, setCode] = useState('')
   const [countdown, setCountdown] = useState(0)
@@ -23,6 +26,17 @@ export function Login() {
       navigate('/dashboard', { replace: true })
     }
   }, [isAuthenticated, navigate])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('reason') === 'force_logout') {
+      const msg = params.get('msg') || 'Token 已被撤销，您已被强制退出'
+      setForceLogoutMsg(msg)
+      setTimeout(() => setBannerVisible(true), 50)
+      const timer = setTimeout(() => setBannerVisible(false), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [])
 
   useEffect(() => {
     if (countdown <= 0) return undefined
@@ -81,6 +95,20 @@ export function Login() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+      {forceLogoutMsg && (
+        <div
+          className="fixed left-1/2 top-6 z-50 -translate-x-1/2 transition-all duration-500"
+          style={{
+            opacity: bannerVisible ? 1 : 0,
+            transform: `translateX(-50%) translateY(${bannerVisible ? '0' : '-1.5rem'})`,
+          }}
+        >
+          <div className="flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-5 py-3 text-sm text-amber-800 shadow-lg">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+            <span>{forceLogoutMsg}</span>
+          </div>
+        </div>
+      )}
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <img src="/assets/logo.png" alt="openIndu" className="mx-auto mb-3 h-12 w-12 object-contain" />

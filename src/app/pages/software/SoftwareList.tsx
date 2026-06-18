@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { softwareApi, type SoftwareItem } from '@/api'
@@ -9,6 +9,7 @@ import { ConfirmDialog } from '../../components/ui/dialog'
 import { Input } from '../../components/ui/input'
 import { Select } from '../../components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
+import { Paperclip } from 'lucide-react'
 
 const brandOptions = [
   { value: 'siemens', label: '西门子' },
@@ -39,6 +40,7 @@ const displayName = (item: SoftwareItem) => item.original_name ?? item.name ?? i
 
 export function SoftwareList() {
   const queryClient = useQueryClient()
+  const versionFileRef = useRef<HTMLInputElement>(null)
   const [page, setPage] = useState(1)
   const [brand, setBrand] = useState('')
   const [category, setCategory] = useState('')
@@ -46,6 +48,8 @@ export function SoftwareList() {
   const [deleting, setDeleting] = useState<SoftwareItem | null>(null)
   const [versionsModal, setVersionsModal] = useState<{ item: SoftwareItem; versions: SoftwareVersion[] } | null>(null)
   const [addVersionFile, setAddVersionFile] = useState<File | null>(null)
+  const [addVersionValue, setAddVersionValue] = useState('')
+  const [addVersionError, setAddVersionError] = useState('')
   const [deletingVersion, setDeletingVersion] = useState<{ softwareId: number; versionId: number } | null>(null)
   const params = useMemo(() => ({ page, size: 10, brand: brand || undefined, category: category || undefined, keyword: keyword || undefined }), [brand, category, keyword, page])
   const query = useQuery({ queryKey: ['software', params], queryFn: () => softwareApi.list(params) })
@@ -87,11 +91,22 @@ export function SoftwareList() {
   }
 
   const handleAddVersion = () => {
-    if (!versionsModal || !addVersionFile) return
+    if (!versionsModal) return
+    if (!addVersionValue.trim()) {
+      setAddVersionError('请填写版本号')
+      return
+    }
+    if (!addVersionFile) {
+      setAddVersionError('请选择软件包文件')
+      return
+    }
+    setAddVersionError('')
     const formData = new FormData()
     formData.append('file', addVersionFile)
+    formData.append('version', addVersionValue.trim())
     addVersionMutation.mutate({ id: versionsModal.item.id, formData })
     setAddVersionFile(null)
+    setAddVersionValue('')
   }
 
   const formatSize = (size?: number) => (size ? `${(size / 1024 / 1024).toFixed(2)} MB` : '-')
@@ -144,17 +159,35 @@ export function SoftwareList() {
           <div className="w-full max-w-2xl max-h-[80vh] overflow-auto rounded-xl border bg-card p-6 shadow-lg">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">版本管理 - {displayName(versionsModal.item)}</h3>
-              <Button variant="ghost" size="sm" onClick={() => { setVersionsModal(null); setAddVersionFile(null) }}>关闭</Button>
+              <Button variant="ghost" size="sm" onClick={() => { setVersionsModal(null); setAddVersionFile(null); setAddVersionValue(''); setAddVersionError('') }}>关闭</Button>
             </div>
 
-            <div className="mb-4 flex items-end gap-3">
-              <div className="flex-1">
-                <label className="mb-1 block text-sm text-muted-foreground">添加新版本</label>
-                <Input type="file" onChange={(event) => setAddVersionFile(event.target.files?.[0] ?? null)} />
+            <div className="mb-4 rounded-lg border p-4">
+              <label className="mb-2 block text-sm font-medium">添加新版本</label>
+              <div className="grid gap-3 md:grid-cols-[160px_1fr_auto]">
+                <Input placeholder="版本号，如 2.1.0" value={addVersionValue} onChange={(event) => setAddVersionValue(event.target.value)} />
+                <div
+                  onClick={() => versionFileRef.current?.click()}
+                  className="flex cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
+                >
+                  <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className={addVersionFile ? 'text-foreground' : 'text-muted-foreground'}>
+                    {addVersionFile ? addVersionFile.name : '点击选择软件包'}
+                  </span>
+                </div>
+                <input
+                  ref={versionFileRef}
+                  type="file"
+                  accept=".zip,.exe,.msi,.rar,.7z"
+                  className="sr-only"
+                  onChange={(event) => { setAddVersionFile(event.target.files?.[0] ?? null); setAddVersionError('') }}
+                />
+                <Button disabled={addVersionMutation.isPending} onClick={handleAddVersion}>
+                  {addVersionMutation.isPending ? '上传中...' : '添加版本'}
+                </Button>
               </div>
-              <Button disabled={!addVersionFile || addVersionMutation.isPending} onClick={handleAddVersion}>
-                {addVersionMutation.isPending ? '上传中...' : '添加版本'}
-              </Button>
+              {addVersionError ? <div className="mt-2 text-sm text-destructive">{addVersionError}</div> : null}
+              {addVersionMutation.isError ? <div className="mt-2 text-sm text-destructive">版本上传失败，请检查版本号、文件格式和网络。</div> : null}
             </div>
 
             {versionsModal.versions.length === 0 ? (

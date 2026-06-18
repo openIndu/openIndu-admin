@@ -35,7 +35,7 @@ export function UserList() {
   const [keyword, setKeyword] = useState('')
   const [pendingAction, setPendingAction] = useState<{ type: 'blacklist' | 'unblacklist' | 'forceLogout'; user: UserItem } | null>(null)
   const params = useMemo(() => ({ page, size: 10, keyword: keyword || undefined }), [keyword, page])
-  const query = useQuery({ queryKey: ['users', params], queryFn: () => userApi.list(params) })
+  const query = useQuery({ queryKey: ['users', params], queryFn: () => userApi.list(params), refetchInterval: 30_000 })
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['users'] })
   const roleMutation = useMutation({ mutationFn: ({ id, role }: { id: number; role: Role }) => userApi.updateRole(id, role), onSuccess: invalidate })
   const blacklistMutation = useMutation({ mutationFn: userApi.blacklist, onSuccess: invalidate })
