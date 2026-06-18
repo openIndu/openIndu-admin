@@ -1,141 +1,94 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { statsApi } from '@/api'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
+import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
-import { Clock, MapPin, Monitor, Users } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
+import { Input } from '../../components/ui/input'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
+import { Clock } from 'lucide-react'
 
 export function OnlineStats() {
   const [page, setPage] = useState(1)
-  const pageSize = 10
+  const [keyword, setKeyword] = useState('')
+  const [searchKeyword, setSearchKeyword] = useState('')
+  const pageSize = 20
 
-  const onlineQuery = useQuery({ queryKey: ['stats', 'online'], queryFn: statsApi.online })
-  const historyQuery = useQuery({
-    queryKey: ['stats', 'login-history', page],
-    queryFn: () => statsApi.loginHistory({ page, size: pageSize }),
+  const query = useQuery({
+    queryKey: ['stats', 'login-history', page, searchKeyword],
+    queryFn: () => statsApi.loginHistory({ page, size: pageSize, keyword: searchKeyword || undefined }),
   })
 
-  const rawGeo = onlineQuery.data?.geo_distribution
-  const geoDistribution: Array<{ name: string; count: number }> = Array.isArray(rawGeo)
-    ? rawGeo
-    : rawGeo && typeof rawGeo === 'object'
-      ? Object.entries(rawGeo as Record<string, number>).map(([name, count]) => ({ name, count }))
-      : []
-  const loginRecords = historyQuery.data?.items ?? []
-  const loginTotal = historyQuery.data?.total ?? 0
-  const totalPages = Math.ceil(loginTotal / pageSize)
+  const records = query.data?.items ?? []
+  const total = query.data?.total ?? 0
+  const totalPages = Math.ceil(total / pageSize)
+
+  const handleSearch = () => {
+    setSearchKeyword(keyword)
+    setPage(1)
+  }
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold">在线统计</h2>
-        <p className="text-muted-foreground">当前在线用户、地域分布与登录历史。</p>
+        <h2 className="text-2xl font-semibold">登录日志</h2>
+        <p className="text-muted-foreground">用户登录会话记录，支持按手机号筛选。</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">当前在线</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">
-              {onlineQuery.isLoading ? '加载中' : onlineQuery.isError ? '--' : onlineQuery.data?.online_users ?? 0}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">活跃地区</CardTitle>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">
-              {onlineQuery.isLoading ? '加载中' : onlineQuery.isError ? '--' : geoDistribution.length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">今日登录</CardTitle>
-            <Monitor className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">
-              {historyQuery.isLoading ? '加载中' : historyQuery.isError ? '--' : loginTotal}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">登录记录</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">
-              {historyQuery.isLoading ? '加载中' : historyQuery.isError ? '--' : loginTotal}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Geo Distribution */}
-      {geoDistribution.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              地域分布
-            </CardTitle>
-            <CardDescription>当前在线用户的地域分布情况。</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {geoDistribution.map((geo) => (
-                <div key={geo.name} className="flex items-center justify-between rounded-lg border px-4 py-3">
-                  <span className="text-sm font-medium">{geo.name}</span>
-                  <span className="text-sm text-muted-foreground">{geo.count} 人在线</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Login History Table */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            登录历史
+            登录记录
           </CardTitle>
-          <CardDescription>最近用户登录记录。</CardDescription>
+          <CardDescription>共 {total} 条登录记录。</CardDescription>
         </CardHeader>
         <CardContent>
-          {historyQuery.isLoading ? <div className="text-muted-foreground">正在加载...</div> : null}
-          {historyQuery.isError ? <div className="text-destructive">登录历史加载失败</div> : null}
-          {!historyQuery.isLoading && !historyQuery.isError && loginRecords.length === 0 ? (
-            <div className="text-muted-foreground">暂无登录记录</div>
+          {/* Filters */}
+          <div className="mb-4 flex gap-3">
+            <Input
+              placeholder="按手机号搜索"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="max-w-xs"
+            />
+            <Button variant="outline" onClick={handleSearch}>搜索</Button>
+            {searchKeyword && (
+              <Button variant="ghost" onClick={() => { setKeyword(''); setSearchKeyword(''); setPage(1) }}>清除</Button>
+            )}
+            <Button variant="outline" className="ml-auto" onClick={() => void query.refetch()}>刷新</Button>
+          </div>
+
+          {query.isLoading ? <div className="text-muted-foreground py-4">正在加载...</div> : null}
+          {query.isError ? <div className="text-destructive py-4">登录日志加载失败</div> : null}
+          {!query.isLoading && !query.isError && records.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">暂无登录记录</div>
           ) : null}
-          {loginRecords.length > 0 && (
+
+          {records.length > 0 && (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>用户</TableHead>
+                    <TableHead>手机号</TableHead>
                     <TableHead>IP 地址</TableHead>
                     <TableHead>登录地区</TableHead>
-                    <TableHead>登录时间</TableHead>
+                    <TableHead>状态</TableHead>
+                    <TableHead>时间</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loginRecords.map((record: Record<string, unknown>, idx: number) => (
+                  {records.map((record: Record<string, unknown>, idx: number) => (
                     <TableRow key={(record.id as number) ?? idx}>
                       <TableCell className="font-medium">{String(record.username ?? record.user_id ?? '-')}</TableCell>
                       <TableCell>{String(record.ip ?? record.ip_address ?? '-')}</TableCell>
                       <TableCell>{String(record.location ?? record.geo_location ?? '-')}</TableCell>
+                      <TableCell>
+                        <Badge variant={record.is_active ? 'success' : 'secondary'}>
+                          {record.is_active ? '在线' : '已离线'}
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         {(record.login_time ?? record.last_active_at)
                           ? new Date((record.login_time ?? record.last_active_at) as string).toLocaleString('zh-CN')
@@ -147,15 +100,9 @@ export function OnlineStats() {
               </Table>
               {totalPages > 1 && (
                 <div className="mt-4 flex items-center justify-end gap-2">
-                  <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                    上一页
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    第 {page} / {totalPages} 页
-                  </span>
-                  <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
-                    下一页
-                  </Button>
+                  <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>上一页</Button>
+                  <span className="text-sm text-muted-foreground">第 {page} / {totalPages} 页</span>
+                  <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>下一页</Button>
                 </div>
               )}
             </>

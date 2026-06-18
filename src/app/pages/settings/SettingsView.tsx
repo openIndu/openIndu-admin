@@ -51,9 +51,11 @@ export function SettingsView() {
           <label className="space-y-2">Chunk Size<Input type="number" min={1} value={form.rag_chunk_size} onChange={(event) => setForm({ ...form, rag_chunk_size: event.target.value })} /></label>
           <label className="space-y-2">Chunk Overlap<Input type="number" min={0} value={form.rag_chunk_overlap} onChange={(event) => setForm({ ...form, rag_chunk_overlap: event.target.value })} /></label>
           <label className="space-y-2">同步间隔（分钟）<Input type="number" min={1} value={form.rag_sync_interval} onChange={(event) => setForm({ ...form, rag_sync_interval: event.target.value })} /></label>
-          {mutation.isError ? <div className="text-sm text-destructive">保存失败</div> : null}
-          {mutation.isSuccess ? <div className="text-sm text-emerald-700">保存成功</div> : null}
-          <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? '保存中...' : '保存配置'}</Button>
+          {mutation.isError ? <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">保存失败，请检查网络后重试。</div> : null}
+          <div className="mt-4 flex items-center gap-4">
+            <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? '保存中...' : '保存配置'}</Button>
+            {mutation.isSuccess ? <span className="text-sm text-emerald-700 font-medium">✓ 保存成功</span> : null}
+          </div>
         </form>
       </CardContent>
     </Card>
