@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
-import { ShieldCheck } from 'lucide-react'
 import { authApi } from '@/api'
 import { useAuth } from '@/store/auth'
 import { Button } from '../components/ui/button'
@@ -66,7 +65,15 @@ export function Login() {
       await loginWithResponse(response)
       navigate('/dashboard', { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : '登录失败，请检查验证码')
+      const axErr = err as { response?: { status?: number; data?: { detail?: string; message?: string } } }
+      const status = axErr.response?.status
+      const detail = axErr.response?.data?.detail || axErr.response?.data?.message
+      if (status === 409) {
+        setError('该手机号已注册，请直接登录')
+        setMode('login')
+      } else {
+        setError(detail || (err instanceof Error ? err.message : '操作失败，请稍后重试'))
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -76,9 +83,7 @@ export function Login() {
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
-            <ShieldCheck className="h-6 w-6" />
-          </div>
+          <img src="/assets/logo.png" alt="openIndu" className="mx-auto mb-3 h-12 w-12 object-contain" />
           <CardTitle>openIndu 社区管理平台</CardTitle>
           <CardDescription>{mode === 'login' ? '手机号验证码登录' : '手机号验证码注册'}</CardDescription>
         </CardHeader>

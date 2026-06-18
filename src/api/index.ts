@@ -220,8 +220,12 @@ export const softwareApi = {
 }
 
 export const portalApi = {
-  getHero: () => unwrap<PortalHero>(api.get('/portal/hero')),
-  updateHero: (payload: PortalHero) => unwrap<PortalHero>(api.put('/portal/hero', payload)),
+  getHero: async () => {
+    const raw = await unwrap<{ content?: Partial<PortalHero> } | PortalHero>(api.get('/portal/hero'))
+    if (raw && typeof raw === 'object' && 'content' in raw) return ((raw as { content: PortalHero }).content ?? {}) as PortalHero
+    return raw as PortalHero
+  },
+  updateHero: (payload: PortalHero) => unwrap<PortalHero>(api.put('/portal/hero', { content: payload, sort_order: 0, is_active: true })),
   getSolutions: () => unwrap<PortalSolution[]>(api.get('/portal/solutions')),
   createSolution: (payload: Omit<PortalSolution, 'id'>) => unwrap<PortalSolution>(api.post('/portal/solutions', payload)),
   updateSolution: (id: number, payload: Partial<PortalSolution>) => unwrap<PortalSolution>(api.put(`/portal/solutions/${id}`, payload)),
