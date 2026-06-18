@@ -8,15 +8,28 @@ import { Input } from '../../components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
 import { Clock } from 'lucide-react'
 
+const statusOptions = [
+  { value: '', label: '全部' },
+  { value: 'online', label: '在线' },
+  { value: 'offline', label: '已离线' },
+]
+
 export function OnlineStats() {
   const [page, setPage] = useState(1)
   const [keyword, setKeyword] = useState('')
-  const [searchKeyword, setSearchKeyword] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [searchParams, setSearchParams] = useState({ keyword: '', status: '' })
   const pageSize = 20
 
   const query = useQuery({
-    queryKey: ['stats', 'login-history', page, searchKeyword],
-    queryFn: () => statsApi.loginHistory({ page, size: pageSize, keyword: searchKeyword || undefined }),
+    queryKey: ['stats', 'login-history', page, searchParams],
+    queryFn: () =>
+      statsApi.loginHistory({
+        page,
+        size: pageSize,
+        keyword: searchParams.keyword || undefined,
+        status: searchParams.status || undefined,
+      }),
   })
 
   const records = query.data?.items ?? []
@@ -24,15 +37,24 @@ export function OnlineStats() {
   const totalPages = Math.ceil(total / pageSize)
 
   const handleSearch = () => {
-    setSearchKeyword(keyword)
+    setSearchParams({ keyword, status: statusFilter })
     setPage(1)
   }
+
+  const handleClear = () => {
+    setKeyword('')
+    setStatusFilter('')
+    setSearchParams({ keyword: '', status: '' })
+    setPage(1)
+  }
+
+  const hasFilter = searchParams.keyword || searchParams.status
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold">登录日志</h2>
-        <p className="text-muted-foreground">用户登录会话记录，支持按手机号筛选。</p>
+        <p className="text-muted-foreground">用户登录会话记录，支持按手机号和状态筛选。</p>
       </div>
 
       <Card>
@@ -45,7 +67,7 @@ export function OnlineStats() {
         </CardHeader>
         <CardContent>
           {/* Filters */}
-          <div className="mb-4 flex gap-3">
+          <div className="mb-4 flex flex-wrap gap-3">
             <Input
               placeholder="按手机号搜索"
               value={keyword}
@@ -53,11 +75,33 @@ export function OnlineStats() {
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               className="max-w-xs"
             />
-            <Button variant="outline" onClick={handleSearch}>搜索</Button>
-            {searchKeyword && (
-              <Button variant="ghost" onClick={() => { setKeyword(''); setSearchKeyword(''); setPage(1) }}>清除</Button>
+            {/* Status filter tabs */}
+            <div className="flex rounded-md border overflow-hidden">
+              {statusOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setStatusFilter(opt.value)}
+                  className={`px-3 py-1.5 text-sm transition-colors ${
+                    statusFilter === opt.value
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background hover:bg-muted'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <Button variant="outline" onClick={handleSearch}>
+              搜索
+            </Button>
+            {hasFilter && (
+              <Button variant="ghost" onClick={handleClear}>
+                清除
+              </Button>
             )}
-            <Button variant="outline" className="ml-auto" onClick={() => void query.refetch()}>刷新</Button>
+            <Button variant="outline" className="ml-auto" onClick={() => void query.refetch()}>
+              刷新
+            </Button>
           </div>
 
           {query.isLoading ? <div className="text-muted-foreground py-4">正在加载...</div> : null}
@@ -81,7 +125,9 @@ export function OnlineStats() {
                 <TableBody>
                   {records.map((record: Record<string, unknown>, idx: number) => (
                     <TableRow key={(record.id as number) ?? idx}>
-                      <TableCell className="font-medium">{String(record.username ?? record.user_id ?? '-')}</TableCell>
+                      <TableCell className="font-medium">
+                        {String(record.username ?? record.user_id ?? '-')}
+                      </TableCell>
                       <TableCell>{String(record.ip ?? record.ip_address ?? '-')}</TableCell>
                       <TableCell>{String(record.location ?? record.geo_location ?? '-')}</TableCell>
                       <TableCell>
@@ -90,8 +136,10 @@ export function OnlineStats() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {(record.login_time ?? record.last_active_at)
-                          ? new Date((record.login_time ?? record.last_active_at) as string).toLocaleString('zh-CN')
+                        {record.login_time ?? record.last_active_at
+                          ? new Date(
+                              (record.login_time ?? record.last_active_at) as string,
+                            ).toLocaleString('zh-CN')
                           : '-'}
                       </TableCell>
                     </TableRow>
@@ -100,9 +148,25 @@ export function OnlineStats() {
               </Table>
               {totalPages > 1 && (
                 <div className="mt-4 flex items-center justify-end gap-2">
-                  <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>上一页</Button>
-                  <span className="text-sm text-muted-foreground">第 {page} / {totalPages} 页</span>
-                  <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>下一页</Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  >
+                    上一页
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    第 {page} / {totalPages} 页
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  >
+                    下一页
+                  </Button>
                 </div>
               )}
             </>

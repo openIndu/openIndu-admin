@@ -5,21 +5,82 @@ import { statsApi } from '@/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 
-function BarChart({ data, color = 'bg-blue-500' }: { data: Array<{ date: string; count: number }>; color?: string }) {
-  if (!data.length) return <div className="text-sm text-muted-foreground">暂无数据</div>
+function LineChart({
+  data,
+  color = '#3b82f6',
+  id = 'chart',
+}: {
+  data: Array<{ date: string; count: number }>
+  color?: string
+  id?: string
+}) {
+  if (!data.length) return <div className="py-8 text-center text-sm text-muted-foreground">暂无数据</div>
+
+  const W = 400
+  const H = 90
+  const padL = 28
+  const padR = 8
+  const padT = 8
+  const padB = 20
+  const innerW = W - padL - padR
+  const innerH = H - padT - padB
   const max = Math.max(...data.map((d) => d.count), 1)
+
+  const px = (i: number) => padL + (i / Math.max(data.length - 1, 1)) * innerW
+  const py = (v: number) => padT + innerH - (v / max) * innerH
+
+  const linePath = data.map((d, i) => `${i === 0 ? 'M' : 'L'}${px(i).toFixed(1)},${py(d.count).toFixed(1)}`).join(' ')
+  const areaPath = `${linePath} L${px(data.length - 1).toFixed(1)},${(padT + innerH).toFixed(1)} L${padL},${(padT + innerH).toFixed(1)} Z`
+  const gradId = `grad-${id}`
+
   return (
-    <div className="flex items-end gap-0.5 h-24">
-      {data.map((d) => (
-        <div key={d.date} className="group relative flex-1 flex flex-col items-center justify-end h-full">
-          <div
-            className={`w-full rounded-sm ${color} opacity-80 group-hover:opacity-100 transition-opacity`}
-            style={{ height: `${Math.max(4, (d.count / max) * 100)}%` }}
-            title={`${d.date}: ${d.count}`}
-          />
-        </div>
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 90 }}>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {[0, 0.5, 1].map((f, i) => (
+        <line
+          key={i}
+          x1={padL}
+          y1={(padT + innerH * (1 - f)).toFixed(1)}
+          x2={padL + innerW}
+          y2={(padT + innerH * (1 - f)).toFixed(1)}
+          stroke="#e5e7eb"
+          strokeWidth="1"
+        />
       ))}
-    </div>
+      <path d={areaPath} fill={`url(#${gradId})`} />
+      <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      {data.map((d, i) => (
+        <circle key={i} cx={px(i).toFixed(1)} cy={py(d.count).toFixed(1)} r="2.5" fill={color} />
+      ))}
+      <text x={padL - 3} y={padT + 4} textAnchor="end" fontSize="9" fill="#9ca3af">{max}</text>
+      <text x={padL - 3} y={padT + innerH + 4} textAnchor="end" fontSize="9" fill="#9ca3af">0</text>
+      {data.length > 0 && (
+        <text x={padL} y={H - 4} textAnchor="middle" fontSize="8" fill="#9ca3af">
+          {data[0].date.slice(5)}
+        </text>
+      )}
+      {data.length > 1 && (
+        <text x={padL + innerW} y={H - 4} textAnchor="end" fontSize="8" fill="#9ca3af">
+          {data[data.length - 1].date.slice(5)}
+        </text>
+      )}
+      {data.length > 2 && (
+        <text
+          x={px(Math.floor((data.length - 1) / 2)).toFixed(1)}
+          y={H - 4}
+          textAnchor="middle"
+          fontSize="8"
+          fill="#9ca3af"
+        >
+          {data[Math.floor((data.length - 1) / 2)].date.slice(5)}
+        </text>
+      )}
+    </svg>
   )
 }
 
@@ -63,7 +124,7 @@ export function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-semibold">
-                  {dashQuery.isLoading ? '加载中' : dashQuery.isError ? '--' : (d ? m.value ?? 0 : 0)}
+                  {dashQuery.isLoading ? '加载中' : dashQuery.isError ? '--' : (d ? (m.value ?? 0) : 0)}
                 </div>
               </CardContent>
             </Card>
@@ -82,8 +143,10 @@ export function Dashboard() {
             <CardDescription>每日新增注册用户数量</CardDescription>
           </CardHeader>
           <CardContent>
-            {dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : (
-              <BarChart data={d?.daily_registrations ?? []} color="bg-blue-500" />
+            {dashQuery.isLoading ? (
+              <div className="text-muted-foreground text-sm">加载中...</div>
+            ) : (
+              <LineChart data={d?.daily_registrations ?? []} color="#3b82f6" id="reg" />
             )}
           </CardContent>
         </Card>
@@ -96,8 +159,10 @@ export function Dashboard() {
             <CardDescription>每日活跃用户（登录会话）数量</CardDescription>
           </CardHeader>
           <CardContent>
-            {dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : (
-              <BarChart data={d?.daily_logins ?? []} color="bg-emerald-500" />
+            {dashQuery.isLoading ? (
+              <div className="text-muted-foreground text-sm">加载中...</div>
+            ) : (
+              <LineChart data={d?.daily_logins ?? []} color="#10b981" id="logins" />
             )}
           </CardContent>
         </Card>
