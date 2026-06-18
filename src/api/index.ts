@@ -74,25 +74,6 @@ export interface SoftwareItem extends ResourceItem {
   is_active?: boolean
 }
 
-export interface PortalSolution {
-  id: number
-  icon?: string
-  title: string
-  description: string
-  link?: string
-  is_active?: boolean
-  sort_order?: number
-}
-
-export interface PortalCarouselItem {
-  id: number
-  title?: string
-  image_url: string
-  link?: string
-  sort_order?: number
-  is_active?: boolean
-}
-
 export interface SystemConfig {
   config_key: string
   config_value: string
@@ -209,21 +190,6 @@ export const softwareApi = {
   addVersion: (id: number, formData: FormData) => unwrap(api.post(`/software/${id}/versions`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })),
   deleteVersion: (id: number, versionId: number) => unwrap(api.delete(`/software/${id}/versions/${versionId}`)),
   categories: () => unwrap<Array<{ value: string; label: string }> | string[]>(api.get('/software/categories/list')),
-}
-
-export const portalApi = {
-  getSolutions: () => unwrap<PortalSolution[]>(api.get('/portal/solutions')),
-  createSolution: (payload: Omit<PortalSolution, 'id'>) => unwrap<PortalSolution>(api.post('/portal/solutions', payload)),
-  updateSolution: (id: number, payload: Partial<PortalSolution>) => unwrap<PortalSolution>(api.put(`/portal/solutions/${id}`, payload)),
-  deleteSolution: (id: number) => unwrap(api.delete(`/portal/solutions/${id}`)),
-  getCarousel: () => unwrap<PortalCarouselItem[]>(api.get('/portal/carousel')),
-  uploadCarousel: (formData: FormData) => unwrap<PortalCarouselItem>(api.post('/portal/carousel', formData, { headers: { 'Content-Type': 'multipart/form-data' } })),
-  updateCarousel: (id: number, payload: Partial<PortalCarouselItem>) => unwrap<PortalCarouselItem>(api.put(`/portal/carousel/${id}`, payload)),
-  deleteCarousel: (id: number) => unwrap(api.delete(`/portal/carousel/${id}`)),
-  getBenefits: () => unwrap<unknown[]>(api.get('/portal/benefits')),
-  updateBenefits: (payload: unknown[]) => unwrap(api.put('/portal/benefits', payload)),
-  getFooter: () => unwrap<Record<string, unknown>>(api.get('/portal/footer')),
-  updateFooter: (payload: Record<string, unknown>) => unwrap(api.put('/portal/footer', payload)),
 }
 
 export const configApi = {
