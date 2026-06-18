@@ -133,7 +133,7 @@ api.interceptors.response.use(
       if (window.location.pathname !== '/login') {
         const isForceLogout = detail.includes('已被撤销') || detail.includes('强制登出')
         if (isForceLogout) {
-          setTimeout(() => { window.location.href = '/login' }, 2000)
+          window.location.href = '/login?reason=force_logout&msg=' + encodeURIComponent(detail || 'Token 已被撤销，您已被强制退出')
         } else {
           window.location.href = '/login'
         }
@@ -184,7 +184,7 @@ export const userApi = {
 
 export const documentApi = {
   list: (params: { page?: number; size?: number; brand?: string; category?: string; keyword?: string } = {}) => unwrap<PageResult<ResourceItem>>(api.get('/documents', { params })),
-  upload: (formData: FormData) => unwrap<ResourceItem>(api.post('/documents/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })),
+  upload: (formData: FormData) => unwrap<ResourceItem>(api.post('/documents/upload', formData)),
   get: (id: number) => unwrap<ResourceItem>(api.get(`/documents/${id}`)),
   delete: (id: number) => unwrap(api.delete(`/documents/${id}`)),
   brands: () => unwrap<Array<{ value: string; label: string }> | string[]>(api.get('/documents/brands/list')),
@@ -193,10 +193,10 @@ export const documentApi = {
 
 export const softwareApi = {
   list: (params: { page?: number; size?: number; brand?: string; category?: string; keyword?: string } = {}) => unwrap<PageResult<SoftwareItem>>(api.get('/software', { params })),
-  upload: (formData: FormData) => unwrap<SoftwareItem>(api.post('/software/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })),
+  upload: (formData: FormData) => unwrap<SoftwareItem>(api.post('/software/upload', formData, { timeout: 300_000 })),
   get: (id: number) => unwrap<SoftwareItem>(api.get(`/software/${id}`)),
   delete: (id: number) => unwrap(api.delete(`/software/${id}`)),
-  addVersion: (id: number, formData: FormData) => unwrap(api.post(`/software/${id}/versions`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })),
+  addVersion: (id: number, formData: FormData) => unwrap(api.post(`/software/${id}/versions`, formData)),
   deleteVersion: (id: number, versionId: number) => unwrap(api.delete(`/software/${id}/versions/${versionId}`)),
   categories: () => unwrap<Array<{ value: string; label: string }> | string[]>(api.get('/software/categories/list')),
 }
@@ -219,10 +219,23 @@ export interface DashboardStats {
   total_docs: number
   total_software: number
   new_users_30d: number
+  visitors_30d: number
   online_count: number
+  online_visitors: number
+  anonymous_online: number
   daily_registrations: Array<{ date: string; count: number }>
+  daily_visitors: Array<{ date: string; count: number }>
   daily_logins: Array<{ date: string; count: number }>
-  geo_distribution: Array<{ name: string; count: number }>
+  geo_distribution: Array<{
+    name: string
+    country_code?: string
+    lat: number
+    lng: number
+    visitors: number
+    registrations: number
+    online: number
+    anonymous: number
+  }>
 }
 
 export const statsApi = {

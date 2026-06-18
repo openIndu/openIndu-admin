@@ -42,7 +42,14 @@ export function DocumentList() {
   const [syncMode, setSyncMode] = useState<'full' | 'incremental'>('incremental')
   const [logPage, setLogPage] = useState(1)
   const params = useMemo(() => ({ page, size: 10, brand: brand || undefined, category: category || undefined, keyword: keyword || undefined }), [brand, category, keyword, page])
-  const query = useQuery({ queryKey: ['documents', params], queryFn: () => documentApi.list(params) })
+  const query = useQuery({
+    queryKey: ['documents', params],
+    queryFn: () => documentApi.list(params),
+    refetchInterval: (query) => {
+      const items = query.state.data?.items ?? []
+      return items.some((i) => i.sync_status === 'pending' || i.sync_status === 'syncing') ? 5_000 : false
+    },
+  })
   const deleteMutation = useMutation({ mutationFn: documentApi.delete, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) })
 
   const syncStatusQuery = useQuery({ queryKey: ['sync', 'status'], queryFn: syncApi.status, refetchInterval: 10_000 })

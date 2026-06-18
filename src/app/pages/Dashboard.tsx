@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
-import { FileText, MapPin, Settings, UploadCloud, Users, Wifi, TrendingUp, UserPlus } from 'lucide-react'
-import { statsApi } from '@/api'
+import { FileText, MapPin, Settings, UploadCloud, Users, Wifi, TrendingUp, UserPlus, Globe2 } from 'lucide-react'
+import { statsApi, type DashboardStats } from '@/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 
@@ -42,45 +42,69 @@ function LineChart({
         </linearGradient>
       </defs>
       {[0, 0.5, 1].map((f, i) => (
-        <line
-          key={i}
-          x1={padL}
-          y1={(padT + innerH * (1 - f)).toFixed(1)}
-          x2={padL + innerW}
-          y2={(padT + innerH * (1 - f)).toFixed(1)}
-          stroke="#e5e7eb"
-          strokeWidth="1"
-        />
+        <line key={i} x1={padL} y1={(padT + innerH * (1 - f)).toFixed(1)} x2={padL + innerW} y2={(padT + innerH * (1 - f)).toFixed(1)} stroke="#e5e7eb" strokeWidth="1" />
       ))}
       <path d={areaPath} fill={`url(#${gradId})`} />
       <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-      {data.map((d, i) => (
-        <circle key={i} cx={px(i).toFixed(1)} cy={py(d.count).toFixed(1)} r="2.5" fill={color} />
-      ))}
+      {data.map((d, i) => <circle key={i} cx={px(i).toFixed(1)} cy={py(d.count).toFixed(1)} r="2.5" fill={color} />)}
       <text x={padL - 3} y={padT + 4} textAnchor="end" fontSize="9" fill="#9ca3af">{max}</text>
       <text x={padL - 3} y={padT + innerH + 4} textAnchor="end" fontSize="9" fill="#9ca3af">0</text>
-      {data.length > 0 && (
-        <text x={padL} y={H - 4} textAnchor="middle" fontSize="8" fill="#9ca3af">
-          {data[0].date.slice(5)}
-        </text>
-      )}
-      {data.length > 1 && (
-        <text x={padL + innerW} y={H - 4} textAnchor="end" fontSize="8" fill="#9ca3af">
-          {data[data.length - 1].date.slice(5)}
-        </text>
-      )}
-      {data.length > 2 && (
-        <text
-          x={px(Math.floor((data.length - 1) / 2)).toFixed(1)}
-          y={H - 4}
-          textAnchor="middle"
-          fontSize="8"
-          fill="#9ca3af"
-        >
-          {data[Math.floor((data.length - 1) / 2)].date.slice(5)}
-        </text>
-      )}
+      {data.length > 0 && <text x={padL} y={H - 4} textAnchor="middle" fontSize="8" fill="#9ca3af">{data[0].date.slice(5)}</text>}
+      {data.length > 1 && <text x={padL + innerW} y={H - 4} textAnchor="end" fontSize="8" fill="#9ca3af">{data[data.length - 1].date.slice(5)}</text>}
+      {data.length > 2 && <text x={px(Math.floor((data.length - 1) / 2)).toFixed(1)} y={H - 4} textAnchor="middle" fontSize="8" fill="#9ca3af">{data[Math.floor((data.length - 1) / 2)].date.slice(5)}</text>}
     </svg>
+  )
+}
+
+function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
+  const max = Math.max(...data.map((g) => g.visitors + g.online), 1)
+  const project = (lat: number, lng: number) => ({
+    x: ((lng + 180) / 360) * 100,
+    y: ((90 - lat) / 180) * 100,
+  })
+
+  return (
+    <div className="relative overflow-hidden rounded-xl border bg-slate-950 p-4 text-white">
+      <svg viewBox="0 0 1000 500" className="h-[320px] w-full">
+        <defs>
+          <radialGradient id="mapPulse" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <rect width="1000" height="500" fill="#020617" />
+        {/* Simple world map silhouette */}
+        <path d="M130 155 L210 120 L330 130 L350 190 L290 225 L215 215 L165 250 L95 220 Z" fill="#1e293b" opacity="0.9" />
+        <path d="M250 245 L330 240 L360 305 L340 395 L285 455 L250 360 Z" fill="#1e293b" opacity="0.9" />
+        <path d="M430 145 L530 110 L650 130 L705 195 L655 250 L520 235 L455 260 L395 215 Z" fill="#1e293b" opacity="0.9" />
+        <path d="M505 250 L585 265 L620 335 L585 420 L525 395 L500 315 Z" fill="#1e293b" opacity="0.9" />
+        <path d="M690 165 L820 150 L910 205 L865 285 L750 270 L700 220 Z" fill="#1e293b" opacity="0.9" />
+        <path d="M780 325 L875 350 L895 415 L820 440 L760 395 Z" fill="#1e293b" opacity="0.9" />
+        {[10, 30, 50, 70, 90].map((x) => <line key={`x-${x}`} x1={x * 10} y1="0" x2={x * 10} y2="500" stroke="#334155" strokeWidth="1" opacity="0.35" />)}
+        {[20, 40, 60, 80].map((y) => <line key={`y-${y}`} x1="0" y1={y * 5} x2="1000" y2={y * 5} stroke="#334155" strokeWidth="1" opacity="0.35" />)}
+        {data.map((geo) => {
+          const p = project(geo.lat, geo.lng)
+          const x = p.x * 10
+          const y = p.y * 5
+          const total = geo.visitors + geo.online
+          const r = 7 + (total / max) * 18
+          return (
+            <g key={`${geo.name}-${geo.country_code ?? ''}`}>
+              <circle cx={x} cy={y} r={r * 1.8} fill="url(#mapPulse)" opacity="0.35" />
+              <circle cx={x} cy={y} r={r} fill="#38bdf8" opacity="0.85" />
+              <circle cx={x} cy={y} r={Math.max(3, r * 0.35)} fill="#facc15" opacity="0.95" />
+              <title>{`${geo.name} 访问:${geo.visitors} 在线:${geo.online} 未登录:${geo.anonymous} 注册:${geo.registrations}`}</title>
+            </g>
+          )
+        })}
+      </svg>
+      <div className="mt-3 grid gap-2 text-xs text-slate-300 sm:grid-cols-4">
+        <div><span className="inline-block h-2 w-2 rounded-full bg-sky-400" /> 访问 IP</div>
+        <div><span className="inline-block h-2 w-2 rounded-full bg-yellow-400" /> 在线用户</div>
+        <div>未登录在线：按最近 5 分钟访问 IP - 登录在线估算</div>
+        <div>Hover 点位可查看详情</div>
+      </div>
+    </div>
   )
 }
 
@@ -96,23 +120,23 @@ export function Dashboard() {
   const d = dashQuery.data
 
   const metrics = [
+    { label: '30 日访问 IP', value: d?.visitors_30d, icon: Globe2, color: 'text-sky-600' },
     { label: '当前在线', value: d?.online_count, icon: Wifi, color: 'text-emerald-600' },
-    { label: '本月新增', value: d?.new_users_30d, icon: UserPlus, color: 'text-blue-600' },
     { label: '总用户数', value: d?.total_users, icon: Users, color: 'text-violet-600' },
+    { label: '本月新增', value: d?.new_users_30d, icon: UserPlus, color: 'text-blue-600' },
     { label: '文档总数', value: d?.total_docs, icon: FileText, color: 'text-orange-600' },
+    { label: '未登录在线', value: d?.anonymous_online, icon: Users, color: 'text-amber-600' },
   ]
 
   const geoData = d?.geo_distribution ?? []
-  const geoMax = Math.max(...geoData.map((g) => g.count), 1)
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold">仪表盘</h2>
-        <p className="text-muted-foreground">过去 30 天平台运营概览。</p>
+        <p className="text-muted-foreground">过去 30 天访问、注册、在线与 IP 地域概览。</p>
       </div>
 
-      {/* Metric cards */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((m) => {
           const Icon = m.icon
@@ -123,79 +147,46 @@ export function Dashboard() {
                 <Icon className={`h-4 w-4 ${m.color}`} />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-semibold">
-                  {dashQuery.isLoading ? '加载中' : dashQuery.isError ? '--' : (d ? (m.value ?? 0) : 0)}
-                </div>
+                <div className="text-3xl font-semibold">{dashQuery.isLoading ? '加载中' : dashQuery.isError ? '--' : (d ? (m.value ?? 0) : 0)}</div>
               </CardContent>
             </Card>
           )
         })}
       </div>
 
-      {/* Trend charts */}
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <UserPlus className="h-4 w-4 text-blue-600" />
-              30 日注册趋势
-            </CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base"><UserPlus className="h-4 w-4 text-blue-600" />30 日注册趋势</CardTitle>
             <CardDescription>每日新增注册用户数量</CardDescription>
           </CardHeader>
-          <CardContent>
-            {dashQuery.isLoading ? (
-              <div className="text-muted-foreground text-sm">加载中...</div>
-            ) : (
-              <LineChart data={d?.daily_registrations ?? []} color="#3b82f6" id="reg" />
-            )}
-          </CardContent>
+          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.daily_registrations ?? []} color="#3b82f6" id="reg" />}</CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <TrendingUp className="h-4 w-4 text-emerald-600" />
-              30 日访问趋势
-            </CardTitle>
-            <CardDescription>每日活跃用户（登录会话）数量</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-emerald-600" />30 日访问趋势</CardTitle>
+            <CardDescription>每日访问 IP 去重统计（含未登录访问）</CardDescription>
           </CardHeader>
-          <CardContent>
-            {dashQuery.isLoading ? (
-              <div className="text-muted-foreground text-sm">加载中...</div>
-            ) : (
-              <LineChart data={d?.daily_logins ?? []} color="#10b981" id="logins" />
-            )}
-          </CardContent>
+          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.daily_visitors ?? d?.daily_logins ?? []} color="#10b981" id="visits" />}</CardContent>
         </Card>
       </div>
 
-      {/* Geo distribution */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-blue-600" />
-            实时在线地域分布
-          </CardTitle>
-          <CardDescription>当前在线用户的 IP 地域统计（共 {d?.online_count ?? 0} 人在线）</CardDescription>
+          <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5 text-blue-600" />全球实时访问地图</CardTitle>
+          <CardDescription>按 IP 判断最近 5 分钟访问、注册、在线与未登录访问分布。</CardDescription>
         </CardHeader>
         <CardContent>
-          {dashQuery.isLoading ? (
-            <div className="text-muted-foreground text-sm">加载中...</div>
-          ) : geoData.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground text-sm">暂无在线用户</div>
-          ) : (
-            <div className="space-y-3">
-              {geoData.slice(0, 12).map((geo) => (
-                <div key={geo.name} className="flex items-center gap-3">
-                  <span className="w-24 shrink-0 text-sm text-right text-muted-foreground truncate" title={geo.name}>
-                    {geo.name}
-                  </span>
-                  <div className="flex-1 h-5 bg-muted rounded-sm overflow-hidden">
-                    <div
-                      className="h-full bg-blue-500 rounded-sm transition-all"
-                      style={{ width: `${(geo.count / geoMax) * 100}%` }}
-                    />
+          {dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : geoData.length === 0 ? <div className="py-8 text-center text-muted-foreground text-sm">暂无访问数据</div> : <WorldMap data={geoData} />}
+          {geoData.length > 0 && (
+            <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {geoData.slice(0, 6).map((geo) => (
+                <div key={geo.name} className="rounded-lg border p-3 text-sm">
+                  <div className="font-medium">{geo.name}</div>
+                  <div className="mt-1 grid grid-cols-2 gap-1 text-muted-foreground">
+                    <span>访问 {geo.visitors}</span><span>注册 {geo.registrations}</span>
+                    <span>在线 {geo.online}</span><span>未登录 {geo.anonymous}</span>
                   </div>
-                  <span className="w-12 text-sm font-medium text-right">{geo.count}</span>
                 </div>
               ))}
             </div>
@@ -203,25 +194,16 @@ export function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* Quick links */}
       <Card>
-        <CardHeader>
-          <CardTitle>快捷入口</CardTitle>
-          <CardDescription>快速进入高频管理模块。</CardDescription>
-        </CardHeader>
+        <CardHeader><CardTitle>快捷入口</CardTitle><CardDescription>快速进入高频管理模块。</CardDescription></CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {quickLinks.map((item) => {
             const Icon = item.icon
             return (
               <div key={item.to} className="rounded-lg border p-4">
-                <div className="flex items-center gap-2 font-medium">
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                  {item.label}
-                </div>
+                <div className="flex items-center gap-2 font-medium"><Icon className="h-4 w-4 text-muted-foreground" />{item.label}</div>
                 <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
-                <Button asChild variant="outline" size="sm" className="mt-4">
-                  <Link to={item.to}>进入管理</Link>
-                </Button>
+                <Button asChild variant="outline" size="sm" className="mt-4"><Link to={item.to}>进入管理</Link></Button>
               </div>
             )
           })}

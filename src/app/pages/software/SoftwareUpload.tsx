@@ -152,7 +152,7 @@ export function SoftwareUpload() {
           ) : null}
 
           <div className="mt-6 flex gap-3">
-            <Button type="submit" disabled={mutation.isPending}>
+            <Button type="submit" disabled={!brand || !category || !version.trim() || !file || mutation.isPending}>
               {mutation.isPending ? '上传中...' : '上传'}
             </Button>
             <Button type="button" variant="outline" onClick={() => navigate('/software')}>
