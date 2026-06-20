@@ -60,41 +60,60 @@ function LineChart({
 }
 
 const REFERENCE_CITIES: Array<[number, number, string]> = [
+  // North America
   [40.7, -74.0, '纽约'], [34.1, -118.2, '洛杉矶'], [41.9, -87.6, '芝加哥'],
+  [37.8, -122.4, '旧金山'], [43.7, -79.4, '多伦多'], [19.4, -99.1, '墨西哥城'],
+  // South America
+  [-23.5, -46.6, '圣保罗'], [-34.6, -58.4, '布宜诺斯'], [-12.0, -77.0, '利马'],
+  // Europe
   [51.5, -0.1, '伦敦'], [48.9, 2.3, '巴黎'], [52.5, 13.4, '柏林'], [55.8, 37.6, '莫斯科'],
-  [39.9, 116.4, '北京'], [31.2, 121.5, '上海'], [35.7, 139.7, '东京'], [37.6, 127.0, '首尔'],
-  [1.3, 103.8, '新加坡'], [19.1, 72.9, '孟买'], [25.2, 55.3, '迪拜'],
-  [-23.5, -46.6, '圣保罗'], [-33.9, 151.2, '悉尼'], [6.5, 3.4, '拉各斯'], [-26.2, 28.0, '约翰内斯堡'],
+  [41.9, 12.5, '罗马'], [40.4, -3.7, '马德里'], [52.4, 4.9, '阿姆斯特丹'],
+  // Africa
+  [30.0, 31.2, '开罗'], [6.5, 3.4, '拉各斯'], [-26.2, 28.0, '约翰内斯堡'], [-1.3, 36.8, '内罗毕'],
+  // Middle East & South Asia
+  [25.2, 55.3, '迪拜'], [35.7, 51.4, '德黑兰'], [19.1, 72.9, '孟买'], [28.6, 77.2, '新德里'],
+  // East & Southeast Asia
+  [39.9, 116.4, '北京'], [31.2, 121.5, '上海'], [22.3, 114.2, '香港'],
+  [35.7, 139.7, '东京'], [37.6, 127.0, '首尔'], [1.3, 103.8, '新加坡'],
+  [13.8, 100.5, '曼谷'], [14.6, 121.0, '马尼拉'], [-6.2, 106.8, '雅加达'],
+  // Oceania
+  [-33.9, 151.2, '悉尼'], [-37.8, 145.0, '墨尔本'],
 ]
 
 function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
   const maxVal = Math.max(...data.map((g) => g.visitors + g.online), 1)
 
   return (
-    <div className="relative overflow-hidden rounded-xl border bg-[#0a0f1a]">
-      <div className="h-[640px] w-full">
+    <div className="relative overflow-hidden rounded-xl border bg-[#d4dfe6]">
+      <div className="h-[800px] w-full">
         <ComposableMap
           projection="geoMercator"
-          projectionConfig={{ scale: 160, center: [20, 25] }}
+          projectionConfig={{ scale: 200, center: [10, 20] }}
           style={{ width: '100%', height: '100%' }}
         >
-          <ZoomableGroup zoom={1} minZoom={1} maxZoom={1} translateExtent={[[0, 0], [800, 450]]}>
-            {/* Ocean */}
-            <rect x={-800} y={-600} width={2400} height={1800} fill="#0a0f1a" />
+          <ZoomableGroup zoom={1} minZoom={1} maxZoom={1} translateExtent={[[0, 0], [800, 600]]}>
+            {/* Ocean — natural blue */}
+            <rect x={-1000} y={-800} width={2800} height={2400} fill="#a8c8e8" />
 
-            {/* Country boundaries */}
+            {/* Country boundaries — green-tan landmasses */}
             <Geographies geography={WORLD_TOPO}>
               {({ geographies }: { geographies: Array<{ rsmKey: string }> }) =>
                 geographies.map((geo: { rsmKey: string }) => (
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
-                    fill="#151d2e"
-                    stroke="#1e293b"
-                    strokeWidth={0.5}
+                    fill="#e8dec8"
+                    stroke="#c0b898"
+                    strokeWidth={0.6}
                     style={{
                       default: { outline: 'none' },
-                      hover: { fill: '#1e293b', outline: 'none' },
+                      hover: {
+                        fill: '#f0e8d0',
+                        stroke: '#a09878',
+                        strokeWidth: 1,
+                        outline: 'none',
+                        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))',
+                      },
                       pressed: { outline: 'none' },
                     }}
                   />
@@ -102,15 +121,15 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
               }
             </Geographies>
 
-            {/* Reference cities */}
+            {/* Reference cities — dark dots with readable labels */}
             {REFERENCE_CITIES.map(([lat, lng, name]) => (
               <Marker key={`ref-${name}`} coordinates={[lng, lat]}>
-                <circle r={2} fill="#475569" opacity={0.5} />
+                <circle r={2.5} fill="#5a4a3a" opacity={0.55} />
                 <text
                   textAnchor="start"
                   x={5}
                   y={-3}
-                  style={{ fontFamily: 'system-ui', fontSize: 8, fill: '#475569', opacity: 0.5 }}
+                  style={{ fontFamily: 'system-ui', fontSize: 9, fill: '#5a4a3a', opacity: 0.6, fontWeight: 500 }}
                 >
                   {name}
                 </text>
@@ -122,27 +141,29 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
               const total = geo.visitors + geo.online
               const ratio = total / maxVal
               const isHot = ratio > 0.6
-              const r = 6 + ratio * 20
+              const r = 7 + ratio * 22
               return (
                 <Marker key={`data-${geo.name}-${geo.country_code ?? ''}`} coordinates={[geo.lng, geo.lat]}>
+                  {/* Outer ring */}
+                  <circle cx={0} cy={0} r={r + 4} fill={isHot ? '#ef4444' : '#3b82f6'} opacity={0.1} />
                   {/* Glow ring */}
-                  <circle cx={0} cy={0} r={r * 1.8} fill={isHot ? '#f97316' : '#38bdf8'} opacity={0.15} />
+                  <circle cx={0} cy={0} r={r * 1.5} fill={isHot ? '#ef4444' : '#3b82f6'} opacity={0.12} />
                   {/* Main dot */}
-                  <circle cx={0} cy={0} r={r} fill={isHot ? '#f97316' : '#38bdf8'} opacity={0.9} />
+                  <circle cx={0} cy={0} r={r} fill={isHot ? '#ef4444' : '#2563eb'} opacity={0.92} stroke="#fff" strokeWidth={1.5} />
                   {/* Inner highlight */}
-                  <circle cx={0} cy={0} r={Math.max(2.5, r * 0.3)} fill="#fff" opacity={0.9} />
+                  <circle cx={0} cy={0} r={Math.max(3, r * 0.3)} fill="#fff" opacity={0.9} />
                   {/* Label */}
                   <text
                     textAnchor="middle"
-                    y={-r - 8}
-                    style={{ fontFamily: 'system-ui', fontSize: 11, fill: '#e2e8f0', fontWeight: 600 }}
+                    y={-r - 10}
+                    style={{ fontFamily: 'system-ui', fontSize: 11, fill: '#1e293b', fontWeight: 700 }}
                   >
                     {geo.name}
                   </text>
                   <text
                     textAnchor="middle"
-                    y={-r + 8}
-                    style={{ fontFamily: 'system-ui', fontSize: 10, fill: '#94a3b8' }}
+                    y={-r + 7}
+                    style={{ fontFamily: 'system-ui', fontSize: 10, fill: '#475569', fontWeight: 500 }}
                   >
                     {total}
                   </text>
@@ -154,23 +175,24 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-6 border-t border-slate-800 px-5 py-3 text-xs text-slate-400">
+      <div className="flex items-center gap-6 border-t border-[#b8c8d8] bg-[#e8edf2] px-5 py-3 text-xs text-slate-600">
         <div className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-sky-400 shadow-[0_0_6px_rgba(56,189,248,0.5)]" />
-          <span>常规访问</span>
+          <span className="inline-block h-3 w-3 rounded-full bg-blue-600 border border-white shadow-sm" />
+          <span className="font-medium">常规访问</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.5)]" />
-          <span>热点区域</span>
+          <span className="inline-block h-3 w-3 rounded-full bg-red-500 border border-white shadow-sm" />
+          <span className="font-medium">热点区域</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-500" />
-          <span>参考城市</span>
+          <span className="inline-block h-2 w-2 rounded-full bg-[#5a4a3a] opacity-55" />
+          <span>参考城市（{REFERENCE_CITIES.length} 个）</span>
         </div>
-        <div className="ml-auto text-slate-500">圆点大小 = 活跃度</div>
+        <div className="ml-auto text-slate-400 text-[11px]">圆点大小 = 活跃度</div>
       </div>
     </div>
   )
+}
 }
 
 const quickLinks = [
