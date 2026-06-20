@@ -246,6 +246,8 @@ export interface DashboardStats {
   month_new_users: number
   month_new_docs: number
   month_new_software: number
+  monthly_registrations: Array<{ date: string; count: number }>
+  monthly_visitors: Array<{ date: string; count: number }>
 }
 
 export const statsApi = {

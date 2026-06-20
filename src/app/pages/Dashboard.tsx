@@ -236,17 +236,17 @@ export function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><UserPlus className="h-4 w-4 text-blue-600" />30 日注册趋势</CardTitle>
-            <CardDescription>每日新增注册用户数量</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-base"><UserPlus className="h-4 w-4 text-blue-600" />本月注册趋势</CardTitle>
+            <CardDescription>本月每日新增注册用户数量（无数据日默认为 0）</CardDescription>
           </CardHeader>
-          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.daily_registrations ?? []} color="#3b82f6" id="reg" />}</CardContent>
+          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.monthly_registrations ?? []} color="#3b82f6" id="reg" />}</CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-emerald-600" />30 日访问趋势</CardTitle>
-            <CardDescription>每日访问 IP 去重统计（含未登录访问）</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-emerald-600" />本月访问趋势</CardTitle>
+            <CardDescription>本月每日登录用户访问去重统计（无数据日默认为 0）</CardDescription>
           </CardHeader>
-          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.daily_visitors ?? d?.daily_logins ?? []} color="#10b981" id="visits" />}</CardContent>
+          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.monthly_visitors ?? []} color="#10b981" id="visits" />}</CardContent>
         </Card>
       </div>
 
