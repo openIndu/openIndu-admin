@@ -57,52 +57,110 @@ function LineChart({
 }
 
 function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
-  const max = Math.max(...data.map((g) => g.visitors + g.online), 1)
-  const project = (lat: number, lng: number) => ({
-    x: ((lng + 180) / 360) * 100,
-    y: ((90 - lat) / 180) * 100,
-  })
+  const maxVal = Math.max(...data.map((g) => g.visitors + g.online), 1)
+  const project = (lat: number, lng: number): [number, number] => {
+    // Mercator projection onto 1000x500 viewBox
+    const x = ((lng + 180) / 360) * 1000
+    const latRad = (lat * Math.PI) / 180
+    const mercY = Math.log(Math.tan(Math.PI / 4 + latRad / 2))
+    const y = 250 - (mercY / Math.PI) * 250
+    return [x, y]
+  }
+
+  // Clean world map outline (Equirectangular projection base, simplified)
+  const worldPath = [
+    // North America
+    'M90,170 L140,130 L180,105 L220,90 L260,100 L270,120 L260,150 L230,165 L200,175 L160,190 L120,200 L90,195 L70,185 Z',
+    // South America
+    'M180,240 L200,230 L220,235 L230,260 L225,290 L215,310 L195,315 L180,300 L175,270 L178,250 Z',
+    // Europe
+    'M440,120 L470,100 L510,95 L540,100 L560,115 L555,135 L540,145 L510,140 L485,135 L460,130 Z',
+    // Africa
+    'M450,180 L490,170 L540,175 L570,195 L575,230 L560,270 L530,290 L500,285 L470,265 L450,240 L445,210 Z',
+    // Asia
+    'M545,105 L600,85 L670,70 L740,75 L800,90 L860,110 L890,130 L870,155 L820,155 L760,145 L700,135 L650,135 L610,145 L580,140 L555,130 Z',
+    // Southeast Asia / Indonesia / Australia
+    'M740,165 L760,155 L790,160 L810,175 L800,195 L775,200 L750,190 Z',
+    'M730,280 L760,265 L790,260 L820,270 L830,295 L810,315 L780,320 L750,310 L730,295 Z',
+    // Japan
+    'M850,115 L860,105 L870,110 L870,130 L860,135 L850,125 Z',
+  ].join(' ')
 
   return (
-    <div className="relative overflow-hidden rounded-xl border bg-slate-950 p-4 text-white">
-      <svg viewBox="0 0 1000 500" className="h-[320px] w-full">
+    <div className="relative overflow-hidden rounded-xl border bg-gradient-to-b from-slate-900 to-slate-950">
+      <svg viewBox="0 0 1000 500" className="h-[380px] w-full">
         <defs>
-          <radialGradient id="mapPulse" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.9" />
+          <radialGradient id="mapDotGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.6" />
             <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
           </radialGradient>
+          <radialGradient id="mapDotHot" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#f97316" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="#f97316" stopOpacity="0" />
+          </radialGradient>
+          <filter id="mapGlow">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
         </defs>
+
+        {/* Background */}
         <rect width="1000" height="500" fill="#020617" />
-        {/* Simple world map silhouette */}
-        <path d="M130 155 L210 120 L330 130 L350 190 L290 225 L215 215 L165 250 L95 220 Z" fill="#1e293b" opacity="0.9" />
-        <path d="M250 245 L330 240 L360 305 L340 395 L285 455 L250 360 Z" fill="#1e293b" opacity="0.9" />
-        <path d="M430 145 L530 110 L650 130 L705 195 L655 250 L520 235 L455 260 L395 215 Z" fill="#1e293b" opacity="0.9" />
-        <path d="M505 250 L585 265 L620 335 L585 420 L525 395 L500 315 Z" fill="#1e293b" opacity="0.9" />
-        <path d="M690 165 L820 150 L910 205 L865 285 L750 270 L700 220 Z" fill="#1e293b" opacity="0.9" />
-        <path d="M780 325 L875 350 L895 415 L820 440 L760 395 Z" fill="#1e293b" opacity="0.9" />
-        {[10, 30, 50, 70, 90].map((x) => <line key={`x-${x}`} x1={x * 10} y1="0" x2={x * 10} y2="500" stroke="#334155" strokeWidth="1" opacity="0.35" />)}
-        {[20, 40, 60, 80].map((y) => <line key={`y-${y}`} x1="0" y1={y * 5} x2="1000" y2={y * 5} stroke="#334155" strokeWidth="1" opacity="0.35" />)}
+
+        {/* Subtle grid - meridians */}
+        {[0, 200, 400, 600, 800, 1000].map((x) => (
+          <line key={`m-${x}`} x1={x} y1="0" x2={x} y2="500" stroke="#1e293b" strokeWidth="0.5" />
+        ))}
+        {[0, 125, 250, 375, 500].map((y) => (
+          <line key={`p-${y}`} x1="0" y1={y} x2="1000" y2={y} stroke="#1e293b" strokeWidth="0.5" />
+        ))}
+
+        {/* World map silhouette */}
+        <path d={worldPath} fill="#0f172a" stroke="#1e293b" strokeWidth="1" opacity="0.8" />
+
+        {/* Data points */}
         {data.map((geo) => {
-          const p = project(geo.lat, geo.lng)
-          const x = p.x * 10
-          const y = p.y * 5
+          const [x, y] = project(geo.lat, geo.lng)
           const total = geo.visitors + geo.online
-          const r = 7 + (total / max) * 18
+          const ratio = total / maxVal
+          const isHot = ratio > 0.6
+          const r = 8 + ratio * 22
+
           return (
-            <g key={`${geo.name}-${geo.country_code ?? ''}`}>
-              <circle cx={x} cy={y} r={r * 1.8} fill="url(#mapPulse)" opacity="0.35" />
-              <circle cx={x} cy={y} r={r} fill="#38bdf8" opacity="0.85" />
-              <circle cx={x} cy={y} r={Math.max(3, r * 0.35)} fill="#facc15" opacity="0.95" />
-              <title>{`${geo.name} 访问:${geo.visitors} 在线:${geo.online} 未登录:${geo.anonymous} 注册:${geo.registrations}`}</title>
+            <g key={`${geo.name}-${geo.country_code ?? ''}`} filter="url(#mapGlow)">
+              {/* Pulse ring */}
+              <circle cx={x} cy={y} r={r * 1.6} fill={isHot ? 'url(#mapDotHot)' : 'url(#mapDotGlow)'} opacity="0.5" />
+              {/* Main dot */}
+              <circle cx={x} cy={y} r={r} fill={isHot ? '#f97316' : '#38bdf8'} opacity="0.9" />
+              {/* Inner highlight */}
+              <circle cx={x} cy={y} r={Math.max(3, r * 0.35)} fill="#fff" opacity="0.9" />
+              {/* Label */}
+              <text x={x} y={y - r - 6} textAnchor="middle" fontSize="10" fill="#e2e8f0" fontWeight="500" opacity="0.9">
+                {geo.name}
+              </text>
+              <text x={x} y={y - r + 8} textAnchor="middle" fontSize="9" fill="#94a3b8" opacity="0.8">
+                {total}
+              </text>
             </g>
           )
         })}
       </svg>
-      <div className="mt-3 grid gap-2 text-xs text-slate-300 sm:grid-cols-4">
-        <div><span className="inline-block h-2 w-2 rounded-full bg-sky-400" /> 访问 IP</div>
-        <div><span className="inline-block h-2 w-2 rounded-full bg-yellow-400" /> 在线用户</div>
-        <div>未登录在线：按最近 5 分钟访问 IP - 登录在线估算</div>
-        <div>Hover 点位可查看详情</div>
+
+      {/* Legend */}
+      <div className="flex items-center gap-6 border-t border-slate-800 px-5 py-3 text-xs text-slate-400">
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-sky-400 shadow-[0_0_6px_rgba(56,189,248,0.5)]" />
+          <span>常规访问</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.5)]" />
+          <span>热点区域</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-white opacity-60" />
+          <span>城市名称 + 访问量</span>
+        </div>
+        <div className="ml-auto text-slate-500">圆点大小 = 活跃度</div>
       </div>
     </div>
   )
@@ -250,21 +308,27 @@ export function Dashboard() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5 text-blue-600" />全球实时访问地图</CardTitle>
-          <CardDescription>按 IP 判断最近 5 分钟访问、注册、在线与未登录访问分布。</CardDescription>
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-0">
+          <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5 text-blue-500" />全球实时访问地图</CardTitle>
+          <CardDescription>按 IP 地理位置展示最近 5 分钟访问分布，圆点大小表示活跃度。</CardDescription>
         </CardHeader>
-        <CardContent>
-          {dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : geoData.length === 0 ? <div className="py-8 text-center text-muted-foreground text-sm">暂无访问数据</div> : <WorldMap data={geoData} />}
+        <CardContent className="pt-4">
+          {dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : geoData.length === 0 ? <div className="py-12 text-center text-muted-foreground text-sm">暂无访问数据</div> : <WorldMap data={geoData} />}
           {geoData.length > 0 && (
-            <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {geoData.slice(0, 6).map((geo) => (
-                <div key={geo.name} className="rounded-lg border p-3 text-sm">
-                  <div className="font-medium">{geo.name}</div>
-                  <div className="mt-1 grid grid-cols-2 gap-1 text-muted-foreground">
-                    <span>访问 {geo.visitors}</span><span>注册 {geo.registrations}</span>
-                    <span>在线 {geo.online}</span><span>未登录 {geo.anonymous}</span>
+                <div key={geo.name} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-900">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                    {geo.name.slice(0, 2)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium">{geo.name}</div>
+                    <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-sky-400" />访问 {geo.visitors}</span>
+                      <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-green-400" />在线 {geo.online}</span>
+                      <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-violet-400" />注册 {geo.registrations}</span>
+                    </div>
                   </div>
                 </div>
               ))}
