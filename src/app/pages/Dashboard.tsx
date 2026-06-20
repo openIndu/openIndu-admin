@@ -193,7 +193,6 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
     </div>
   )
 }
-}
 
 const quickLinks = [
   { to: '/documents', label: '文档管理', description: '上传、筛选、删除和同步文档', icon: FileText },
