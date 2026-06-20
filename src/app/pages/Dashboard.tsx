@@ -1,9 +1,12 @@
 import { Link } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { FileText, MapPin, Settings, UploadCloud, Users, TrendingUp, UserPlus, Clock, CalendarDays } from 'lucide-react'
+import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from 'react-simple-maps'
 import { statsApi, type DashboardStats } from '@/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
+
+const WORLD_TOPO = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
 
 function LineChart({
   data,
@@ -56,7 +59,6 @@ function LineChart({
   )
 }
 
-// Major global cities as reference landmarks (lat, lng, name)
 const REFERENCE_CITIES: Array<[number, number, string]> = [
   [40.7, -74.0, '纽约'], [34.1, -118.2, '洛杉矶'], [41.9, -87.6, '芝加哥'],
   [51.5, -0.1, '伦敦'], [48.9, 2.3, '巴黎'], [52.5, 13.4, '柏林'], [55.8, 37.6, '莫斯科'],
@@ -68,98 +70,88 @@ const REFERENCE_CITIES: Array<[number, number, string]> = [
 function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
   const maxVal = Math.max(...data.map((g) => g.visitors + g.online), 1)
 
-  // Mercator projection onto 1000x600 viewBox
-  const project = (lat: number, lng: number): [number, number] => {
-    const x = ((lng + 180) / 360) * 1000
-    const latRad = (lat * Math.PI) / 180
-    const mercY = Math.log(Math.tan(Math.PI / 4 + latRad / 2))
-    const y = 300 - (mercY / Math.PI) * 300
-    return [x, y]
-  }
-
-  // Simplified world continent outline
-  const worldPath = [
-    'M90,210 L140,155 L180,125 L220,105 L260,115 L270,140 L260,180 L230,200 L200,210 L160,230 L120,240 L90,235 L70,220 Z',
-    'M180,290 L200,275 L220,280 L230,310 L225,350 L215,375 L195,380 L180,360 L175,325 L178,300 Z',
-    'M440,140 L470,115 L510,110 L540,115 L560,135 L555,160 L540,175 L510,165 L485,160 L460,155 Z',
-    'M450,215 L490,205 L540,210 L570,235 L575,280 L560,325 L530,350 L500,345 L470,320 L450,290 L445,255 Z',
-    'M545,125 L600,100 L670,80 L740,85 L800,105 L860,130 L890,155 L870,185 L820,185 L760,175 L700,160 L650,160 L610,175 L580,168 L555,155 Z',
-    'M740,200 L760,185 L790,190 L810,210 L800,235 L775,240 L750,230 Z',
-    'M730,340 L760,320 L790,315 L820,325 L830,355 L810,380 L780,385 L750,375 L730,355 Z',
-    'M850,135 L860,125 L870,130 L870,155 L860,162 L850,150 Z',
-  ].join(' ')
-
   return (
-    <div className="relative overflow-hidden rounded-xl border bg-gradient-to-b from-slate-900 to-slate-950">
-      <svg viewBox="0 0 1000 600" className="h-[500px] w-full">
-        <defs>
-          <radialGradient id="mapDotGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="mapDotHot" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#f97316" stopOpacity="0.7" />
-            <stop offset="100%" stopColor="#f97316" stopOpacity="0" />
-          </radialGradient>
-          <filter id="mapGlow">
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-        </defs>
+    <div className="relative overflow-hidden rounded-xl border bg-[#0a0f1a]">
+      <div className="h-[640px] w-full">
+        <ComposableMap
+          projection="geoMercator"
+          projectionConfig={{ scale: 160, center: [20, 25] }}
+          style={{ width: '100%', height: '100%' }}
+        >
+          <ZoomableGroup zoom={1} minZoom={1} maxZoom={1} translateExtent={[[0, 0], [800, 450]]}>
+            {/* Ocean */}
+            <rect x={-800} y={-600} width={2400} height={1800} fill="#0a0f1a" />
 
-        {/* Ocean background */}
-        <rect width="1000" height="600" fill="#020617" />
+            {/* Country boundaries */}
+            <Geographies geography={WORLD_TOPO}>
+              {({ geographies }) =>
+                geographies.map((geo) => (
+                  <Geography
+                    key={geo.rsmKey}
+                    geography={geo}
+                    fill="#151d2e"
+                    stroke="#1e293b"
+                    strokeWidth={0.5}
+                    style={{
+                      default: { outline: 'none' },
+                      hover: { fill: '#1e293b', outline: 'none' },
+                      pressed: { outline: 'none' },
+                    }}
+                  />
+                ))
+              }
+            </Geographies>
 
-        {/* Latitude / longitude grid */}
-        {[0, 200, 400, 600, 800, 1000].map((x) => (
-          <line key={`m-${x}`} x1={x} y1="0" x2={x} y2="600" stroke="#1e293b" strokeWidth="0.5" />
-        ))}
-        {[0, 150, 300, 450, 600].map((y) => (
-          <line key={`p-${y}`} x1="0" y1={y} x2="1000" y2={y} stroke="#1e293b" strokeWidth="0.5" />
-        ))}
+            {/* Reference cities */}
+            {REFERENCE_CITIES.map(([lat, lng, name]) => (
+              <Marker key={`ref-${name}`} coordinates={[lng, lat]}>
+                <circle r={2} fill="#475569" opacity={0.5} />
+                <text
+                  textAnchor="start"
+                  x={5}
+                  y={-3}
+                  style={{ fontFamily: 'system-ui', fontSize: 8, fill: '#475569', opacity: 0.5 }}
+                >
+                  {name}
+                </text>
+              </Marker>
+            ))}
 
-        {/* Continents */}
-        <path d={worldPath} fill="#0f172a" stroke="#1e293b" strokeWidth="1" opacity="0.8" />
-
-        {/* Reference cities (subtle landmarks) */}
-        {REFERENCE_CITIES.map(([lat, lng, name]) => {
-          const [cx, cy] = project(lat, lng)
-          return (
-            <g key={`ref-${name}`} opacity="0.35">
-              <circle cx={cx} cy={cy} r="2" fill="#64748b" />
-              <text x={cx + 4} y={cy - 2} fontSize="8" fill="#64748b">{name}</text>
-            </g>
-          )
-        })}
-
-        {/* Live data points */}
-        {data.map((geo) => {
-          const [x, y] = project(geo.lat, geo.lng)
-          const total = geo.visitors + geo.online
-          const ratio = total / maxVal
-          const isHot = ratio > 0.6
-          const r = 8 + ratio * 24
-
-          return (
-            <g key={`data-${geo.name}-${geo.country_code ?? ''}`} filter="url(#mapGlow)">
-              {/* Outer pulse */}
-              <circle cx={x} cy={y} r={r * 1.6} fill={isHot ? 'url(#mapDotHot)' : 'url(#mapDotGlow)'} opacity="0.45" />
-              {/* Main dot */}
-              <circle cx={x} cy={y} r={r} fill={isHot ? '#f97316' : '#38bdf8'} opacity="0.9" />
-              {/* Inner bright spot */}
-              <circle cx={x} cy={y} r={Math.max(3.5, r * 0.3)} fill="#fff" opacity="0.95" />
-              {/* Label above dot */}
-              <text x={x} y={y - r - 7} textAnchor="middle" fontSize="10" fill="#e2e8f0" fontWeight="600">
-                {geo.name}
-              </text>
-              {/* Visitor count below name */}
-              <text x={x} y={y - r + 8} textAnchor="middle" fontSize="9" fill="#94a3b8">
-                {total}
-              </text>
-            </g>
-          )
-        })}
-      </svg>
+            {/* Live data markers */}
+            {data.map((geo) => {
+              const total = geo.visitors + geo.online
+              const ratio = total / maxVal
+              const isHot = ratio > 0.6
+              const r = 6 + ratio * 20
+              return (
+                <Marker key={`data-${geo.name}-${geo.country_code ?? ''}`} coordinates={[geo.lng, geo.lat]}>
+                  {/* Glow ring */}
+                  <circle cx={0} cy={0} r={r * 1.8} fill={isHot ? '#f97316' : '#38bdf8'} opacity={0.15} />
+                  {/* Main dot */}
+                  <circle cx={0} cy={0} r={r} fill={isHot ? '#f97316' : '#38bdf8'} opacity={0.9} />
+                  {/* Inner highlight */}
+                  <circle cx={0} cy={0} r={Math.max(2.5, r * 0.3)} fill="#fff" opacity={0.9} />
+                  {/* Label */}
+                  <text
+                    textAnchor="middle"
+                    y={-r - 8}
+                    style={{ fontFamily: 'system-ui', fontSize: 11, fill: '#e2e8f0', fontWeight: 600 }}
+                  >
+                    {geo.name}
+                  </text>
+                  <text
+                    textAnchor="middle"
+                    y={-r + 8}
+                    style={{ fontFamily: 'system-ui', fontSize: 10, fill: '#94a3b8' }}
+                  >
+                    {total}
+                  </text>
+                </Marker>
+              )
+            })}
+          </ZoomableGroup>
+        </ComposableMap>
+      </div>
 
       {/* Legend */}
       <div className="flex items-center gap-6 border-t border-slate-800 px-5 py-3 text-xs text-slate-400">
@@ -169,13 +161,13 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
         </div>
         <div className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.5)]" />
-          <span>热点区域（活跃度 &gt;60%）</span>
+          <span>热点区域</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-500 opacity-60" />
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-500" />
           <span>参考城市</span>
         </div>
-        <div className="ml-auto text-slate-500">圆点大小 = 活跃度 · 悬停查看详情</div>
+        <div className="ml-auto text-slate-500">圆点大小 = 活跃度</div>
       </div>
     </div>
   )
