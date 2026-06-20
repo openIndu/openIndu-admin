@@ -236,6 +236,16 @@ export interface DashboardStats {
     online: number
     anonymous: number
   }>
+  // period stats (Asia/Shanghai timezone)
+  current_active_users: number
+  today_active_users: number
+  today_new_users: number
+  today_new_docs: number
+  today_new_software: number
+  month_active_users: number
+  month_new_users: number
+  month_new_docs: number
+  month_new_software: number
 }
 
 export const statsApi = {
