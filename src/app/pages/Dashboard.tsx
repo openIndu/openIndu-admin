@@ -84,8 +84,8 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
 
             {/* Country boundaries */}
             <Geographies geography={WORLD_TOPO}>
-              {({ geographies }) =>
-                geographies.map((geo) => (
+              {({ geographies }: { geographies: Array<{ rsmKey: string }> }) =>
+                geographies.map((geo: { rsmKey: string }) => (
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
