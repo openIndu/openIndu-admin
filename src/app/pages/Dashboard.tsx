@@ -85,13 +85,13 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
 
   return (
     <div className="relative overflow-hidden rounded-xl border bg-[#d4dfe6]">
-      <div className="h-[800px] w-full">
+      <div className="h-[520px] w-full">
         <ComposableMap
           projection="geoMercator"
-          projectionConfig={{ scale: 200, center: [10, 20] }}
+          projectionConfig={{ scale: 160, center: [15, 20] }}
           style={{ width: '100%', height: '100%' }}
         >
-          <ZoomableGroup zoom={1} minZoom={1} maxZoom={1} translateExtent={[[0, 0], [800, 600]]}>
+          <ZoomableGroup zoom={1} minZoom={1} maxZoom={1} translateExtent={[[0, 0], [800, 450]]}>
             {/* Ocean — natural blue */}
             <rect x={-1000} y={-800} width={2800} height={2400} fill="#a8c8e8" />
 
