@@ -16,12 +16,12 @@ function LineChart({
 }) {
   if (!data.length) return <div className="py-8 text-center text-sm text-muted-foreground">暂无数据</div>
 
-  const W = 400
-  const H = 90
-  const padL = 28
-  const padR = 8
-  const padT = 8
-  const padB = 20
+  const W = 800
+  const H = 240
+  const padL = 44
+  const padR = 16
+  const padT = 16
+  const padB = 32
   const innerW = W - padL - padR
   const innerH = H - padT - padB
   const max = Math.max(...data.map((d) => d.count), 1)
@@ -34,24 +34,24 @@ function LineChart({
   const gradId = `grad-${id}`
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 90 }}>
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 240 }}>
       <defs>
         <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.25" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
-      {[0, 0.5, 1].map((f, i) => (
+      {[0, 0.25, 0.5, 0.75, 1].map((f, i) => (
         <line key={i} x1={padL} y1={(padT + innerH * (1 - f)).toFixed(1)} x2={padL + innerW} y2={(padT + innerH * (1 - f)).toFixed(1)} stroke="#e5e7eb" strokeWidth="1" />
       ))}
       <path d={areaPath} fill={`url(#${gradId})`} />
-      <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-      {data.map((d, i) => <circle key={i} cx={px(i).toFixed(1)} cy={py(d.count).toFixed(1)} r="2.5" fill={color} />)}
-      <text x={padL - 3} y={padT + 4} textAnchor="end" fontSize="9" fill="#9ca3af">{max}</text>
-      <text x={padL - 3} y={padT + innerH + 4} textAnchor="end" fontSize="9" fill="#9ca3af">0</text>
-      {data.length > 0 && <text x={padL} y={H - 4} textAnchor="middle" fontSize="8" fill="#9ca3af">{data[0].date.slice(5)}</text>}
-      {data.length > 1 && <text x={padL + innerW} y={H - 4} textAnchor="end" fontSize="8" fill="#9ca3af">{data[data.length - 1].date.slice(5)}</text>}
-      {data.length > 2 && <text x={px(Math.floor((data.length - 1) / 2)).toFixed(1)} y={H - 4} textAnchor="middle" fontSize="8" fill="#9ca3af">{data[Math.floor((data.length - 1) / 2)].date.slice(5)}</text>}
+      <path d={linePath} fill="none" stroke={color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+      {data.map((d, i) => <circle key={i} cx={px(i).toFixed(1)} cy={py(d.count).toFixed(1)} r="4" fill={color} />)}
+      <text x={padL - 4} y={padT + 4} textAnchor="end" fontSize="12" fill="#9ca3af">{max}</text>
+      <text x={padL - 4} y={padT + innerH + 4} textAnchor="end" fontSize="12" fill="#9ca3af">0</text>
+      {data.length > 0 && <text x={padL} y={H - 4} textAnchor="middle" fontSize="11" fill="#9ca3af">{data[0].date.slice(5)}</text>}
+      {data.length > 1 && <text x={padL + innerW} y={H - 4} textAnchor="end" fontSize="11" fill="#9ca3af">{data[data.length - 1].date.slice(5)}</text>}
+      {data.length > 2 && <text x={px(Math.floor((data.length - 1) / 2)).toFixed(1)} y={H - 4} textAnchor="middle" fontSize="11" fill="#9ca3af">{data[Math.floor((data.length - 1) / 2)].date.slice(5)}</text>}
     </svg>
   )
 }
