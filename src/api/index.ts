@@ -184,7 +184,7 @@ export const userApi = {
 
 export const documentApi = {
   list: (params: { page?: number; size?: number; brand?: string; category?: string; keyword?: string } = {}) => unwrap<PageResult<ResourceItem>>(api.get('/documents', { params })),
-  upload: (formData: FormData) => unwrap<ResourceItem>(api.post('/documents/upload', formData)),
+  upload: (formData: FormData) => unwrap<ResourceItem>(api.post('/documents/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })),
   get: (id: number) => unwrap<ResourceItem>(api.get(`/documents/${id}`)),
   delete: (id: number) => unwrap(api.delete(`/documents/${id}`)),
   brands: () => unwrap<Array<{ value: string; label: string }> | string[]>(api.get('/documents/brands/list')),
@@ -193,10 +193,10 @@ export const documentApi = {
 
 export const softwareApi = {
   list: (params: { page?: number; size?: number; brand?: string; category?: string; keyword?: string } = {}) => unwrap<PageResult<SoftwareItem>>(api.get('/software', { params })),
-  upload: (formData: FormData) => unwrap<SoftwareItem>(api.post('/software/upload', formData, { timeout: 300_000 })),
+  upload: (formData: FormData) => unwrap<SoftwareItem>(api.post('/software/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })),
   get: (id: number) => unwrap<SoftwareItem>(api.get(`/software/${id}`)),
   delete: (id: number) => unwrap(api.delete(`/software/${id}`)),
-  addVersion: (id: number, formData: FormData) => unwrap(api.post(`/software/${id}/versions`, formData)),
+  addVersion: (id: number, formData: FormData) => unwrap(api.post(`/software/${id}/versions`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })),
   deleteVersion: (id: number, versionId: number) => unwrap(api.delete(`/software/${id}/versions/${versionId}`)),
   categories: () => unwrap<Array<{ value: string; label: string }> | string[]>(api.get('/software/categories/list')),
 }
@@ -250,4 +250,21 @@ export const adminApi = {
       const data = (r.data.data ?? r.data) as { items?: Record<string, unknown>[]; total?: number }
       return data
     }),
+}
+
+export const portalApi = {
+  getHero: () => unwrap<Record<string, unknown>>(api.get('/portal/hero')),
+  updateHero: (data: Record<string, unknown>) => unwrap<Record<string, unknown>>(api.put('/portal/hero', data)),
+  getSolutions: () => unwrap<Record<string, unknown>[]>(api.get('/portal/solutions')),
+  createSolution: (data: Record<string, unknown>) => unwrap<Record<string, unknown>>(api.post('/portal/solutions', data)),
+  updateSolution: (id: number, data: Record<string, unknown>) => unwrap<Record<string, unknown>>(api.put(`/portal/solutions/${id}`, data)),
+  deleteSolution: (id: number) => unwrap<boolean>(api.delete(`/portal/solutions/${id}`)),
+  getCarousel: () => unwrap<Record<string, unknown>[]>(api.get('/portal/carousel')),
+  uploadCarousel: (formData: FormData) => unwrap<Record<string, unknown>>(api.post('/portal/carousel', formData, { headers: { 'Content-Type': 'multipart/form-data' } })),
+  updateCarousel: (id: number, data: Record<string, unknown>) => unwrap<Record<string, unknown>>(api.put(`/portal/carousel/${id}`, data)),
+  deleteCarousel: (id: number) => unwrap<boolean>(api.delete(`/portal/carousel/${id}`)),
+  getBenefits: () => unwrap<string[]>(api.get('/portal/benefits')),
+  updateBenefits: (benefits: string[]) => unwrap<boolean>(api.put('/portal/benefits', benefits)),
+  getFooter: () => unwrap<Record<string, unknown>>(api.get('/portal/footer')),
+  updateFooter: (data: Record<string, unknown>) => unwrap<boolean>(api.put('/portal/footer', data)),
 }
