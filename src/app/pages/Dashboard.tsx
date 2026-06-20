@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
-import { FileText, MapPin, Settings, UploadCloud, Users, Wifi, TrendingUp, UserPlus, Globe2 } from 'lucide-react'
+import { FileText, MapPin, Settings, UploadCloud, Users, Wifi, TrendingUp, UserPlus, Globe2, Clock, CalendarDays } from 'lucide-react'
 import { statsApi, type DashboardStats } from '@/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
@@ -119,14 +119,7 @@ export function Dashboard() {
   const dashQuery = useQuery({ queryKey: ['dashboard', 'stats'], queryFn: statsApi.dashboard })
   const d = dashQuery.data
 
-  const metrics = [
-    { label: '30 日访问 IP', value: d?.visitors_30d, icon: Globe2, color: 'text-sky-600' },
-    { label: '当前在线', value: d?.online_count, icon: Wifi, color: 'text-emerald-600' },
-    { label: '总用户数', value: d?.total_users, icon: Users, color: 'text-violet-600' },
-    { label: '本月新增', value: d?.new_users_30d, icon: UserPlus, color: 'text-blue-600' },
-    { label: '文档总数', value: d?.total_docs, icon: FileText, color: 'text-orange-600' },
-    { label: '未登录在线', value: d?.anonymous_online, icon: Users, color: 'text-amber-600' },
-  ]
+  const num = (v: number | undefined) => (dashQuery.isLoading ? '加载中' : dashQuery.isError ? '--' : (v ?? 0))
 
   const geoData = d?.geo_distribution ?? []
 
@@ -134,24 +127,110 @@ export function Dashboard() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold">仪表盘</h2>
-        <p className="text-muted-foreground">过去 30 天访问、注册、在线与 IP 地域概览。</p>
+        <p className="text-muted-foreground">当前、今日与本月关键指标概览（Asia/Shanghai 时区）。</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((m) => {
-          const Icon = m.icon
-          return (
-            <Card key={m.label}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{m.label}</CardTitle>
-                <Icon className={`h-4 w-4 ${m.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-semibold">{dashQuery.isLoading ? '加载中' : dashQuery.isError ? '--' : (d ? (m.value ?? 0) : 0)}</div>
-              </CardContent>
-            </Card>
-          )
-        })}
+      {/* 当前情况 */}
+      <div>
+        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-muted-foreground"><Clock className="h-4 w-4" />当前情况</h3>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">当前访问人数</CardTitle>
+              <Users className="h-4 w-4 text-emerald-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{num(d?.current_active_users)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">当前在线登录用户</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* 今日情况 */}
+      <div>
+        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-muted-foreground"><CalendarDays className="h-4 w-4" />今日情况</h3>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">今日访问人数</CardTitle>
+              <Users className="h-4 w-4 text-sky-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{num(d?.today_active_users)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">今日新增用户</CardTitle>
+              <UserPlus className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{num(d?.today_new_users)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">今日新增文档</CardTitle>
+              <FileText className="h-4 w-4 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{num(d?.today_new_docs)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">今日新增软件</CardTitle>
+              <UploadCloud className="h-4 w-4 text-violet-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{num(d?.today_new_software)}</div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* 本月情况 */}
+      <div>
+        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-muted-foreground"><CalendarDays className="h-4 w-4" />本月情况</h3>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">本月访问人数</CardTitle>
+              <Users className="h-4 w-4 text-sky-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{num(d?.month_active_users)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">本月新增用户</CardTitle>
+              <UserPlus className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{num(d?.month_new_users)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">本月新增文档</CardTitle>
+              <FileText className="h-4 w-4 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{num(d?.month_new_docs)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">本月新增软件</CardTitle>
+              <UploadCloud className="h-4 w-4 text-violet-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{num(d?.month_new_software)}</div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
