@@ -19,7 +19,7 @@ export function OnlineStats() {
   const [keyword, setKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [searchParams, setSearchParams] = useState({ keyword: '', status: '' })
-  const pageSize = 20
+  const pageSize = 10
 
   const query = useQuery({
     queryKey: ['stats', 'login-history', page, searchParams],
