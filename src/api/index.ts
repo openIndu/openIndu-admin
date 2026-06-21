@@ -73,6 +73,7 @@ export interface SoftwareItem extends ResourceItem {
   latest_version?: string
   version?: string
   is_active?: boolean
+  is_published?: boolean
 }
 
 export interface SystemConfig {
@@ -198,6 +199,7 @@ export const softwareApi = {
   upload: (formData: FormData) => unwrap<SoftwareItem>(api.post('/software/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })),
   get: (id: number) => unwrap<SoftwareItem>(api.get(`/software/${id}`)),
   delete: (id: number) => unwrap(api.delete(`/software/${id}`)),
+  publishToggle: (id: number) => unwrap<SoftwareItem>(api.patch(`/software/${id}/publish`)),
   addVersion: (id: number, formData: FormData) => unwrap(api.post(`/software/${id}/versions`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })),
   deleteVersion: (id: number, versionId: number) => unwrap(api.delete(`/software/${id}/versions/${versionId}`)),
   categories: () => unwrap<Array<{ value: string; label: string }> | string[]>(api.get('/software/categories/list')),

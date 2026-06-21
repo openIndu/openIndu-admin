@@ -54,6 +54,7 @@ export function SoftwareList() {
   const params = useMemo(() => ({ page, size: 10, brand: brand || undefined, category: category || undefined, keyword: keyword || undefined }), [brand, category, keyword, page])
   const query = useQuery({ queryKey: ['software', params], queryFn: () => softwareApi.list(params) })
   const deleteMutation = useMutation({ mutationFn: softwareApi.delete, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['software'] }) })
+  const publishMutation = useMutation({ mutationFn: softwareApi.publishToggle, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['software'] }) })
 
   const invalidateSoftware = () => queryClient.invalidateQueries({ queryKey: ['software'] })
   const addVersionMutation = useMutation({
@@ -130,7 +131,7 @@ export function SoftwareList() {
           {!query.isLoading && !query.isError && query.data?.items.length === 0 ? <div className="text-muted-foreground">暂无软件</div> : null}
           {query.data && query.data.items.length > 0 ? (
             <Table>
-              <TableHeader><TableRow><TableHead>名称</TableHead><TableHead>品牌</TableHead><TableHead>分类</TableHead><TableHead>版本</TableHead><TableHead>下载次数</TableHead><TableHead>状态</TableHead><TableHead>操作</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>名称</TableHead><TableHead>品牌</TableHead><TableHead>分类</TableHead><TableHead>版本</TableHead><TableHead>下载次数</TableHead><TableHead>状态</TableHead><TableHead>发布状态</TableHead><TableHead>操作</TableHead></TableRow></TableHeader>
               <TableBody>
                 {query.data.items.map((item) => (
                   <TableRow key={item.id}>
@@ -140,9 +141,24 @@ export function SoftwareList() {
                     <TableCell>{item.latest_version ?? item.version ?? '-'}</TableCell>
                     <TableCell>{item.download_count ?? 0}</TableCell>
                     <TableCell>{item.is_active === false ? '下架' : '上架'}</TableCell>
-                    <TableCell className="space-x-2">
-                      <Button size="sm" variant="outline" onClick={() => openVersions(item)}>版本</Button>
-                      <Button size="sm" variant="destructive" onClick={() => setDeleting(item)}>删除</Button>
+                    <TableCell>
+                      <Badge variant={item.is_published ? 'success' : 'secondary'}>
+                        {item.is_published ? '已发布' : '未发布'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="outline" onClick={() => openVersions(item)}>版本</Button>
+                        <Button
+                          size="sm"
+                          variant={item.is_published ? 'outline' : 'default'}
+                          onClick={() => publishMutation.mutate(item.id)}
+                          disabled={publishMutation.isPending}
+                        >
+                          {item.is_published ? '取消发布' : '发布'}
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => setDeleting(item)}>删除</Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
