@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
-import { FileText, MapPin, Settings, UploadCloud, Users, TrendingUp, UserPlus, Clock, CalendarDays } from 'lucide-react'
+import { FileText, Settings, UploadCloud, Users, TrendingUp, UserPlus, Clock, CalendarDays } from 'lucide-react'
 import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from 'react-simple-maps'
 import { statsApi, type DashboardStats } from '@/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
@@ -60,24 +60,51 @@ function LineChart({
 }
 
 const REFERENCE_CITIES: Array<[number, number, string]> = [
-  // North America
+  // North America (13)
   [40.7, -74.0, '纽约'], [34.1, -118.2, '洛杉矶'], [41.9, -87.6, '芝加哥'],
   [37.8, -122.4, '旧金山'], [43.7, -79.4, '多伦多'], [19.4, -99.1, '墨西哥城'],
-  // South America
+  [29.8, -95.4, '休斯顿'], [33.4, -112.1, '凤凰城'], [47.6, -122.3, '西雅图'],
+  [25.8, -80.2, '迈阿密'], [38.9, -77.0, '华盛顿'], [42.4, -71.1, '波士顿'],
+  [45.5, -73.6, '蒙特利尔'],
+  // South America (9)
   [-23.5, -46.6, '圣保罗'], [-34.6, -58.4, '布宜诺斯'], [-12.0, -77.0, '利马'],
-  // Europe
+  [4.7, -74.1, '波哥大'], [-33.4, -70.7, '圣地亚哥'], [10.5, -66.9, '加拉加斯'],
+  [-16.5, -68.1, '拉巴斯'], [-0.2, -78.5, '基多'], [-3.1, -60.0, '马瑙斯'],
+  // Europe (18)
   [51.5, -0.1, '伦敦'], [48.9, 2.3, '巴黎'], [52.5, 13.4, '柏林'], [55.8, 37.6, '莫斯科'],
   [41.9, 12.5, '罗马'], [40.4, -3.7, '马德里'], [52.4, 4.9, '阿姆斯特丹'],
-  // Africa
+  [48.2, 16.4, '维也纳'], [52.2, 21.0, '华沙'], [59.3, 18.1, '斯德哥尔摩'],
+  [55.7, 12.6, '哥本哈根'], [50.1, 14.4, '布拉格'], [47.5, 19.0, '布达佩斯'],
+  [38.7, -9.1, '里斯本'], [50.5, 30.5, '基辅'], [37.9, 23.7, '雅典'],
+  [44.4, 26.1, '布加勒斯特'], [53.3, -6.3, '都柏林'],
+  // Africa (15)
   [30.0, 31.2, '开罗'], [6.5, 3.4, '拉各斯'], [-26.2, 28.0, '约翰内斯堡'], [-1.3, 36.8, '内罗毕'],
-  // Middle East & South Asia
-  [25.2, 55.3, '迪拜'], [35.7, 51.4, '德黑兰'], [19.1, 72.9, '孟买'], [28.6, 77.2, '新德里'],
-  // East & Southeast Asia
+  [33.6, -7.6, '卡萨布兰卡'], [-33.9, 18.4, '开普敦'], [36.8, 10.2, '突尼斯'],
+  [14.7, -17.5, '达喀尔'], [5.6, -0.2, '阿克拉'], [9.0, 7.5, '阿布贾'],
+  [3.4, -76.5, '卡利'], [-4.3, 15.3, '金沙萨'], [-8.8, 13.2, '罗安达'],
+  [15.6, 32.5, '喀土穆'], [9.0, 38.7, '亚的斯亚贝巴'],
+  // Middle East (10)
+  [25.2, 55.3, '迪拜'], [35.7, 51.4, '德黑兰'], [21.4, 39.8, '吉达'],
+  [31.9, 35.9, '安曼'], [33.3, 44.4, '巴格达'], [33.5, 36.3, '大马士革'],
+  [24.7, 46.7, '利雅得'], [31.2, 29.9, '亚历山大'], [15.3, 44.2, '萨那'],
+  [23.6, 58.6, '马斯喀特'],
+  // South Asia (8)
+  [19.1, 72.9, '孟买'], [28.6, 77.2, '新德里'], [22.6, 88.4, '加尔各答'],
+  [13.1, 80.3, '钦奈'], [23.0, 72.6, '艾哈迈达巴德'], [33.7, 73.0, '伊斯兰堡'],
+  [24.9, 67.1, '卡拉奇'], [23.8, 90.4, '达卡'],
+  // East & Southeast Asia (19)
   [39.9, 116.4, '北京'], [31.2, 121.5, '上海'], [22.3, 114.2, '香港'],
   [35.7, 139.7, '东京'], [37.6, 127.0, '首尔'], [1.3, 103.8, '新加坡'],
   [13.8, 100.5, '曼谷'], [14.6, 121.0, '马尼拉'], [-6.2, 106.8, '雅加达'],
-  // Oceania
-  [-33.9, 151.2, '悉尼'], [-37.8, 145.0, '墨尔本'],
+  [30.6, 104.1, '成都'], [23.1, 113.3, '广州'], [34.3, 108.9, '西安'],
+  [21.0, 105.8, '河内'], [10.8, 106.7, '胡志明'], [3.1, 101.7, '吉隆坡'],
+  [16.8, 96.1, '仰光'], [27.7, 85.3, '加德满都'], [25.0, 121.5, '台北'],
+  [34.7, 135.5, '大阪'],
+  // Oceania (5)
+  [-33.9, 151.2, '悉尼'], [-37.8, 145.0, '墨尔本'], [-27.5, 153.0, '布里斯班'],
+  [-31.9, 115.9, '珀斯'], [41.3, 174.8, '惠灵顿'],
+  // Central Asia (3)
+  [43.2, 76.9, '阿拉木图'], [41.3, 69.2, '塔什干'], [38.6, 68.8, '杜尚别'],
 ]
 
 function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
@@ -85,13 +112,13 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
 
   return (
     <div className="relative overflow-hidden rounded-xl border bg-[#d4dfe6]">
-      <div className="h-[520px] w-full">
+      <div className="h-[650px] w-full">
         <ComposableMap
           projection="geoMercator"
-          projectionConfig={{ scale: 160, center: [15, 20] }}
+          projectionConfig={{ scale: 180, center: [15, 15] }}
           style={{ width: '100%', height: '100%' }}
         >
-          <ZoomableGroup zoom={1} minZoom={1} maxZoom={1} translateExtent={[[0, 0], [800, 450]]}>
+          <ZoomableGroup zoom={1} minZoom={1} maxZoom={1} translateExtent={[[0, 0], [800, 500]]}>
             {/* Ocean — natural blue */}
             <rect x={-1000} y={-800} width={2800} height={2400} fill="#a8c8e8" />
 
@@ -172,23 +199,6 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
             })}
           </ZoomableGroup>
         </ComposableMap>
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center gap-6 border-t border-[#b8c8d8] bg-[#e8edf2] px-5 py-3 text-xs text-slate-600">
-        <div className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-3 rounded-full bg-blue-600 border border-white shadow-sm" />
-          <span className="font-medium">常规访问</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-3 rounded-full bg-red-500 border border-white shadow-sm" />
-          <span className="font-medium">热点区域</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="inline-block h-2 w-2 rounded-full bg-[#5a4a3a] opacity-55" />
-          <span>参考城市（{REFERENCE_CITIES.length} 个）</span>
-        </div>
-        <div className="ml-auto text-slate-400 text-[11px]">圆点大小 = 活跃度</div>
       </div>
     </div>
   )
@@ -337,31 +347,8 @@ export function Dashboard() {
       </div>
 
       <Card className="overflow-hidden">
-        <CardHeader className="pb-0">
-          <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5 text-blue-500" />全球实时访问地图</CardTitle>
-          <CardDescription>按 IP 地理位置展示最近 5 分钟访问分布，圆点大小表示活跃度。</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-4">
-          {dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : geoData.length === 0 ? <div className="py-12 text-center text-muted-foreground text-sm">暂无访问数据</div> : <WorldMap data={geoData} />}
-          {geoData.length > 0 && (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {geoData.slice(0, 6).map((geo) => (
-                <div key={geo.name} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-900">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                    {geo.name.slice(0, 2)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">{geo.name}</div>
-                    <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-sky-400" />访问 {geo.visitors}</span>
-                      <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-green-400" />在线 {geo.online}</span>
-                      <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-violet-400" />注册 {geo.registrations}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+        <CardContent className="p-0">
+          {dashQuery.isLoading ? <div className="p-6 text-muted-foreground text-sm">加载中...</div> : geoData.length === 0 ? <div className="py-12 text-center text-muted-foreground text-sm">暂无访问数据</div> : <WorldMap data={geoData} />}
         </CardContent>
       </Card>
 
