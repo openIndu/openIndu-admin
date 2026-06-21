@@ -58,6 +58,19 @@ export function Sidebar() {
           collapsed ? 'justify-center px-3 py-5' : 'gap-2 px-4 py-5',
         )}
       >
+        {!collapsed && (
+          <>
+            <img
+              src="/assets/logo.png"
+              alt="openIndu logo"
+              className="h-10 w-10 shrink-0 rounded-lg object-contain"
+            />
+            <div className="min-w-0 flex-1">
+              <div className="text-xl font-semibold">openIndu</div>
+              <div className="text-sm text-muted-foreground">社区管理平台</div>
+            </div>
+          </>
+        )}
         <button
           onClick={() => setCollapsed((c) => !c)}
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
@@ -69,19 +82,6 @@ export function Sidebar() {
             <ChevronLeft className="h-4 w-4" />
           )}
         </button>
-        {!collapsed && (
-          <>
-            <img
-              src="/assets/logo.png"
-              alt="openIndu logo"
-              className="h-10 w-10 shrink-0 rounded-lg object-contain"
-            />
-            <div className="min-w-0">
-              <div className="text-xl font-semibold">openIndu</div>
-              <div className="text-sm text-muted-foreground">社区管理平台</div>
-            </div>
-          </>
-        )}
       </div>
 
       {/* Nav */}
