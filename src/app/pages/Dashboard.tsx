@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import type { MouseEvent } from 'react'
 import { Link } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { FileText, Settings, UploadCloud, Users, TrendingUp, UserPlus, Clock, CalendarDays } from 'lucide-react'
@@ -109,6 +111,7 @@ const REFERENCE_CITIES: Array<[number, number, string]> = [
 
 function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
   const maxVal = Math.max(...data.map((g) => g.visitors + g.online), 1)
+  const [tooltip, setTooltip] = useState<{ name: string; x: number; y: number } | null>(null)
 
   return (
     <div className="relative overflow-hidden rounded-xl border bg-[#d4dfe6]">
@@ -124,14 +127,21 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
 
             {/* Country boundaries — green-tan landmasses */}
             <Geographies geography={WORLD_TOPO}>
-              {({ geographies }: { geographies: Array<{ rsmKey: string }> }) =>
-                geographies.map((geo: { rsmKey: string }) => (
+              {({ geographies }: { geographies: Array<{ rsmKey: string; properties: { name: string } }> }) =>
+                geographies.map((geo: { rsmKey: string; properties: { name: string } }) => (
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
                     fill="#e8dec8"
                     stroke="#c0b898"
                     strokeWidth={0.6}
+                    onMouseEnter={(evt: MouseEvent) => {
+                      setTooltip({ name: geo.properties.name, x: evt.clientX, y: evt.clientY })
+                    }}
+                    onMouseMove={(evt: MouseEvent) => {
+                      setTooltip({ name: geo.properties.name, x: evt.clientX, y: evt.clientY })
+                    }}
+                    onMouseLeave={() => setTooltip(null)}
                     style={{
                       default: { outline: 'none' },
                       hover: {
@@ -200,6 +210,16 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
           </ZoomableGroup>
         </ComposableMap>
       </div>
+
+      {/* Country tooltip */}
+      {tooltip && (
+        <div
+          className="pointer-events-none fixed z-50 rounded bg-slate-800 px-2.5 py-1 text-xs font-medium text-white shadow-lg"
+          style={{ left: tooltip.x + 12, top: tooltip.y - 28 }}
+        >
+          {tooltip.name}
+        </div>
+      )}
     </div>
   )
 }
