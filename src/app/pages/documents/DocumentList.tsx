@@ -44,7 +44,6 @@ export function DocumentList() {
   const [category, setCategory] = useState('')
   const [keyword, setKeyword] = useState('')
   const [deleting, setDeleting] = useState<ResourceItem | null>(null)
-  const [syncMode, setSyncMode] = useState<'full' | 'incremental'>('incremental')
   const [logPage, setLogPage] = useState(1)
   const [copiedId, setCopiedId] = useState<number | null>(null)
 
@@ -68,7 +67,7 @@ export function DocumentList() {
   const syncLogsQuery = useQuery({ queryKey: ['sync', 'logs', logPage], queryFn: () => syncApi.logs({ page: logPage, size: 10 }) })
 
   const triggerSyncMutation = useMutation({
-    mutationFn: (mode: 'full' | 'incremental') => syncApi.trigger(mode),
+    mutationFn: () => syncApi.trigger(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sync', 'status'] })
       queryClient.invalidateQueries({ queryKey: ['sync', 'logs'] })
@@ -93,31 +92,13 @@ export function DocumentList() {
         </CardHeader>
         <CardContent>
           <div className="mb-4 flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Select
-                className="w-32"
-                options={[
-                  { value: 'incremental', label: '增量同步' },
-                  { value: 'full', label: '全量同步' },
-                ]}
-                value={syncMode}
-                onChange={(event) => setSyncMode(event.target.value as 'full' | 'incremental')}
-              />
-              <Button
-                onClick={() => triggerSyncMutation.mutate(syncMode)}
-                disabled={triggerSyncMutation.isPending}
-              >
-                {triggerSyncMutation.isPending ? '触发中...' : '触发同步'}
-              </Button>
-            </div>
-            {statusData ? (
-              <div className="flex flex-wrap items-center gap-3 text-sm">
-                <span className="text-muted-foreground">
-                  状态：<Badge variant={statusData.status === 'running' ? 'warning' : statusData.status === 'idle' ? 'success' : 'secondary'}>{String(statusData.status ?? '未知')}</Badge>
-                </span>
-                {statusData.last_sync_time ? <span className="text-muted-foreground">上次同步：{String(statusData.last_sync_time)}</span> : null}
-                {statusData.pending_count !== undefined ? <span className="text-muted-foreground">待同步：{String(statusData.pending_count)} 个文档</span> : null}
-              </div>
+            <Button onClick={() => triggerSyncMutation.mutate()} disabled={triggerSyncMutation.isPending}>
+              {triggerSyncMutation.isPending ? '触发中...' : '立即同步全库'}
+            </Button>
+            {statusData?.pending_count !== undefined ? (
+              <span className="text-sm text-muted-foreground">
+                待同步 / 失败：<span className="font-medium text-foreground">{String(statusData.pending_count)}</span> 个文档
+              </span>
             ) : null}
           </div>
 
