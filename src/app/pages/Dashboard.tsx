@@ -226,26 +226,21 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
               const total = geo.visitors + geo.online
               const ratio = total / maxVal
               const isHot = ratio > 0.6
-              const r = 2 + ratio * 6
               return (
                 <Marker key={`data-${geo.name}-${geo.country_code ?? ''}`} coordinates={[geo.lng, geo.lat]}>
-                  {/* Glow ring */}
-                  <circle cx={0} cy={0} r={r * 2} fill={isHot ? '#ef4444' : '#3b82f6'} opacity={0.1} />
-                  {/* Main dot */}
-                  <circle cx={0} cy={0} r={r} fill={isHot ? '#ef4444' : '#2563eb'} opacity={0.92} stroke="#fff" strokeWidth={1} />
-                  {/* Inner highlight */}
-                  <circle cx={0} cy={0} r={Math.max(2, r * 0.3)} fill="#fff" opacity={0.9} />
+                  {/* Single dot — color = activity level, uniform size */}
+                  <circle cx={0} cy={0} r={2} fill={isHot ? '#ef4444' : '#2563eb'} stroke="#fff" strokeWidth={0.5} />
                   {/* Label */}
                   <text
                     textAnchor="middle"
-                    y={-r - 6}
+                    y={-7}
                     style={{ fontFamily: 'system-ui', fontSize: 9, fill: '#1e293b', fontWeight: 600 }}
                   >
                     {geo.name}
                   </text>
                   <text
                     textAnchor="middle"
-                    y={-r + 6}
+                    y={6}
                     style={{ fontFamily: 'system-ui', fontSize: 8, fill: '#475569', fontWeight: 500 }}
                   >
                     {total}
