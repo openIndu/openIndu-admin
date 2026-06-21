@@ -62,6 +62,7 @@ export function DocumentList() {
   })
   const deleteMutation = useMutation({ mutationFn: documentApi.delete, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) })
   const publishMutation = useMutation({ mutationFn: documentApi.publishToggle, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) })
+  const syncMutation = useMutation({ mutationFn: documentApi.sync, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) })
 
   const syncStatusQuery = useQuery({ queryKey: ['sync', 'status'], queryFn: syncApi.status, refetchInterval: 10_000 })
   const syncLogsQuery = useQuery({ queryKey: ['sync', 'logs', logPage], queryFn: () => syncApi.logs({ page: logPage, size: 10 }) })
@@ -238,6 +239,14 @@ export function DocumentList() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => syncMutation.mutate(item.id)}
+                          disabled={item.sync_status === 'syncing' || (syncMutation.isPending && syncMutation.variables === item.id)}
+                        >
+                          {syncMutation.isPending && syncMutation.variables === item.id ? '启动中...' : item.sync_status === 'syncing' ? '同步中...' : '同步'}
+                        </Button>
                         <Button
                           size="sm"
                           variant={item.is_published ? 'outline' : 'default'}
