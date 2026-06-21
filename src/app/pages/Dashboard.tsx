@@ -173,7 +173,8 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
             <Geographies geography={WORLD_TOPO}>
               {({ geographies }: { geographies: Array<{ rsmKey: string; properties: { name: string; name_zh?: string } }> }) =>
                 geographies.map((geo: { rsmKey: string; properties: { name: string; name_zh?: string } }) => {
-                  const label = COUNTRY_ZH[geo.properties.name] ?? geo.properties.name
+                  const cn = COUNTRY_ZH[geo.properties.name]
+                  const label = cn ? `${cn} (${geo.properties.name})` : geo.properties.name
                   return (
                   <Geography
                     key={geo.rsmKey}
@@ -205,15 +206,15 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
               }
             </Geographies>
 
-            {/* Reference cities — dark dots with readable labels */}
+            {/* Reference cities — subtle dots */}
             {REFERENCE_CITIES.map(([lat, lng, name]) => (
               <Marker key={`ref-${name}`} coordinates={[lng, lat]}>
-                <circle r={2.5} fill="#5a4a3a" opacity={0.55} />
+                <circle r={1.5} fill="#5a4a3a" opacity={0.4} />
                 <text
                   textAnchor="start"
-                  x={5}
-                  y={-3}
-                  style={{ fontFamily: 'system-ui', fontSize: 9, fill: '#5a4a3a', opacity: 0.6, fontWeight: 500 }}
+                  x={4}
+                  y={-2}
+                  style={{ fontFamily: 'system-ui', fontSize: 7.5, fill: '#5a4a3a', opacity: 0.5, fontWeight: 400 }}
                 >
                   {name}
                 </text>
@@ -225,7 +226,7 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
               const total = geo.visitors + geo.online
               const ratio = total / maxVal
               const isHot = ratio > 0.6
-              const r = 3 + ratio * 10
+              const r = 2 + ratio * 6
               return (
                 <Marker key={`data-${geo.name}-${geo.country_code ?? ''}`} coordinates={[geo.lng, geo.lat]}>
                   {/* Glow ring */}
@@ -237,15 +238,15 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
                   {/* Label */}
                   <text
                     textAnchor="middle"
-                    y={-r - 7}
-                    style={{ fontFamily: 'system-ui', fontSize: 10, fill: '#1e293b', fontWeight: 700 }}
+                    y={-r - 6}
+                    style={{ fontFamily: 'system-ui', fontSize: 9, fill: '#1e293b', fontWeight: 600 }}
                   >
                     {geo.name}
                   </text>
                   <text
                     textAnchor="middle"
-                    y={-r + 7}
-                    style={{ fontFamily: 'system-ui', fontSize: 9, fill: '#475569', fontWeight: 500 }}
+                    y={-r + 6}
+                    style={{ fontFamily: 'system-ui', fontSize: 8, fill: '#475569', fontWeight: 500 }}
                   >
                     {total}
                   </text>
@@ -259,12 +260,19 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
       {/* Country tooltip */}
       {tooltip && (
         <div
-          className="pointer-events-none fixed z-50 rounded bg-slate-800 px-2.5 py-1 text-xs font-medium text-white shadow-lg"
+          className="pointer-events-none fixed z-50 rounded bg-slate-800 px-2.5 py-1 text-xs text-white shadow-lg"
           style={{ left: tooltip.x + 12, top: tooltip.y - 28 }}
         >
           {tooltip.name}
         </div>
       )}
+
+      {/* Legend */}
+      <div className="flex items-center gap-4 border-t border-[#b8c8d8] bg-[#e8edf2] px-4 py-2 text-[11px] text-slate-500">
+        <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-blue-600" /> 蓝点=常规访问</span>
+        <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-red-500" /> 红点=热点区域</span>
+        <span className="ml-auto text-slate-400">100 个参考城市 · 圆点大小=活跃度</span>
+      </div>
     </div>
   )
 }
