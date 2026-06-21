@@ -229,7 +229,7 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
               return (
                 <Marker key={`data-${geo.name}-${geo.country_code ?? ''}`} coordinates={[geo.lng, geo.lat]}>
                   {/* Single dot — color = activity level, uniform size */}
-                  <circle cx={0} cy={0} r={3} fill={isHot ? '#ef4444' : '#2563eb'} stroke="#fff" strokeWidth={0.8} />
+                  <circle cx={0} cy={0} r={2} fill={isHot ? '#ef4444' : '#2563eb'} stroke="#fff" strokeWidth={0.5} />
                   {/* Label */}
                   <text
                     textAnchor="middle"
