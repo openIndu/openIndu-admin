@@ -155,13 +155,13 @@ export function AuditLogs() {
                   ))}
                 </TableBody>
               </Table>
-              {totalPages > 1 && (
-                <div className="mt-4 flex items-center justify-end gap-2">
+              <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+                <span>共 {total} 条，第 {page} / {Math.max(1, totalPages)} 页</span>
+                <div className="flex gap-2">
                   <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>上一页</Button>
-                  <span className="text-sm text-muted-foreground">第 {page} / {totalPages} 页</span>
                   <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>下一页</Button>
                 </div>
-              )}
+              </div>
             </>
           )}
         </CardContent>
