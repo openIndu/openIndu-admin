@@ -22,7 +22,7 @@ export function AuditLogs() {
   const [targetKeyword, setTargetKeyword] = useState('')
   const [actionFilter, setActionFilter] = useState('')
   const [searchParams, setSearchParams] = useState({ adminKeyword: '', targetKeyword: '', action: '' })
-  const pageSize = 15
+  const pageSize = 10
 
   const query = useQuery({
     queryKey: ['audit-logs', page, searchParams],
