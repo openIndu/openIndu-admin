@@ -64,6 +64,7 @@ export interface ResourceItem {
   file_size?: number
   download_count?: number
   sync_status?: 'pending' | 'syncing' | 'synced' | 'failed' | string
+  is_published?: boolean
   upload_time?: string
   created_at?: string
 }
@@ -187,6 +188,7 @@ export const documentApi = {
   upload: (formData: FormData) => unwrap<ResourceItem>(api.post('/documents/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })),
   get: (id: number) => unwrap<ResourceItem>(api.get(`/documents/${id}`)),
   delete: (id: number) => unwrap(api.delete(`/documents/${id}`)),
+  publishToggle: (id: number) => unwrap<ResourceItem>(api.patch(`/documents/${id}/publish`)),
   brands: () => unwrap<Array<{ value: string; label: string }> | string[]>(api.get('/documents/brands/list')),
   categories: () => unwrap<Array<{ value: string; label: string }> | string[]>(api.get('/documents/categories/list')),
 }
