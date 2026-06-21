@@ -10,6 +10,50 @@ import { Button } from '../components/ui/button'
 
 const WORLD_TOPO = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
 
+const COUNTRY_ZH: Record<string, string> = {
+  'China': '中国', 'United States': '美国', 'Japan': '日本', 'South Korea': '韩国',
+  'United Kingdom': '英国', 'France': '法国', 'Germany': '德国', 'Russia': '俄罗斯',
+  'India': '印度', 'Brazil': '巴西', 'Canada': '加拿大', 'Australia': '澳大利亚',
+  'Italy': '意大利', 'Spain': '西班牙', 'Mexico': '墨西哥', 'Indonesia': '印尼',
+  'Netherlands': '荷兰', 'Turkey': '土耳其', 'Saudi Arabia': '沙特', 'Switzerland': '瑞士',
+  'Sweden': '挪威', 'Poland': '波兰', 'Belgium': '比利时', 'Argentina': '阿根廷',
+  'Austria': '奥地利', 'Iran': '伊朗', 'Thailand': '泰国', 'South Africa': '南非',
+  'Nigeria': '尼日利亚', 'Egypt': '埃及', 'Vietnam': '越南', 'Philippines': '菲律宾',
+  'Malaysia': '马来西亚', 'Pakistan': '巴基斯坦', 'Colombia': '哥伦比亚', 'Chile': '智利',
+  'Peru': '秘鲁', 'Ukraine': '乌克兰', 'Czechia': '捷克', 'Portugal': '葡萄牙',
+  'Greece': '希腊', 'Israel': '以色列', 'U.A.E.': '阿联酋', 'Singapore': '新加坡',
+  'Denmark': '丹麦', 'Finland': '芬兰', 'Ireland': '爱尔兰', 'New Zealand': '新西兰',
+  'Hungary': '匈牙利', 'Romania': '罗马尼亚', 'Bangladesh': '孟加拉国', 'Morocco': '摩洛哥',
+  'Kazakhstan': '哈萨克斯坦', 'Kenya': '肯尼亚', 'Ethiopia': '埃塞俄比亚', 'Ghana': '加纳',
+  'Venezuela': '委内瑞拉', 'Cuba': '古巴', 'Algeria': '阿尔及利亚', 'Iraq': '伊拉克',
+  'Syria': '叙利亚', 'Qatar': '卡塔尔', 'Myanmar': '缅甸', 'Afghanistan': '阿富汗',
+  'North Korea': '朝鲜', 'Taiwan': '台湾', 'Sri Lanka': '斯里兰卡', 'Nepal': '尼泊尔',
+  'Cambodia': '柬埔寨', 'Libya': '利比亚', 'Tunisia': '突尼斯', 'Angola': '安哥拉',
+  'Zimbabwe': '津巴布韦', 'Tanzania': '坦桑尼亚', 'Uganda': '乌干达', 'Sudan': '苏丹',
+  'S. Sudan': '南苏丹', 'Dem. Rep. Congo': '刚果(金)', 'Congo': '刚果(布)', 'Cameroon': '喀麦隆',
+  'Mozambique': '莫桑比克', 'Madagascar': '马达加斯加', 'Zambia': '赞比亚', 'Malawi': '马拉维',
+  'Senegal': '塞内加尔', 'Mali': '马里', 'Niger': '尼日尔', 'Burkina Faso': '布基纳法索',
+  'Chad': '乍得', 'Somalia': '索马里', 'Eritrea': '厄立特里亚', 'Rwanda': '卢旺达',
+  'Burundi': '布隆迪', 'Botswana': '博茨瓦纳', 'Namibia': '纳米比亚', 'Mauritania': '毛里塔尼亚',
+  'Liberia': '利比里亚', 'Sierra Leone': '塞拉利昂', 'Guinea': '几内亚', 'Gabon': '加蓬',
+  'Togo': '多哥', 'Benin': '贝宁', 'C.A.R.': '中非', 'Eq. Guinea': '赤道几内亚',
+  'Croatia': '克罗地亚', 'Slovakia': '斯洛伐克', 'Slovenia': '斯洛文尼亚', 'Serbia': '塞尔维亚',
+  'Bosnia and Herz.': '波黑', 'Bulgaria': '保加利亚', 'Albania': '阿尔巴尼亚', 'Moldova': '摩尔多瓦',
+  'Lithuania': '立陶宛', 'Latvia': '拉脱维亚', 'Estonia': '爱沙尼亚', 'Belarus': '白俄罗斯',
+  'Mongolia': '蒙古', 'Uzbekistan': '乌兹别克斯坦', 'Turkmenistan': '土库曼斯坦',
+  'Kyrgyzstan': '吉尔吉斯斯坦', 'Tajikistan': '塔吉克斯坦', 'Georgia': '格鲁吉亚',
+  'Armenia': '亚美尼亚', 'Azerbaijan': '阿塞拜疆', 'Cyprus': '塞浦路斯', 'Luxembourg': '卢森堡',
+  'Iceland': '冰岛', 'Malta': '马耳他', 'Oman': '阿曼', 'Yemen': '也门', 'Jordan': '约旦',
+  'Lebanon': '黎巴嫩', 'Kuwait': '科威特', 'Bahrain': '巴林', 'Laos': '老挝',
+  'Brunei': '文莱', 'Timor-Leste': '东帝汶', 'Papua New Guinea': '巴布亚新几内亚',
+  'Fiji': '斐济', 'Solomon Is.': '所罗门群岛', 'Vanuatu': '瓦努阿图', 'Jamaica': '牙买加',
+  'Haiti': '海地', 'Dominican Rep.': '多米尼加', 'Puerto Rico': '波多黎各', 'Trinidad and Tobago': '特立尼达',
+  'Panama': '巴拿马', 'Costa Rica': '哥斯达黎加', 'Nicaragua': '尼加拉瓜', 'Honduras': '洪都拉斯',
+  'El Salvador': '萨尔瓦多', 'Guatemala': '危地马拉', 'Belize': '伯利兹', 'Uruguay': '乌拉圭',
+  'Paraguay': '巴拉圭', 'Bolivia': '玻利维亚', 'Ecuador': '厄瓜多尔', 'Guyana': '圭亚那',
+  'Suriname': '苏里南', 'Fr. Guiana': '法属圭亚那', 'W. Sahara': '西撒哈拉',
+}
+
 function LineChart({
   data,
   color = '#3b82f6',
@@ -127,8 +171,10 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
 
             {/* Country boundaries — green-tan landmasses */}
             <Geographies geography={WORLD_TOPO}>
-              {({ geographies }: { geographies: Array<{ rsmKey: string; properties: { name: string } }> }) =>
-                geographies.map((geo: { rsmKey: string; properties: { name: string } }) => (
+              {({ geographies }: { geographies: Array<{ rsmKey: string; properties: { name: string; name_zh?: string } }> }) =>
+                geographies.map((geo: { rsmKey: string; properties: { name: string; name_zh?: string } }) => {
+                  const label = COUNTRY_ZH[geo.properties.name] ?? geo.properties.name
+                  return (
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
@@ -136,10 +182,10 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
                     stroke="#c0b898"
                     strokeWidth={0.6}
                     onMouseEnter={(evt: MouseEvent) => {
-                      setTooltip({ name: geo.properties.name, x: evt.clientX, y: evt.clientY })
+                      setTooltip({ name: label, x: evt.clientX, y: evt.clientY })
                     }}
                     onMouseMove={(evt: MouseEvent) => {
-                      setTooltip({ name: geo.properties.name, x: evt.clientX, y: evt.clientY })
+                      setTooltip({ name: label, x: evt.clientX, y: evt.clientY })
                     }}
                     onMouseLeave={() => setTooltip(null)}
                     style={{
@@ -154,7 +200,8 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
                       pressed: { outline: 'none' },
                     }}
                   />
-                ))
+                  )
+                })
               }
             </Geographies>
 
@@ -178,29 +225,27 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
               const total = geo.visitors + geo.online
               const ratio = total / maxVal
               const isHot = ratio > 0.6
-              const r = 7 + ratio * 22
+              const r = 3 + ratio * 10
               return (
                 <Marker key={`data-${geo.name}-${geo.country_code ?? ''}`} coordinates={[geo.lng, geo.lat]}>
-                  {/* Outer ring */}
-                  <circle cx={0} cy={0} r={r + 4} fill={isHot ? '#ef4444' : '#3b82f6'} opacity={0.1} />
                   {/* Glow ring */}
-                  <circle cx={0} cy={0} r={r * 1.5} fill={isHot ? '#ef4444' : '#3b82f6'} opacity={0.12} />
+                  <circle cx={0} cy={0} r={r * 2} fill={isHot ? '#ef4444' : '#3b82f6'} opacity={0.1} />
                   {/* Main dot */}
-                  <circle cx={0} cy={0} r={r} fill={isHot ? '#ef4444' : '#2563eb'} opacity={0.92} stroke="#fff" strokeWidth={1.5} />
+                  <circle cx={0} cy={0} r={r} fill={isHot ? '#ef4444' : '#2563eb'} opacity={0.92} stroke="#fff" strokeWidth={1} />
                   {/* Inner highlight */}
-                  <circle cx={0} cy={0} r={Math.max(3, r * 0.3)} fill="#fff" opacity={0.9} />
+                  <circle cx={0} cy={0} r={Math.max(2, r * 0.3)} fill="#fff" opacity={0.9} />
                   {/* Label */}
                   <text
                     textAnchor="middle"
-                    y={-r - 10}
-                    style={{ fontFamily: 'system-ui', fontSize: 11, fill: '#1e293b', fontWeight: 700 }}
+                    y={-r - 7}
+                    style={{ fontFamily: 'system-ui', fontSize: 10, fill: '#1e293b', fontWeight: 700 }}
                   >
                     {geo.name}
                   </text>
                   <text
                     textAnchor="middle"
                     y={-r + 7}
-                    style={{ fontFamily: 'system-ui', fontSize: 10, fill: '#475569', fontWeight: 500 }}
+                    style={{ fontFamily: 'system-ui', fontSize: 9, fill: '#475569', fontWeight: 500 }}
                   >
                     {total}
                   </text>
