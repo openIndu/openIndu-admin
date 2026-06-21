@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { documentApi } from '@/api'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
@@ -32,7 +32,20 @@ export function DocumentUpload() {
   const [category, setCategory] = useState('')
   const [description, setDescription] = useState('')
   const [file, setFile] = useState<File | null>(null)
-  const mutation = useMutation({ mutationFn: documentApi.upload, onSuccess: () => navigate('/documents') })
+  const queryClient = useQueryClient()
+  const mutation = useMutation({
+    mutationFn: documentApi.upload,
+    onSuccess: (newDoc) => {
+      // Optimistically prepend the new document into every cached page so the
+      // user sees it instantly in the list — no need to wait for the refetch.
+      queryClient.setQueriesData({ queryKey: ['documents'] }, (old: unknown) => {
+        const data = old as { items?: unknown[]; total?: number } | undefined
+        if (!data?.items) return old
+        return { ...data, items: [newDoc, ...data.items], total: (data.total ?? 0) + 1 }
+      })
+      navigate('/documents')
+    },
+  })
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
