@@ -55,19 +55,32 @@ export function Sidebar() {
       <div
         className={cn(
           'flex items-center border-b',
-          collapsed ? 'justify-center px-3 py-5' : 'gap-3 px-6 py-5',
+          collapsed ? 'justify-center px-3 py-5' : 'gap-2 px-4 py-5',
         )}
       >
-        <img
-          src="/assets/logo.png"
-          alt="openIndu logo"
-          className="h-10 w-10 shrink-0 rounded-lg object-contain"
-        />
+        <button
+          onClick={() => setCollapsed((c) => !c)}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          title={collapsed ? '展开菜单' : '收起菜单'}
+        >
+          {collapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </button>
         {!collapsed && (
-          <div>
-            <div className="text-xl font-semibold">openIndu</div>
-            <div className="text-sm text-muted-foreground">社区管理平台</div>
-          </div>
+          <>
+            <img
+              src="/assets/logo.png"
+              alt="openIndu logo"
+              className="h-10 w-10 shrink-0 rounded-lg object-contain"
+            />
+            <div className="min-w-0">
+              <div className="text-xl font-semibold">openIndu</div>
+              <div className="text-sm text-muted-foreground">社区管理平台</div>
+            </div>
+          </>
         )}
       </div>
 
@@ -142,22 +155,6 @@ export function Sidebar() {
           </div>
         )}
       </nav>
-
-      {/* Collapse toggle */}
-      <button
-        onClick={() => setCollapsed((c) => !c)}
-        className="flex items-center justify-center border-t py-3 text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-        title={collapsed ? '展开菜单' : '收起菜单'}
-      >
-        {collapsed ? (
-          <ChevronRight className="h-4 w-4" />
-        ) : (
-          <>
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            <span className="text-xs">收起</span>
-          </>
-        )}
-      </button>
     </aside>
   )
 }
