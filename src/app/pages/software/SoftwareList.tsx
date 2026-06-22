@@ -72,7 +72,7 @@ export function SoftwareList() {
   const [deletingVersion, setDeletingVersion] = useState<{ softwareId: number; versionId: number } | null>(null)
 
   const toTagArray = (d: unknown): ResourceTag[] => (Array.isArray(d) ? (d as ResourceTag[]) : [])
-  const brandsQuery = useQuery({ queryKey: ['tags', 'brand'], queryFn: () => tagsApi.list('brand'), select: toTagArray })
+  const brandsQuery = useQuery({ queryKey: ['tags', 'sw_brand'], queryFn: () => tagsApi.list('sw_brand'), select: toTagArray })
   const categoriesQuery = useQuery({ queryKey: ['tags', 'sw_category'], queryFn: () => tagsApi.list('sw_category'), select: toTagArray })
   const seriesQuery = useQuery({
     queryKey: ['tags', 'sw_series', category, brand],
