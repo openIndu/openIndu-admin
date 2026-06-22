@@ -64,17 +64,20 @@ export function DocumentList() {
   const [logPage, setLogPage] = useState(1)
   const [copiedId, setCopiedId] = useState<number | null>(null)
 
-  const brandsQuery = useQuery({ queryKey: ['tags', 'brand'], queryFn: () => tagsApi.list('brand') })
-  const categoriesQuery = useQuery({ queryKey: ['tags', 'doc_category'], queryFn: () => tagsApi.list('doc_category') })
+  const toArray = <T,>(d: T[] | unknown): T[] => (Array.isArray(d) ? d : [])
+  const brandsQuery = useQuery({ queryKey: ['tags', 'brand'], queryFn: () => tagsApi.list('brand'), select: toArray })
+  const categoriesQuery = useQuery({ queryKey: ['tags', 'doc_category'], queryFn: () => tagsApi.list('doc_category'), select: toArray })
   const seriesQuery = useQuery({
     queryKey: ['tags', 'doc_series', category],
     queryFn: () => tagsApi.list('doc_series', category),
     enabled: !!category,
+    select: toArray,
   })
   const editSeriesQuery = useQuery({
     queryKey: ['tags', 'doc_series', editCategory],
     queryFn: () => tagsApi.list('doc_series', editCategory),
     enabled: !!editCategory,
+    select: toArray,
   })
 
   const brandChips = useMemo(() => (brandsQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })), [brandsQuery.data])
