@@ -323,11 +323,13 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Select
+            className="w-36"
             options={[{ value: '', label: '全部品牌' }, ...brandOptions]}
             value={filterBrand}
             onChange={(e) => { setFilterBrand(e.target.value); setFilterCategory(''); setPage(1) }}
           />
           <Select
+            className="w-40"
             options={[{ value: '', label: `全部${categoryLabel}` }, ...categoryOptions]}
             value={filterCategory}
             onChange={(e) => { setFilterCategory(e.target.value); setPage(1) }}
