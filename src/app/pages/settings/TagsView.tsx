@@ -20,7 +20,7 @@ function TagTable({ type }: { type: string }) {
   const queryClient = useQueryClient()
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['tags', type] })
 
-  const { data: tags = [], isLoading } = useQuery({ queryKey: ['tags', type], queryFn: () => tagsApi.list(type) })
+  const { data: tags = [], isLoading } = useQuery({ queryKey: ['tags', type], queryFn: () => tagsApi.list(type), staleTime: 0 })
 
   const [newValue, setNewValue] = useState('')
   const [newLabel, setNewLabel] = useState('')
@@ -127,10 +127,10 @@ function TagTable({ type }: { type: string }) {
 function SeriesTable({ seriesType, categoryType, categoryLabel }: { seriesType: string; categoryType: string; categoryLabel: string }) {
   const queryClient = useQueryClient()
 
-  const { data: categories = [] } = useQuery({ queryKey: ['tags', categoryType], queryFn: () => tagsApi.list(categoryType) })
+  const { data: categories = [] } = useQuery({ queryKey: ['tags', categoryType], queryFn: () => tagsApi.list(categoryType), staleTime: 0 })
   const [filterCategory, setFilterCategory] = useState('')
 
-  const { data: allSeries = [], isLoading } = useQuery({ queryKey: ['tags', seriesType], queryFn: () => tagsApi.list(seriesType) })
+  const { data: allSeries = [], isLoading } = useQuery({ queryKey: ['tags', seriesType], queryFn: () => tagsApi.list(seriesType), staleTime: 0 })
 
   const filteredSeries = useMemo(
     () => filterCategory ? allSeries.filter((t) => t.parent_value === filterCategory) : allSeries,
