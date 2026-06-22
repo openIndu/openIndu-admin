@@ -65,6 +65,7 @@ export function DocumentList() {
   const [series, setSeries] = useState('')
   const [keyword, setKeyword] = useState('')
   const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [confirmBulk, setConfirmBulk] = useState<{ publish: boolean } | null>(null)
   const [deleting, setDeleting] = useState<ResourceItem | null>(null)
   const [editing, setEditing] = useState<ResourceItem | null>(null)
   const [editName, setEditName] = useState('')
@@ -246,10 +247,10 @@ export function DocumentList() {
               <Button size="sm" variant="outline" onClick={() => publishSelected(false)} disabled={selectedCount === 0 || bulkPublishMutation.isPending}>
                 取消发布选中{selectedCount ? ` (${selectedCount})` : ''}
               </Button>
-              <Button size="sm" onClick={() => publishFiltered(true)} disabled={bulkPublishMutation.isPending || query.isLoading}>
+              <Button size="sm" onClick={() => setConfirmBulk({ publish: true })} disabled={bulkPublishMutation.isPending || query.isLoading}>
                 一键发布当前筛选
               </Button>
-              <Button size="sm" variant="secondary" onClick={() => publishFiltered(false)} disabled={bulkPublishMutation.isPending || query.isLoading}>
+              <Button size="sm" variant="secondary" onClick={() => setConfirmBulk({ publish: false })} disabled={bulkPublishMutation.isPending || query.isLoading}>
                 一键取消发布当前筛选
               </Button>
               {bulkPublishMutation.data ? <span className="text-xs text-muted-foreground">已{bulkPublishMutation.data.publish ? '发布' : '取消发布'} {bulkPublishMutation.data.count} 个文档</span> : null}
@@ -502,6 +503,25 @@ export function DocumentList() {
           </div>
         </div>
       ) : null}
+
+      <ConfirmDialog
+        open={confirmBulk !== null}
+        title={confirmBulk?.publish ? '确认一键发布当前筛选？' : '确认一键取消发布当前筛选？'}
+        confirmText={confirmBulk?.publish ? '发布' : '取消发布'}
+        description={
+          confirmBulk
+            ? (brand || category || series || keyword)
+              ? (confirmBulk.publish
+                  ? '将发布当前筛选条件下所有未发布的文档。'
+                  : '将取消发布当前筛选条件下所有已发布的文档，它们会从官网下架。')
+              : (confirmBulk.publish
+                  ? '未设置筛选条件，将发布全部未发布的文档。'
+                  : '未设置筛选条件，将取消发布全部已发布的文档，官网资源将全部下架。')
+            : undefined
+        }
+        onCancel={() => setConfirmBulk(null)}
+        onConfirm={() => { if (confirmBulk) publishFiltered(confirmBulk.publish); setConfirmBulk(null) }}
+      />
 
       <ConfirmDialog
         open={deleting !== null}
