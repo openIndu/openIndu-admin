@@ -84,11 +84,10 @@ function TagModal({ mode, tag, type, onClose, onSuccess }: {
 }
 
 // ─── Series form modal (create / edit) ───────────────────────────────────────
-function SeriesModal({ mode, tag, seriesType, brandType, brands, categories, onClose, onSuccess }: {
+function SeriesModal({ mode, tag, seriesType, brands, categories, onClose, onSuccess }: {
   mode: 'create' | 'edit'
   tag?: ResourceTag
   seriesType: string
-  brandType: string
   brands: ResourceTag[]
   categories: ResourceTag[]
   onClose: () => void
@@ -384,7 +383,6 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
           mode={modal.mode}
           tag={modal.tag}
           seriesType={seriesType}
-          brandType={brandType}
           brands={brands}
           categories={categories}
           onClose={() => setModal(null)}
