@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { softwareApi, type SoftwareItem } from '@/api'
+import { softwareApi, tagsApi, type SoftwareItem } from '@/api'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
@@ -11,21 +11,10 @@ import { Select } from '../../components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
 import { Paperclip } from 'lucide-react'
 
-const brandOptions = [
-  { value: 'siemens', label: '西门子' },
-  { value: 'mitsubishi', label: '三菱' },
-  { value: 'omron', label: '欧姆龙' },
-  { value: 'keyence', label: '基恩士' },
-  { value: 'inovance', label: '汇川' },
-]
-
-const categoryOptions = [
-  { value: 'plc-ide', label: 'PLC 编程软件' },
-  { value: 'hmi-ide', label: 'HMI 编程软件' },
-  { value: 'plc-driver', label: '驱动软件' },
-  { value: 'utility', label: '调试工具' },
-  { value: 'firmware', label: '固件升级' },
-  { value: 'other', label: '其他' },
+const PAGE_SIZE_OPTIONS = [
+  { value: '10', label: '10 条/页' },
+  { value: '20', label: '20 条/页' },
+  { value: '50', label: '50 条/页' },
 ]
 
 interface SoftwareVersion {
@@ -42,19 +31,46 @@ export function SoftwareList() {
   const queryClient = useQueryClient()
   const versionFileRef = useRef<HTMLInputElement>(null)
   const [page, setPage] = useState(1)
+  const [size, setSize] = useState(10)
+  const [jumpInput, setJumpInput] = useState('')
   const [brand, setBrand] = useState('')
   const [category, setCategory] = useState('')
   const [keyword, setKeyword] = useState('')
   const [deleting, setDeleting] = useState<SoftwareItem | null>(null)
+  const [editing, setEditing] = useState<SoftwareItem | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editBrand, setEditBrand] = useState('')
+  const [editCategory, setEditCategory] = useState('')
+  const [editDescription, setEditDescription] = useState('')
   const [versionsModal, setVersionsModal] = useState<{ item: SoftwareItem; versions: SoftwareVersion[] } | null>(null)
   const [addVersionFile, setAddVersionFile] = useState<File | null>(null)
   const [addVersionValue, setAddVersionValue] = useState('')
   const [addVersionError, setAddVersionError] = useState('')
   const [deletingVersion, setDeletingVersion] = useState<{ softwareId: number; versionId: number } | null>(null)
-  const params = useMemo(() => ({ page, size: 10, brand: brand || undefined, category: category || undefined, keyword: keyword || undefined }), [brand, category, keyword, page])
+
+  const brandsQuery = useQuery({ queryKey: ['tags', 'brand'], queryFn: () => tagsApi.list('brand') })
+  const categoriesQuery = useQuery({ queryKey: ['tags', 'sw_category'], queryFn: () => tagsApi.list('sw_category') })
+
+  const brandOptions = useMemo(
+    () => (brandsQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })),
+    [brandsQuery.data],
+  )
+  const categoryOptions = useMemo(
+    () => (categoriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })),
+    [categoriesQuery.data],
+  )
+
+  const getLabelZh = (options: { value: string; label: string }[], value: string) =>
+    options.find((o) => o.value === value)?.label ?? value
+
+  const params = useMemo(() => ({ page, size, brand: brand || undefined, category: category || undefined, keyword: keyword || undefined }), [brand, category, keyword, page, size])
   const query = useQuery({ queryKey: ['software', params], queryFn: () => softwareApi.list(params) })
   const deleteMutation = useMutation({ mutationFn: softwareApi.delete, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['software'] }) })
   const publishMutation = useMutation({ mutationFn: softwareApi.publishToggle, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['software'] }) })
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Parameters<typeof softwareApi.update>[1] }) => softwareApi.update(id, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['software'] }); setEditing(null) },
+  })
 
   const invalidateSoftware = () => queryClient.invalidateQueries({ queryKey: ['software'] })
   const addVersionMutation = useMutation({
@@ -93,14 +109,8 @@ export function SoftwareList() {
 
   const handleAddVersion = () => {
     if (!versionsModal) return
-    if (!addVersionValue.trim()) {
-      setAddVersionError('请填写版本号')
-      return
-    }
-    if (!addVersionFile) {
-      setAddVersionError('请选择软件包文件')
-      return
-    }
+    if (!addVersionValue.trim()) { setAddVersionError('请填写版本号'); return }
+    if (!addVersionFile) { setAddVersionError('请选择软件包文件'); return }
     setAddVersionError('')
     const formData = new FormData()
     formData.append('file', addVersionFile)
@@ -110,13 +120,27 @@ export function SoftwareList() {
     setAddVersionValue('')
   }
 
+  const openEdit = (item: SoftwareItem) => {
+    setEditing(item)
+    setEditName(displayName(item))
+    setEditBrand(item.brand)
+    setEditCategory(item.category)
+    setEditDescription(item.description ?? '')
+  }
+
   const formatSize = (size?: number) => (size ? `${(size / 1024 / 1024).toFixed(2)} MB` : '-')
+  const totalPages = query.data ? Math.ceil(query.data.total / size) : 0
+
+  const handleJump = () => {
+    const n = parseInt(jumpInput, 10)
+    if (!isNaN(n) && n >= 1 && n <= totalPages) { setPage(n); setJumpInput('') }
+  }
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-row items-start justify-between">
-          <div><CardTitle>软件管理</CardTitle><CardDescription>按品牌、分类和关键词筛选软件包，支持上传和删除。</CardDescription></div>
+          <div><CardTitle>软件管理</CardTitle><CardDescription>按品牌、分类和关键词筛选软件包，支持上传、编辑和删除。</CardDescription></div>
           <Button asChild><Link to="/software/upload">上传软件</Link></Button>
         </CardHeader>
         <CardContent>
@@ -131,13 +155,24 @@ export function SoftwareList() {
           {!query.isLoading && !query.isError && query.data?.items.length === 0 ? <div className="text-muted-foreground">暂无软件</div> : null}
           {query.data && query.data.items.length > 0 ? (
             <Table>
-              <TableHeader><TableRow><TableHead>名称</TableHead><TableHead>品牌</TableHead><TableHead>分类</TableHead><TableHead>版本</TableHead><TableHead>下载次数</TableHead><TableHead>状态</TableHead><TableHead>发布状态</TableHead><TableHead>操作</TableHead></TableRow></TableHeader>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>名称</TableHead>
+                  <TableHead>品牌</TableHead>
+                  <TableHead>分类</TableHead>
+                  <TableHead>版本</TableHead>
+                  <TableHead>下载次数</TableHead>
+                  <TableHead>状态</TableHead>
+                  <TableHead>发布状态</TableHead>
+                  <TableHead>操作</TableHead>
+                </TableRow>
+              </TableHeader>
               <TableBody>
                 {query.data.items.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>{displayName(item)}</TableCell>
-                    <TableCell>{item.brand}</TableCell>
-                    <TableCell>{item.category}</TableCell>
+                    <TableCell>{getLabelZh(brandOptions, item.brand)}</TableCell>
+                    <TableCell>{getLabelZh(categoryOptions, item.category)}</TableCell>
                     <TableCell>{item.latest_version ?? item.version ?? '-'}</TableCell>
                     <TableCell>{item.download_count ?? 0}</TableCell>
                     <TableCell>{item.is_active === false ? '下架' : '上架'}</TableCell>
@@ -148,6 +183,7 @@ export function SoftwareList() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
+                        <Button size="sm" variant="outline" onClick={() => openEdit(item)}>编辑</Button>
                         <Button size="sm" variant="outline" onClick={() => openVersions(item)}>版本</Button>
                         <Button
                           size="sm"
@@ -165,9 +201,74 @@ export function SoftwareList() {
               </TableBody>
             </Table>
           ) : null}
-          {query.data ? <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground"><span>共 {query.data.total} 条</span><div className="space-x-2"><Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>上一页</Button><Button size="sm" variant="outline" disabled={page * 10 >= query.data.total} onClick={() => setPage(page + 1)}>下一页</Button></div></div> : null}
+          {query.data ? (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+              <span>共 {query.data.total} 条</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <Select
+                  options={PAGE_SIZE_OPTIONS}
+                  value={String(size)}
+                  onChange={(e) => { setSize(Number(e.target.value)); setPage(1) }}
+                />
+                <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>上一页</Button>
+                <span>{page} / {totalPages || 1}</span>
+                <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>下一页</Button>
+                <div className="flex items-center gap-1">
+                  <span>跳至</span>
+                  <Input
+                    className="w-14 h-8 text-center"
+                    value={jumpInput}
+                    onChange={(e) => setJumpInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleJump() }}
+                    placeholder="页"
+                  />
+                  <Button size="sm" variant="outline" onClick={handleJump}>Go</Button>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
+
+      {/* Edit modal */}
+      {editing ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl border bg-card p-6 shadow-lg">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold">编辑软件</h3>
+              <Button variant="ghost" size="sm" onClick={() => setEditing(null)}>关闭</Button>
+            </div>
+            <div className="space-y-3">
+              <label className="block space-y-1 text-sm">
+                <span>显示名</span>
+                <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+              </label>
+              <label className="block space-y-1 text-sm">
+                <span>品牌</span>
+                <Select options={brandOptions} value={editBrand} onChange={(e) => setEditBrand(e.target.value)} />
+              </label>
+              <label className="block space-y-1 text-sm">
+                <span>分类</span>
+                <Select options={categoryOptions} value={editCategory} onChange={(e) => setEditCategory(e.target.value)} />
+              </label>
+              <label className="block space-y-1 text-sm">
+                <span>描述</span>
+                <Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="可选" />
+              </label>
+            </div>
+            {updateMutation.isError ? <div className="mt-2 text-sm text-destructive">保存失败，请重试</div> : null}
+            <div className="mt-5 flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setEditing(null)}>取消</Button>
+              <Button
+                disabled={updateMutation.isPending}
+                onClick={() => updateMutation.mutate({ id: editing.id, data: { original_name: editName, brand: editBrand, category: editCategory, description: editDescription } })}
+              >
+                {updateMutation.isPending ? '保存中...' : '保存'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* Versions Modal */}
       {versionsModal ? (

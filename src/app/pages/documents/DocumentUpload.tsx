@@ -1,30 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { documentApi } from '@/api'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { documentApi, tagsApi } from '@/api'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
 import { Select } from '../../components/ui/select'
-
-const brandOptions = [
-  { value: 'siemens', label: '西门子' },
-  { value: 'mitsubishi', label: '三菱' },
-  { value: 'omron', label: '欧姆龙' },
-  { value: 'keyence', label: '基恩士' },
-  { value: 'inovance', label: '汇川' },
-]
-
-const categoryOptions = [
-  { value: 'plc-manual', label: 'PLC 编程手册' },
-  { value: 'hardware-manual', label: '硬件手册' },
-  { value: 'driver-manual', label: '驱动器手册' },
-  { value: 'hmi-manual', label: 'HMI 手册' },
-  { value: 'software-manual', label: '软件手册' },
-  { value: 'best-practice', label: '最佳实践' },
-  { value: 'electrical-standard', label: '电气规范' },
-  { value: 'other', label: '其他' },
-]
 
 export function DocumentUpload() {
   const navigate = useNavigate()
@@ -33,11 +14,15 @@ export function DocumentUpload() {
   const [description, setDescription] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const queryClient = useQueryClient()
+
+  const brandsQuery = useQuery({ queryKey: ['tags', 'brand'], queryFn: () => tagsApi.list('brand') })
+  const categoriesQuery = useQuery({ queryKey: ['tags', 'doc_category'], queryFn: () => tagsApi.list('doc_category') })
+  const brandOptions = (brandsQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh }))
+  const categoryOptions = (categoriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh }))
+
   const mutation = useMutation({
     mutationFn: documentApi.upload,
     onSuccess: (newDoc) => {
-      // Optimistically prepend the new document into every cached page so the
-      // user sees it instantly in the list — no need to wait for the refetch.
       queryClient.setQueriesData({ queryKey: ['documents'] }, (old: unknown) => {
         const data = old as { items?: unknown[]; total?: number } | undefined
         if (!data?.items) return old

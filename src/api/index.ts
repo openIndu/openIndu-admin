@@ -61,11 +61,22 @@ export interface ResourceItem {
   name?: string
   brand: string
   category: string
+  description?: string
   file_size?: number
   download_count?: number
   sync_status?: 'pending' | 'syncing' | 'synced' | 'failed' | string
   is_published?: boolean
   upload_time?: string
+  created_at?: string
+}
+
+export interface ResourceTag {
+  id: number
+  type: string
+  value: string
+  label_zh: string
+  is_active: boolean
+  sort_order: number
   created_at?: string
 }
 
@@ -188,6 +199,7 @@ export const documentApi = {
   list: (params: { page?: number; size?: number; brand?: string; category?: string; keyword?: string } = {}) => unwrap<PageResult<ResourceItem>>(api.get('/documents', { params })),
   upload: (formData: FormData) => unwrap<ResourceItem>(api.post('/documents/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })),
   get: (id: number) => unwrap<ResourceItem>(api.get(`/documents/${id}`)),
+  update: (id: number, data: Partial<Pick<ResourceItem, 'original_name' | 'brand' | 'category' | 'description'>>) => unwrap<ResourceItem>(api.patch(`/documents/${id}`, data)),
   delete: (id: number) => unwrap(api.delete(`/documents/${id}`)),
   sync: (id: number) => unwrap<ResourceItem>(api.post(`/documents/${id}/sync`)),
   publishToggle: (id: number) => unwrap<ResourceItem>(api.patch(`/documents/${id}/publish`)),
@@ -199,11 +211,19 @@ export const softwareApi = {
   list: (params: { page?: number; size?: number; brand?: string; category?: string; keyword?: string } = {}) => unwrap<PageResult<SoftwareItem>>(api.get('/software', { params })),
   upload: (formData: FormData) => unwrap<SoftwareItem>(api.post('/software/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })),
   get: (id: number) => unwrap<SoftwareItem>(api.get(`/software/${id}`)),
+  update: (id: number, data: Partial<Pick<SoftwareItem, 'original_name' | 'brand' | 'category' | 'description'>>) => unwrap<SoftwareItem>(api.patch(`/software/${id}`, data)),
   delete: (id: number) => unwrap(api.delete(`/software/${id}`)),
   publishToggle: (id: number) => unwrap<SoftwareItem>(api.patch(`/software/${id}/publish`)),
   addVersion: (id: number, formData: FormData) => unwrap(api.post(`/software/${id}/versions`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })),
   deleteVersion: (id: number, versionId: number) => unwrap(api.delete(`/software/${id}/versions/${versionId}`)),
   categories: () => unwrap<Array<{ value: string; label: string }> | string[]>(api.get('/software/categories/list')),
+}
+
+export const tagsApi = {
+  list: (type?: string) => unwrap<ResourceTag[]>(api.get('/tags', { params: type ? { type } : {} })),
+  create: (data: { type: string; value: string; label_zh: string; sort_order?: number }) => unwrap<ResourceTag>(api.post('/tags', data)),
+  update: (id: number, data: { label_zh?: string; is_active?: boolean; sort_order?: number }) => unwrap<ResourceTag>(api.patch(`/tags/${id}`, data)),
+  remove: (id: number) => unwrap(api.delete(`/tags/${id}`)),
 }
 
 export const configApi = {

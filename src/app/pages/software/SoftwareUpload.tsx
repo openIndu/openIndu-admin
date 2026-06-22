@@ -1,29 +1,12 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
-import { useMutation } from '@tanstack/react-query'
-import { softwareApi } from '@/api'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { softwareApi, tagsApi } from '@/api'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
 import { Select } from '../../components/ui/select'
 import { Paperclip } from 'lucide-react'
-
-const brandOptions = [
-  { value: 'siemens', label: '西门子' },
-  { value: 'mitsubishi', label: '三菱' },
-  { value: 'omron', label: '欧姆龙' },
-  { value: 'keyence', label: '基恩士' },
-  { value: 'inovance', label: '汇川' },
-]
-
-const categoryOptions = [
-  { value: 'plc-ide', label: 'PLC 编程软件' },
-  { value: 'hmi-ide', label: 'HMI 编程软件' },
-  { value: 'plc-driver', label: '驱动软件' },
-  { value: 'utility', label: '调试工具' },
-  { value: 'firmware', label: '固件升级' },
-  { value: 'other', label: '其他' },
-]
 
 export function SoftwareUpload() {
   const navigate = useNavigate()
@@ -34,6 +17,12 @@ export function SoftwareUpload() {
   const [description, setDescription] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  const brandsQuery = useQuery({ queryKey: ['tags', 'brand'], queryFn: () => tagsApi.list('brand') })
+  const categoriesQuery = useQuery({ queryKey: ['tags', 'sw_category'], queryFn: () => tagsApi.list('sw_category') })
+  const brandOptions = (brandsQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh }))
+  const categoryOptions = (categoriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh }))
+
   const mutation = useMutation({
     mutationFn: softwareApi.upload,
     onSuccess: () => navigate('/software'),
@@ -46,10 +35,7 @@ export function SoftwareUpload() {
     if (!category) errs.category = '请选择分类'
     if (!version.trim()) errs.version = '请填写版本号'
     if (!file) errs.file = '请选择软件包文件'
-    if (Object.keys(errs).length > 0) {
-      setFieldErrors(errs)
-      return
-    }
+    if (Object.keys(errs).length > 0) { setFieldErrors(errs); return }
     setFieldErrors({})
     const formData = new FormData()
     formData.append('file', file!)
@@ -70,50 +56,27 @@ export function SoftwareUpload() {
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-1">
             <label className="text-sm">品牌</label>
-            <Select
-              placeholder="请选择品牌"
-              options={brandOptions}
-              value={brand}
-              onChange={(e) => setBrand(e.target.value)}
-            />
+            <Select placeholder="请选择品牌" options={brandOptions} value={brand} onChange={(e) => setBrand(e.target.value)} />
             {fieldErrors.brand && <p className="text-xs text-destructive">{fieldErrors.brand}</p>}
           </div>
 
           <div className="space-y-1">
             <label className="text-sm">分类</label>
-            <Select
-              placeholder="请选择分类"
-              options={categoryOptions}
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            />
-            {fieldErrors.category && (
-              <p className="text-xs text-destructive">{fieldErrors.category}</p>
-            )}
+            <Select placeholder="请选择分类" options={categoryOptions} value={category} onChange={(e) => setCategory(e.target.value)} />
+            {fieldErrors.category && <p className="text-xs text-destructive">{fieldErrors.category}</p>}
           </div>
 
           <div className="space-y-1">
             <label className="text-sm">版本</label>
-            <Input
-              value={version}
-              onChange={(e) => setVersion(e.target.value)}
-              placeholder="如 V18 / 2.1.0"
-            />
-            {fieldErrors.version && (
-              <p className="text-xs text-destructive">{fieldErrors.version}</p>
-            )}
+            <Input value={version} onChange={(e) => setVersion(e.target.value)} placeholder="如 V18 / 2.1.0" />
+            {fieldErrors.version && <p className="text-xs text-destructive">{fieldErrors.version}</p>}
           </div>
 
           <div className="space-y-1">
             <label className="text-sm">说明</label>
-            <Input
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="可选说明"
-            />
+            <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="可选说明" />
           </div>
 
-          {/* Custom file input */}
           <div className="space-y-1">
             <label className="text-sm">软件包</label>
             <div
@@ -130,10 +93,7 @@ export function SoftwareUpload() {
               type="file"
               accept=".zip,.exe,.msi,.rar,.7z"
               className="sr-only"
-              onChange={(e) => {
-                setFile(e.target.files?.[0] ?? null)
-                setFieldErrors((prev) => ({ ...prev, file: '' }))
-              }}
+              onChange={(e) => { setFile(e.target.files?.[0] ?? null); setFieldErrors((prev) => ({ ...prev, file: '' })) }}
             />
             {fieldErrors.file && <p className="text-xs text-destructive">{fieldErrors.file}</p>}
           </div>
@@ -141,9 +101,7 @@ export function SoftwareUpload() {
           {mutation.isError ? (
             <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
               {(() => {
-                const err = mutation.error as {
-                  response?: { data?: { detail?: string | unknown[]; message?: string } }
-                }
+                const err = mutation.error as { response?: { data?: { detail?: string | unknown[]; message?: string } } }
                 const detail = err?.response?.data?.detail
                 if (typeof detail === 'string') return detail
                 return err?.response?.data?.message || '上传失败，请检查文件和网络连接'
@@ -155,9 +113,7 @@ export function SoftwareUpload() {
             <Button type="submit" disabled={!brand || !category || !version.trim() || !file || mutation.isPending}>
               {mutation.isPending ? '上传中...' : '上传'}
             </Button>
-            <Button type="button" variant="outline" onClick={() => navigate('/software')}>
-              取消
-            </Button>
+            <Button type="button" variant="outline" onClick={() => navigate('/software')}>取消</Button>
           </div>
         </form>
       </CardContent>
