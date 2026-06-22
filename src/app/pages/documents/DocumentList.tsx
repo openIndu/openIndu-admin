@@ -65,7 +65,7 @@ export function DocumentList() {
   const [copiedId, setCopiedId] = useState<number | null>(null)
 
   const toTagArray = (d: unknown): ResourceTag[] => (Array.isArray(d) ? (d as ResourceTag[]) : [])
-  const brandsQuery = useQuery({ queryKey: ['tags', 'brand'], queryFn: () => tagsApi.list('brand'), select: toTagArray })
+  const brandsQuery = useQuery({ queryKey: ['tags', 'doc_brand'], queryFn: () => tagsApi.list('doc_brand'), select: toTagArray })
   const categoriesQuery = useQuery({ queryKey: ['tags', 'doc_category'], queryFn: () => tagsApi.list('doc_category'), select: toTagArray })
   const seriesQuery = useQuery({
     queryKey: ['tags', 'doc_series', category, brand],
