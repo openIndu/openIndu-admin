@@ -54,6 +54,7 @@ export function DocumentList() {
   const [category, setCategory] = useState('')
   const [series, setSeries] = useState('')
   const [keyword, setKeyword] = useState('')
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [deleting, setDeleting] = useState<ResourceItem | null>(null)
   const [editing, setEditing] = useState<ResourceItem | null>(null)
   const [editName, setEditName] = useState('')
@@ -110,6 +111,13 @@ export function DocumentList() {
   })
   const deleteMutation = useMutation({ mutationFn: documentApi.delete, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) })
   const publishMutation = useMutation({ mutationFn: documentApi.publishToggle, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) })
+  const bulkPublishMutation = useMutation({
+    mutationFn: documentApi.bulkPublish,
+    onSuccess: () => {
+      setSelectedIds([])
+      queryClient.invalidateQueries({ queryKey: ['documents'] })
+    },
+  })
   const syncMutation = useMutation({ mutationFn: documentApi.sync, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) })
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Parameters<typeof documentApi.update>[1] }) => documentApi.update(id, data),
@@ -128,10 +136,35 @@ export function DocumentList() {
 
   const statusData = syncStatusQuery.data as Record<string, unknown> | undefined
   const totalPages = query.data ? Math.ceil(query.data.total / size) : 0
+  const currentItems = query.data?.items ?? []
+  const currentItemIds = currentItems.map((item) => item.id)
+  const allCurrentSelected = currentItemIds.length > 0 && currentItemIds.every((id) => selectedIds.includes(id))
+  const selectedCount = selectedIds.length
 
   const handleJump = () => {
     const n = parseInt(jumpInput, 10)
     if (!isNaN(n) && n >= 1 && n <= totalPages) { setPage(n); setJumpInput('') }
+  }
+
+  const toggleCurrentPageSelection = () => {
+    if (allCurrentSelected) {
+      setSelectedIds((ids) => ids.filter((id) => !currentItemIds.includes(id)))
+      return
+    }
+    setSelectedIds((ids) => Array.from(new Set([...ids, ...currentItemIds])))
+  }
+
+  const toggleRowSelection = (id: number) => {
+    setSelectedIds((ids) => ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id])
+  }
+
+  const publishSelected = () => {
+    if (selectedIds.length === 0) return
+    bulkPublishMutation.mutate({ ids: selectedIds })
+  }
+
+  const publishFiltered = () => {
+    bulkPublishMutation.mutate({ brand: brand || undefined, category: category || undefined, series: series || undefined, keyword: keyword || undefined })
   }
 
   const handleCopyError = (logId: number, text: string) => {
@@ -184,7 +217,7 @@ export function DocumentList() {
                 onSelect={(v) => { setSeries(v); setPage(1) }}
               />
             ) : null}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Input
                 className="h-8 max-w-xs"
                 placeholder="关键词搜索..."
@@ -197,6 +230,13 @@ export function DocumentList() {
                   清空筛选
                 </Button>
               ) : null}
+              <Button size="sm" variant="outline" onClick={publishSelected} disabled={selectedCount === 0 || bulkPublishMutation.isPending}>
+                发布选中{selectedCount ? ` (${selectedCount})` : ''}
+              </Button>
+              <Button size="sm" onClick={publishFiltered} disabled={bulkPublishMutation.isPending || query.isLoading}>
+                一键发布当前筛选
+              </Button>
+              {bulkPublishMutation.data ? <span className="text-xs text-muted-foreground">已发布 {bulkPublishMutation.data.published_count} 个文档</span> : null}
             </div>
           </div>
 
@@ -207,6 +247,9 @@ export function DocumentList() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>
+                    <input type="checkbox" checked={allCurrentSelected} onChange={toggleCurrentPageSelection} aria-label="选择当前页文档" />
+                  </TableHead>
                   <TableHead>名称</TableHead>
                   <TableHead>品牌</TableHead>
                   <TableHead>类型</TableHead>
@@ -222,6 +265,9 @@ export function DocumentList() {
               <TableBody>
                 {query.data.items.map((item) => (
                   <TableRow key={item.id}>
+                    <TableCell>
+                      <input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleRowSelection(item.id)} aria-label={`选择 ${displayName(item)}`} />
+                    </TableCell>
                     <TableCell className="max-w-[200px] truncate" title={displayName(item)}>{displayName(item)}</TableCell>
                     <TableCell>{brandMap[item.brand] ?? item.brand}</TableCell>
                     <TableCell>{categoryMap[item.category] ?? item.category}</TableCell>
