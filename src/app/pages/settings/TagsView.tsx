@@ -405,10 +405,10 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
 export function TagsView() {
   const tabs = [
     { value: 'doc_brand', label: '文档品牌', content: <FlatTagPanel type="doc_brand" /> },
-    { value: 'sw_brand', label: '软件品牌', content: <FlatTagPanel type="sw_brand" /> },
     { value: 'doc_category', label: '文档分类', content: <FlatTagPanel type="doc_category" /> },
-    { value: 'sw_category', label: '软件分类', content: <FlatTagPanel type="sw_category" /> },
     { value: 'doc_series', label: '文档系列', content: <SeriesPanel seriesType="doc_series" categoryType="doc_category" categoryLabel="文档分类" brandType="doc_brand" /> },
+    { value: 'sw_brand', label: '软件品牌', content: <FlatTagPanel type="sw_brand" /> },
+    { value: 'sw_category', label: '软件分类', content: <FlatTagPanel type="sw_category" /> },
     { value: 'sw_series', label: '软件系列', content: <SeriesPanel seriesType="sw_series" categoryType="sw_category" categoryLabel="软件分类" brandType="sw_brand" /> },
   ]
 
