@@ -11,6 +11,7 @@ import {
   Settings,
   Shield,
   SlidersHorizontal,
+  Tag,
   UploadCloud,
   Users,
 } from 'lucide-react'
@@ -25,6 +26,7 @@ const mainNavItems = [
 
 const settingsSubItems = [
   { to: '/settings', label: '配置管理', icon: Settings },
+  { to: '/settings/tags', label: '品牌与分类', icon: Tag },
   { to: '/stats', label: '登录日志', icon: Clock, end: true },
   { to: '/stats/audit', label: '审计日志', icon: Shield },
 ]
