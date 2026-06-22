@@ -27,6 +27,27 @@ interface SoftwareVersion {
 
 const displayName = (item: SoftwareItem) => item.original_name ?? item.name ?? item.filename ?? `软件 #${item.id}`
 
+function ChipBar({ label, chips, selected, onSelect }: { label: string; chips: { value: string; label: string }[]; selected: string; onSelect: (v: string) => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm">
+      <span className="shrink-0 font-medium text-muted-foreground">{label}</span>
+      {[{ value: '', label: '全部' }, ...chips].map((chip) => (
+        <button
+          key={chip.value}
+          onClick={() => onSelect(chip.value)}
+          className={`rounded-full border px-3 py-0.5 text-xs transition-colors ${
+            selected === chip.value
+              ? 'border-primary bg-primary text-primary-foreground'
+              : 'border-border bg-background hover:border-primary/50 hover:bg-muted'
+          }`}
+        >
+          {chip.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export function SoftwareList() {
   const queryClient = useQueryClient()
   const versionFileRef = useRef<HTMLInputElement>(null)
@@ -35,12 +56,14 @@ export function SoftwareList() {
   const [jumpInput, setJumpInput] = useState('')
   const [brand, setBrand] = useState('')
   const [category, setCategory] = useState('')
+  const [series, setSeries] = useState('')
   const [keyword, setKeyword] = useState('')
   const [deleting, setDeleting] = useState<SoftwareItem | null>(null)
   const [editing, setEditing] = useState<SoftwareItem | null>(null)
   const [editName, setEditName] = useState('')
   const [editBrand, setEditBrand] = useState('')
   const [editCategory, setEditCategory] = useState('')
+  const [editSeries, setEditSeries] = useState('')
   const [editDescription, setEditDescription] = useState('')
   const [versionsModal, setVersionsModal] = useState<{ item: SoftwareItem; versions: SoftwareVersion[] } | null>(null)
   const [addVersionFile, setAddVersionFile] = useState<File | null>(null)
@@ -50,20 +73,32 @@ export function SoftwareList() {
 
   const brandsQuery = useQuery({ queryKey: ['tags', 'brand'], queryFn: () => tagsApi.list('brand') })
   const categoriesQuery = useQuery({ queryKey: ['tags', 'sw_category'], queryFn: () => tagsApi.list('sw_category') })
+  const seriesQuery = useQuery({
+    queryKey: ['tags', 'sw_series', category],
+    queryFn: () => tagsApi.list('sw_series', category),
+    enabled: !!category,
+  })
+  const editSeriesQuery = useQuery({
+    queryKey: ['tags', 'sw_series', editCategory],
+    queryFn: () => tagsApi.list('sw_series', editCategory),
+    enabled: !!editCategory,
+  })
 
-  const brandOptions = useMemo(
-    () => (brandsQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })),
-    [brandsQuery.data],
-  )
-  const categoryOptions = useMemo(
-    () => (categoriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })),
-    [categoriesQuery.data],
-  )
+  const brandChips = useMemo(() => (brandsQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })), [brandsQuery.data])
+  const categoryChips = useMemo(() => (categoriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })), [categoriesQuery.data])
+  const seriesChips = useMemo(() => (seriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })), [seriesQuery.data])
+  const editSeriesChips = useMemo(() => (editSeriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })), [editSeriesQuery.data])
 
-  const getLabelZh = (options: { value: string; label: string }[], value: string) =>
-    options.find((o) => o.value === value)?.label ?? value
+  const brandMap = useMemo(() => Object.fromEntries(brandChips.map((c) => [c.value, c.label])), [brandChips])
+  const categoryMap = useMemo(() => Object.fromEntries(categoryChips.map((c) => [c.value, c.label])), [categoryChips])
+  const allSeriesMap = useMemo(() => {
+    const m: Record<string, string> = {}
+    ;(seriesQuery.data ?? []).forEach((t) => { m[t.value] = t.label_zh })
+    ;(editSeriesQuery.data ?? []).forEach((t) => { m[t.value] = t.label_zh })
+    return m
+  }, [seriesQuery.data, editSeriesQuery.data])
 
-  const params = useMemo(() => ({ page, size, brand: brand || undefined, category: category || undefined, keyword: keyword || undefined }), [brand, category, keyword, page, size])
+  const params = useMemo(() => ({ page, size, brand: brand || undefined, category: category || undefined, series: series || undefined, keyword: keyword || undefined }), [brand, category, series, keyword, page, size])
   const query = useQuery({ queryKey: ['software', params], queryFn: () => softwareApi.list(params) })
   const deleteMutation = useMutation({ mutationFn: softwareApi.delete, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['software'] }) })
   const publishMutation = useMutation({ mutationFn: softwareApi.publishToggle, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['software'] }) })
@@ -125,6 +160,7 @@ export function SoftwareList() {
     setEditName(displayName(item))
     setEditBrand(item.brand)
     setEditCategory(item.category)
+    setEditSeries(item.series ?? '')
     setEditDescription(item.description ?? '')
   }
 
@@ -144,12 +180,44 @@ export function SoftwareList() {
           <Button asChild><Link to="/software/upload">上传软件</Link></Button>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 grid gap-3 md:grid-cols-4">
-            <Select placeholder="全部品牌" options={brandOptions} value={brand} onChange={(event) => { setBrand(event.target.value); setPage(1) }} />
-            <Select placeholder="全部分类" options={categoryOptions} value={category} onChange={(event) => { setCategory(event.target.value); setPage(1) }} />
-            <Input placeholder="关键词" value={keyword} onChange={(event) => { setKeyword(event.target.value); setPage(1) }} />
-            <Button variant="outline" onClick={() => void query.refetch()}>查询</Button>
+          {/* Cascading chip filter */}
+          <div className="mb-5 space-y-3 rounded-lg border bg-muted/30 px-4 py-3">
+            <ChipBar
+              label="品牌："
+              chips={brandChips}
+              selected={brand}
+              onSelect={(v) => { setBrand(v); setPage(1) }}
+            />
+            <ChipBar
+              label="类型："
+              chips={categoryChips}
+              selected={category}
+              onSelect={(v) => { setCategory(v); setSeries(''); setPage(1) }}
+            />
+            {category && seriesChips.length > 0 ? (
+              <ChipBar
+                label="系列："
+                chips={seriesChips}
+                selected={series}
+                onSelect={(v) => { setSeries(v); setPage(1) }}
+              />
+            ) : null}
+            <div className="flex items-center gap-2">
+              <Input
+                className="h-8 max-w-xs"
+                placeholder="关键词搜索..."
+                value={keyword}
+                onChange={(e) => { setKeyword(e.target.value); setPage(1) }}
+              />
+              <Button size="sm" variant="outline" onClick={() => void query.refetch()}>查询</Button>
+              {(brand || category || series || keyword) ? (
+                <Button size="sm" variant="ghost" onClick={() => { setBrand(''); setCategory(''); setSeries(''); setKeyword(''); setPage(1) }}>
+                  清空筛选
+                </Button>
+              ) : null}
+            </div>
           </div>
+
           {query.isLoading ? <div className="text-muted-foreground">正在加载软件...</div> : null}
           {query.isError ? <div className="text-destructive">软件列表加载失败</div> : null}
           {!query.isLoading && !query.isError && query.data?.items.length === 0 ? <div className="text-muted-foreground">暂无软件</div> : null}
@@ -159,7 +227,8 @@ export function SoftwareList() {
                 <TableRow>
                   <TableHead>名称</TableHead>
                   <TableHead>品牌</TableHead>
-                  <TableHead>分类</TableHead>
+                  <TableHead>类型</TableHead>
+                  <TableHead>系列</TableHead>
                   <TableHead>版本</TableHead>
                   <TableHead>下载次数</TableHead>
                   <TableHead>状态</TableHead>
@@ -171,8 +240,9 @@ export function SoftwareList() {
                 {query.data.items.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>{displayName(item)}</TableCell>
-                    <TableCell>{getLabelZh(brandOptions, item.brand)}</TableCell>
-                    <TableCell>{getLabelZh(categoryOptions, item.category)}</TableCell>
+                    <TableCell>{brandMap[item.brand] ?? item.brand}</TableCell>
+                    <TableCell>{categoryMap[item.category] ?? item.category}</TableCell>
+                    <TableCell>{item.series ? (allSeriesMap[item.series] ?? item.series) : '-'}</TableCell>
                     <TableCell>{item.latest_version ?? item.version ?? '-'}</TableCell>
                     <TableCell>{item.download_count ?? 0}</TableCell>
                     <TableCell>{item.is_active === false ? '下架' : '上架'}</TableCell>
@@ -245,12 +315,22 @@ export function SoftwareList() {
               </label>
               <label className="block space-y-1 text-sm">
                 <span>品牌</span>
-                <Select options={brandOptions} value={editBrand} onChange={(e) => setEditBrand(e.target.value)} />
+                <Select options={brandChips} value={editBrand} onChange={(e) => setEditBrand(e.target.value)} />
               </label>
               <label className="block space-y-1 text-sm">
-                <span>分类</span>
-                <Select options={categoryOptions} value={editCategory} onChange={(e) => setEditCategory(e.target.value)} />
+                <span>类型</span>
+                <Select options={categoryChips} value={editCategory} onChange={(e) => { setEditCategory(e.target.value); setEditSeries('') }} />
               </label>
+              {editCategory && editSeriesChips.length > 0 ? (
+                <label className="block space-y-1 text-sm">
+                  <span>系列（可选）</span>
+                  <Select
+                    options={[{ value: '', label: '不指定系列' }, ...editSeriesChips]}
+                    value={editSeries}
+                    onChange={(e) => setEditSeries(e.target.value)}
+                  />
+                </label>
+              ) : null}
               <label className="block space-y-1 text-sm">
                 <span>描述</span>
                 <Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="可选" />
@@ -261,7 +341,7 @@ export function SoftwareList() {
               <Button variant="outline" onClick={() => setEditing(null)}>取消</Button>
               <Button
                 disabled={updateMutation.isPending}
-                onClick={() => updateMutation.mutate({ id: editing.id, data: { original_name: editName, brand: editBrand, category: editCategory, description: editDescription } })}
+                onClick={() => updateMutation.mutate({ id: editing.id, data: { original_name: editName, brand: editBrand, category: editCategory, series: editSeries || undefined, description: editDescription } })}
               >
                 {updateMutation.isPending ? '保存中...' : '保存'}
               </Button>
@@ -278,7 +358,6 @@ export function SoftwareList() {
               <h3 className="text-lg font-semibold">版本管理 - {displayName(versionsModal.item)}</h3>
               <Button variant="ghost" size="sm" onClick={() => { setVersionsModal(null); setAddVersionFile(null); setAddVersionValue(''); setAddVersionError('') }}>关闭</Button>
             </div>
-
             <div className="mb-4 rounded-lg border p-4">
               <label className="mb-2 block text-sm font-medium">添加新版本</label>
               <div className="grid gap-3 md:grid-cols-[160px_1fr_auto]">
@@ -306,7 +385,6 @@ export function SoftwareList() {
               {addVersionError ? <div className="mt-2 text-sm text-destructive">{addVersionError}</div> : null}
               {addVersionMutation.isError ? <div className="mt-2 text-sm text-destructive">版本上传失败，请检查版本号、文件格式和网络。</div> : null}
             </div>
-
             {versionsModal.versions.length === 0 ? (
               <div className="text-sm text-muted-foreground">暂无版本记录</div>
             ) : (

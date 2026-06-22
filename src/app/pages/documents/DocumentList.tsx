@@ -24,6 +24,27 @@ const formatDate = (iso?: string) =>
     : '-'
 const displayName = (item: ResourceItem) => item.original_name ?? item.name ?? item.filename ?? `文档 #${item.id}`
 
+function ChipBar({ label, chips, selected, onSelect }: { label: string; chips: { value: string; label: string }[]; selected: string; onSelect: (v: string) => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm">
+      <span className="shrink-0 font-medium text-muted-foreground">{label}</span>
+      {[{ value: '', label: '全部' }, ...chips].map((chip) => (
+        <button
+          key={chip.value}
+          onClick={() => onSelect(chip.value)}
+          className={`rounded-full border px-3 py-0.5 text-xs transition-colors ${
+            selected === chip.value
+              ? 'border-primary bg-primary text-primary-foreground'
+              : 'border-border bg-background hover:border-primary/50 hover:bg-muted'
+          }`}
+        >
+          {chip.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export function DocumentList() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
@@ -31,34 +52,48 @@ export function DocumentList() {
   const [jumpInput, setJumpInput] = useState('')
   const [brand, setBrand] = useState('')
   const [category, setCategory] = useState('')
+  const [series, setSeries] = useState('')
   const [keyword, setKeyword] = useState('')
   const [deleting, setDeleting] = useState<ResourceItem | null>(null)
   const [editing, setEditing] = useState<ResourceItem | null>(null)
   const [editName, setEditName] = useState('')
   const [editBrand, setEditBrand] = useState('')
   const [editCategory, setEditCategory] = useState('')
+  const [editSeries, setEditSeries] = useState('')
   const [editDescription, setEditDescription] = useState('')
   const [logPage, setLogPage] = useState(1)
   const [copiedId, setCopiedId] = useState<number | null>(null)
 
   const brandsQuery = useQuery({ queryKey: ['tags', 'brand'], queryFn: () => tagsApi.list('brand') })
   const categoriesQuery = useQuery({ queryKey: ['tags', 'doc_category'], queryFn: () => tagsApi.list('doc_category') })
+  const seriesQuery = useQuery({
+    queryKey: ['tags', 'doc_series', category],
+    queryFn: () => tagsApi.list('doc_series', category),
+    enabled: !!category,
+  })
+  const editSeriesQuery = useQuery({
+    queryKey: ['tags', 'doc_series', editCategory],
+    queryFn: () => tagsApi.list('doc_series', editCategory),
+    enabled: !!editCategory,
+  })
 
-  const brandOptions = useMemo(
-    () => (brandsQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })),
-    [brandsQuery.data],
-  )
-  const categoryOptions = useMemo(
-    () => (categoriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })),
-    [categoriesQuery.data],
-  )
+  const brandChips = useMemo(() => (brandsQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })), [brandsQuery.data])
+  const categoryChips = useMemo(() => (categoriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })), [categoriesQuery.data])
+  const seriesChips = useMemo(() => (seriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })), [seriesQuery.data])
+  const editSeriesChips = useMemo(() => (editSeriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })), [editSeriesQuery.data])
 
-  const getLabelZh = (options: { value: string; label: string }[], value: string) =>
-    options.find((o) => o.value === value)?.label ?? value
+  const brandMap = useMemo(() => Object.fromEntries(brandChips.map((c) => [c.value, c.label])), [brandChips])
+  const categoryMap = useMemo(() => Object.fromEntries(categoryChips.map((c) => [c.value, c.label])), [categoryChips])
+  const allSeriesMap = useMemo(() => {
+    const m: Record<string, string> = {}
+    ;(seriesQuery.data ?? []).forEach((t) => { m[t.value] = t.label_zh })
+    ;(editSeriesQuery.data ?? []).forEach((t) => { m[t.value] = t.label_zh })
+    return m
+  }, [seriesQuery.data, editSeriesQuery.data])
 
   const params = useMemo(
-    () => ({ page, size, brand: brand || undefined, category: category || undefined, keyword: keyword || undefined }),
-    [brand, category, keyword, page, size],
+    () => ({ page, size, brand: brand || undefined, category: category || undefined, series: series || undefined, keyword: keyword || undefined }),
+    [brand, category, series, keyword, page, size],
   )
   const query = useQuery({
     queryKey: ['documents', params],
@@ -78,7 +113,6 @@ export function DocumentList() {
 
   const syncStatusQuery = useQuery({ queryKey: ['sync', 'status'], queryFn: syncApi.status, refetchInterval: 10_000 })
   const syncLogsQuery = useQuery({ queryKey: ['sync', 'logs', logPage], queryFn: () => syncApi.logs({ page: logPage, size: 10 }) })
-
   const triggerSyncMutation = useMutation({
     mutationFn: () => syncApi.trigger(),
     onSuccess: () => {
@@ -107,8 +141,12 @@ export function DocumentList() {
     setEditName(displayName(item))
     setEditBrand(item.brand)
     setEditCategory(item.category)
+    setEditSeries(item.series ?? '')
     setEditDescription(item.description ?? '')
   }
+
+  const editCategoryOptions = useMemo(() => categoryChips, [categoryChips])
+  const editBrandOptions = useMemo(() => brandChips, [brandChips])
 
   return (
     <div className="space-y-6">
@@ -119,12 +157,44 @@ export function DocumentList() {
           <Button asChild><Link to="/documents/upload">上传文档</Link></Button>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 grid gap-3 md:grid-cols-4">
-            <Select placeholder="全部品牌" options={brandOptions} value={brand} onChange={(event) => { setBrand(event.target.value); setPage(1) }} />
-            <Select placeholder="全部分类" options={categoryOptions} value={category} onChange={(event) => { setCategory(event.target.value); setPage(1) }} />
-            <Input placeholder="关键词" value={keyword} onChange={(event) => { setKeyword(event.target.value); setPage(1) }} />
-            <Button variant="outline" onClick={() => void query.refetch()}>查询</Button>
+          {/* Cascading chip filter */}
+          <div className="mb-5 space-y-3 rounded-lg border bg-muted/30 px-4 py-3">
+            <ChipBar
+              label="品牌："
+              chips={brandChips}
+              selected={brand}
+              onSelect={(v) => { setBrand(v); setPage(1) }}
+            />
+            <ChipBar
+              label="类型："
+              chips={categoryChips}
+              selected={category}
+              onSelect={(v) => { setCategory(v); setSeries(''); setPage(1) }}
+            />
+            {category && seriesChips.length > 0 ? (
+              <ChipBar
+                label="系列："
+                chips={seriesChips}
+                selected={series}
+                onSelect={(v) => { setSeries(v); setPage(1) }}
+              />
+            ) : null}
+            <div className="flex items-center gap-2">
+              <Input
+                className="h-8 max-w-xs"
+                placeholder="关键词搜索..."
+                value={keyword}
+                onChange={(e) => { setKeyword(e.target.value); setPage(1) }}
+              />
+              <Button size="sm" variant="outline" onClick={() => void query.refetch()}>查询</Button>
+              {(brand || category || series || keyword) ? (
+                <Button size="sm" variant="ghost" onClick={() => { setBrand(''); setCategory(''); setSeries(''); setKeyword(''); setPage(1) }}>
+                  清空筛选
+                </Button>
+              ) : null}
+            </div>
           </div>
+
           {query.isLoading ? <div className="text-muted-foreground">正在加载文档...</div> : null}
           {query.isError ? <div className="text-destructive">文档列表加载失败</div> : null}
           {!query.isLoading && !query.isError && query.data?.items.length === 0 ? <div className="text-muted-foreground">暂无文档</div> : null}
@@ -134,7 +204,8 @@ export function DocumentList() {
                 <TableRow>
                   <TableHead>名称</TableHead>
                   <TableHead>品牌</TableHead>
-                  <TableHead>分类</TableHead>
+                  <TableHead>类型</TableHead>
+                  <TableHead>系列</TableHead>
                   <TableHead>大小</TableHead>
                   <TableHead>上传时间</TableHead>
                   <TableHead>下载次数</TableHead>
@@ -147,8 +218,9 @@ export function DocumentList() {
                 {query.data.items.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="max-w-[200px] truncate" title={displayName(item)}>{displayName(item)}</TableCell>
-                    <TableCell>{getLabelZh(brandOptions, item.brand)}</TableCell>
-                    <TableCell>{getLabelZh(categoryOptions, item.category)}</TableCell>
+                    <TableCell>{brandMap[item.brand] ?? item.brand}</TableCell>
+                    <TableCell>{categoryMap[item.category] ?? item.category}</TableCell>
+                    <TableCell>{item.series ? (allSeriesMap[item.series] ?? item.series) : '-'}</TableCell>
                     <TableCell>{formatSize(item.file_size)}</TableCell>
                     <TableCell className="whitespace-nowrap">{formatDate(item.upload_time)}</TableCell>
                     <TableCell>{item.download_count ?? 0}</TableCell>
@@ -235,7 +307,6 @@ export function DocumentList() {
               </span>
             ) : null}
           </div>
-
           <div>
             <h4 className="mb-2 text-sm font-medium">同步日志</h4>
             {syncLogsQuery.isLoading ? <div className="text-sm text-muted-foreground">正在加载日志...</div> : null}
@@ -280,9 +351,7 @@ export function DocumentList() {
                                 )}
                               </button>
                             </div>
-                          ) : (
-                            '-'
-                          )}
+                          ) : '-'}
                         </TableCell>
                         <TableCell>{log.sync_time ?? '-'}</TableCell>
                       </TableRow>
@@ -317,12 +386,22 @@ export function DocumentList() {
               </label>
               <label className="block space-y-1 text-sm">
                 <span>品牌</span>
-                <Select options={brandOptions} value={editBrand} onChange={(e) => setEditBrand(e.target.value)} />
+                <Select options={editBrandOptions} value={editBrand} onChange={(e) => setEditBrand(e.target.value)} />
               </label>
               <label className="block space-y-1 text-sm">
-                <span>分类</span>
-                <Select options={categoryOptions} value={editCategory} onChange={(e) => setEditCategory(e.target.value)} />
+                <span>类型</span>
+                <Select options={editCategoryOptions} value={editCategory} onChange={(e) => { setEditCategory(e.target.value); setEditSeries('') }} />
               </label>
+              {editCategory && editSeriesChips.length > 0 ? (
+                <label className="block space-y-1 text-sm">
+                  <span>系列（可选）</span>
+                  <Select
+                    options={[{ value: '', label: '不指定系列' }, ...editSeriesChips]}
+                    value={editSeries}
+                    onChange={(e) => setEditSeries(e.target.value)}
+                  />
+                </label>
+              ) : null}
               <label className="block space-y-1 text-sm">
                 <span>描述</span>
                 <Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="可选" />
@@ -333,7 +412,7 @@ export function DocumentList() {
               <Button variant="outline" onClick={() => setEditing(null)}>取消</Button>
               <Button
                 disabled={updateMutation.isPending}
-                onClick={() => updateMutation.mutate({ id: editing.id, data: { original_name: editName, brand: editBrand, category: editCategory, description: editDescription } })}
+                onClick={() => updateMutation.mutate({ id: editing.id, data: { original_name: editName, brand: editBrand, category: editCategory, series: editSeries || undefined, description: editDescription } })}
               >
                 {updateMutation.isPending ? '保存中...' : '保存'}
               </Button>
