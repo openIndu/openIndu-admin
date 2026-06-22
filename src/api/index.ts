@@ -100,6 +100,7 @@ export interface SystemConfig {
 export interface SyncLog {
   id: number
   document_id?: number | null
+  document_name?: string | null
   action: string
   status: string
   error_message?: string
@@ -206,7 +207,7 @@ export const documentApi = {
   delete: (id: number) => unwrap(api.delete(`/documents/${id}`)),
   sync: (id: number) => unwrap<ResourceItem>(api.post(`/documents/${id}/sync`)),
   publishToggle: (id: number) => unwrap<ResourceItem>(api.patch(`/documents/${id}/publish`)),
-  bulkPublish: (data: { ids?: number[]; brand?: string; category?: string; series?: string; keyword?: string; published_only?: boolean }) => unwrap<{ published_count: number }>(api.patch('/documents/publish/bulk', data)),
+  bulkPublish: (data: { ids?: number[]; brand?: string; category?: string; series?: string; keyword?: string; publish?: boolean }) => unwrap<{ count: number; publish: boolean }>(api.patch('/documents/publish/bulk', data)),
   brands: () => unwrap<Array<{ value: string; label: string }> | string[]>(api.get('/documents/brands/list')),
   categories: () => unwrap<Array<{ value: string; label: string }> | string[]>(api.get('/documents/categories/list')),
 }
