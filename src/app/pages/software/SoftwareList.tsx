@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { softwareApi, tagsApi, type SoftwareItem } from '@/api'
+import { softwareApi, tagsApi, type ResourceTag, type SoftwareItem } from '@/api'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
@@ -71,20 +71,20 @@ export function SoftwareList() {
   const [addVersionError, setAddVersionError] = useState('')
   const [deletingVersion, setDeletingVersion] = useState<{ softwareId: number; versionId: number } | null>(null)
 
-  const toArray = <T,>(d: T[] | unknown): T[] => (Array.isArray(d) ? d : [])
-  const brandsQuery = useQuery({ queryKey: ['tags', 'brand'], queryFn: () => tagsApi.list('brand'), select: toArray })
-  const categoriesQuery = useQuery({ queryKey: ['tags', 'sw_category'], queryFn: () => tagsApi.list('sw_category'), select: toArray })
+  const toTagArray = (d: unknown): ResourceTag[] => (Array.isArray(d) ? (d as ResourceTag[]) : [])
+  const brandsQuery = useQuery({ queryKey: ['tags', 'brand'], queryFn: () => tagsApi.list('brand'), select: toTagArray })
+  const categoriesQuery = useQuery({ queryKey: ['tags', 'sw_category'], queryFn: () => tagsApi.list('sw_category'), select: toTagArray })
   const seriesQuery = useQuery({
     queryKey: ['tags', 'sw_series', category],
     queryFn: () => tagsApi.list('sw_series', category),
     enabled: !!category,
-    select: toArray,
+    select: toTagArray,
   })
   const editSeriesQuery = useQuery({
     queryKey: ['tags', 'sw_series', editCategory],
     queryFn: () => tagsApi.list('sw_series', editCategory),
     enabled: !!editCategory,
-    select: toArray,
+    select: toTagArray,
   })
 
   const brandChips = useMemo(() => (brandsQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })), [brandsQuery.data])
