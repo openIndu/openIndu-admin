@@ -321,7 +321,7 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2">
           <Select
             options={[{ value: '', label: '全部品牌' }, ...brandOptions]}
             value={filterBrand}
