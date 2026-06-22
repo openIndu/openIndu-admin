@@ -17,6 +17,16 @@ const PAGE_SIZE_OPTIONS = [
   { value: '50', label: '50 条/页' },
 ]
 
+// Sync-log action codes → Chinese labels. "scan" is a whole-library scan
+// performed once per sync cycle and is not tied to any single document, so its
+// document-id column is intentionally empty (shown as 全部).
+const SYNC_ACTION_LABELS: Record<string, string> = {
+  scan: '全库扫描',
+  add: '新增',
+  update: '更新',
+  delete: '删除',
+}
+
 const formatSize = (size?: number) => (size ? `${(size / 1024 / 1024).toFixed(2)} MB` : '-')
 const formatDate = (iso?: string) =>
   iso
@@ -379,8 +389,14 @@ export function DocumentList() {
                   <TableBody>
                     {syncLogsQuery.data.items.map((log) => (
                       <TableRow key={log.id}>
-                        <TableCell>{log.document_id ?? '-'}</TableCell>
-                        <TableCell>{log.action}</TableCell>
+                        <TableCell>
+                          {log.action === 'scan' ? (
+                            <span className="text-muted-foreground" title="全库扫描，不针对单个文档">全部</span>
+                          ) : (
+                            log.document_id ?? '-'
+                          )}
+                        </TableCell>
+                        <TableCell>{SYNC_ACTION_LABELS[log.action] ?? log.action}</TableCell>
                         <TableCell>
                           <Badge variant={log.status === 'success' ? 'success' : 'destructive'}>{log.status}</Badge>
                         </TableCell>
