@@ -77,6 +77,7 @@ export interface ResourceTag {
   value: string
   label_zh: string
   parent_value?: string
+  brand_value?: string
   is_active: boolean
   sort_order: number
   created_at?: string
@@ -222,8 +223,8 @@ export const softwareApi = {
 }
 
 export const tagsApi = {
-  list: (type?: string, parent?: string) => unwrap<ResourceTag[]>(api.get('/tags', { params: { ...(type && { type }), ...(parent !== undefined && { parent }) } })),
-  create: (data: { type: string; value: string; label_zh: string; parent_value?: string; sort_order?: number }) => unwrap<ResourceTag>(api.post('/tags', data)),
+  list: (type?: string, parent?: string, brand?: string) => unwrap<ResourceTag[]>(api.get('/tags', { params: { ...(type && { type }), ...(parent !== undefined && { parent }), ...(brand !== undefined && { brand }) } })),
+  create: (data: { type: string; value: string; label_zh: string; parent_value?: string; brand_value?: string; sort_order?: number }) => unwrap<ResourceTag>(api.post('/tags', data)),
   update: (id: number, data: { label_zh?: string; is_active?: boolean; sort_order?: number }) => unwrap<ResourceTag>(api.patch(`/tags/${id}`, data)),
   remove: (id: number) => unwrap(api.delete(`/tags/${id}`)),
 }

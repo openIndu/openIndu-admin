@@ -68,14 +68,14 @@ export function DocumentList() {
   const brandsQuery = useQuery({ queryKey: ['tags', 'brand'], queryFn: () => tagsApi.list('brand'), select: toTagArray })
   const categoriesQuery = useQuery({ queryKey: ['tags', 'doc_category'], queryFn: () => tagsApi.list('doc_category'), select: toTagArray })
   const seriesQuery = useQuery({
-    queryKey: ['tags', 'doc_series', category],
-    queryFn: () => tagsApi.list('doc_series', category),
+    queryKey: ['tags', 'doc_series', category, brand],
+    queryFn: () => tagsApi.list('doc_series', category, brand || undefined),
     enabled: !!category,
     select: toTagArray,
   })
   const editSeriesQuery = useQuery({
-    queryKey: ['tags', 'doc_series', editCategory],
-    queryFn: () => tagsApi.list('doc_series', editCategory),
+    queryKey: ['tags', 'doc_series', editCategory, editBrand],
+    queryFn: () => tagsApi.list('doc_series', editCategory, editBrand || undefined),
     enabled: !!editCategory,
     select: toTagArray,
   })
@@ -166,7 +166,7 @@ export function DocumentList() {
               label="品牌："
               chips={brandChips}
               selected={brand}
-              onSelect={(v) => { setBrand(v); setPage(1) }}
+              onSelect={(v) => { setBrand(v); setSeries(''); setPage(1) }}
             />
             <ChipBar
               label="类型："
