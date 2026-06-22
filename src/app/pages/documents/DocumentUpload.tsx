@@ -58,7 +58,7 @@ export function DocumentUpload() {
           <label className="space-y-2">品牌<Select placeholder="请选择品牌" options={brandOptions} value={brand} onChange={(event) => { setBrand(event.target.value); setSeries('') }} required /></label>
           <label className="space-y-2">分类<Select placeholder="请选择分类" options={categoryOptions} value={category} onChange={(event) => { setCategory(event.target.value); setSeries('') }} required /></label>
           {category && seriesOptions.length > 0 ? (
-            <label className="space-y-2">系列（可选）<Select placeholder="请选择系列" options={[{ value: '', label: '不选系列' }, ...seriesOptions]} value={series} onChange={(event) => setSeries(event.target.value)} /></label>
+            <label className="space-y-2">系列（可选）<Select placeholder="不选系列" options={seriesOptions} value={series} onChange={(event) => setSeries(event.target.value)} /></label>
           ) : null}
           <label className="space-y-2">说明<Input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="可选说明" /></label>
           <label className="space-y-2">PDF 文件<Input type="file" accept="application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] ?? null)} required /></label>

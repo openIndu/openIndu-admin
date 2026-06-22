@@ -73,7 +73,7 @@ export function SoftwareUpload() {
           {category && seriesOptions.length > 0 ? (
             <div className="space-y-1">
               <label className="text-sm">系列（可选）</label>
-              <Select placeholder="不选系列" options={[{ value: '', label: '不选系列' }, ...seriesOptions]} value={series} onChange={(e) => setSeries(e.target.value)} />
+              <Select placeholder="不选系列" options={seriesOptions} value={series} onChange={(e) => setSeries(e.target.value)} />
             </div>
           ) : null}
 
