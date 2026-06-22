@@ -168,13 +168,13 @@ export function DocumentList() {
     setSelectedIds((ids) => ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id])
   }
 
-  const publishSelected = () => {
+  const publishSelected = (publish: boolean) => {
     if (selectedIds.length === 0) return
-    bulkPublishMutation.mutate({ ids: selectedIds })
+    bulkPublishMutation.mutate({ ids: selectedIds, publish })
   }
 
-  const publishFiltered = () => {
-    bulkPublishMutation.mutate({ brand: brand || undefined, category: category || undefined, series: series || undefined, keyword: keyword || undefined })
+  const publishFiltered = (publish: boolean) => {
+    bulkPublishMutation.mutate({ brand: brand || undefined, category: category || undefined, series: series || undefined, keyword: keyword || undefined, publish })
   }
 
   const handleCopyError = (logId: number, text: string) => {
@@ -240,13 +240,19 @@ export function DocumentList() {
                   清空筛选
                 </Button>
               ) : null}
-              <Button size="sm" variant="outline" onClick={publishSelected} disabled={selectedCount === 0 || bulkPublishMutation.isPending}>
+              <Button size="sm" variant="outline" onClick={() => publishSelected(true)} disabled={selectedCount === 0 || bulkPublishMutation.isPending}>
                 发布选中{selectedCount ? ` (${selectedCount})` : ''}
               </Button>
-              <Button size="sm" onClick={publishFiltered} disabled={bulkPublishMutation.isPending || query.isLoading}>
+              <Button size="sm" variant="outline" onClick={() => publishSelected(false)} disabled={selectedCount === 0 || bulkPublishMutation.isPending}>
+                取消发布选中{selectedCount ? ` (${selectedCount})` : ''}
+              </Button>
+              <Button size="sm" onClick={() => publishFiltered(true)} disabled={bulkPublishMutation.isPending || query.isLoading}>
                 一键发布当前筛选
               </Button>
-              {bulkPublishMutation.data ? <span className="text-xs text-muted-foreground">已发布 {bulkPublishMutation.data.published_count} 个文档</span> : null}
+              <Button size="sm" variant="secondary" onClick={() => publishFiltered(false)} disabled={bulkPublishMutation.isPending || query.isLoading}>
+                一键取消发布当前筛选
+              </Button>
+              {bulkPublishMutation.data ? <span className="text-xs text-muted-foreground">已{bulkPublishMutation.data.publish ? '发布' : '取消发布'} {bulkPublishMutation.data.count} 个文档</span> : null}
             </div>
           </div>
 
@@ -380,6 +386,7 @@ export function DocumentList() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>文档 ID</TableHead>
+                      <TableHead>文件名称</TableHead>
                       <TableHead>操作</TableHead>
                       <TableHead>状态</TableHead>
                       <TableHead>错误信息</TableHead>
@@ -394,6 +401,13 @@ export function DocumentList() {
                             <span className="text-muted-foreground" title="全库扫描，不针对单个文档">全部</span>
                           ) : (
                             log.document_id ?? '-'
+                          )}
+                        </TableCell>
+                        <TableCell className="max-w-[220px] truncate" title={log.document_name ?? ''}>
+                          {log.action === 'scan' ? (
+                            <span className="text-muted-foreground">全部</span>
+                          ) : (
+                            log.document_name ?? '-'
                           )}
                         </TableCell>
                         <TableCell>{SYNC_ACTION_LABELS[log.action] ?? log.action}</TableCell>
