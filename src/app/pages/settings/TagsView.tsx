@@ -116,7 +116,8 @@ function SeriesModal({ mode, tag, seriesType, brands, categories, onClose, onSuc
   const isPending = createMutation.isPending || updateMutation.isPending
 
   const handleSubmit = () => {
-    if (mode === 'create' && !parent) { setError('请选择所属分类'); return }
+    if (mode === 'create' && !brand) { setError('请选择品牌'); return }
+    if (mode === 'create' && !parent) { setError('请选择所属类型'); return }
     if (!label.trim()) { setError('中文名不能为空'); return }
     if (mode === 'create' && !value.trim()) { setError('标识不能为空'); return }
     setError('')
@@ -135,16 +136,16 @@ function SeriesModal({ mode, tag, seriesType, brands, categories, onClose, onSuc
           {mode === 'create' ? (
             <>
               <label className="block space-y-1 text-sm">
-                <span>所属分类 <span className="text-destructive">*</span></span>
-                <Select options={categoryOptions} placeholder="请选择分类" value={parent} onChange={(e) => setParent(e.target.value)} />
+                <span>品牌 <span className="text-destructive">*</span></span>
+                <Select options={brandOptions} placeholder="请选择品牌" value={brand} onChange={(e) => setBrand(e.target.value)} autoFocus />
               </label>
               <label className="block space-y-1 text-sm">
-                <span>品牌（可选）</span>
-                <Select options={[{ value: '', label: '不绑定品牌' }, ...brandOptions]} value={brand} onChange={(e) => setBrand(e.target.value)} />
+                <span>所属类型 <span className="text-destructive">*</span></span>
+                <Select options={categoryOptions} placeholder="请选择类型" value={parent} onChange={(e) => setParent(e.target.value)} />
               </label>
               <label className="block space-y-1 text-sm">
                 <span>标识（英文 slug）</span>
-                <Input placeholder="如 fx" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
+                <Input placeholder="如 fx" value={value} onChange={(e) => setValue(e.target.value)} />
               </label>
             </>
           ) : (
@@ -282,19 +283,23 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
   const { data: brands = [] } = useQuery({ queryKey: ['tags', brandType], queryFn: () => tagsApi.list(brandType), staleTime: 0 })
   const { data: allSeries = [], isLoading } = useQuery({ queryKey: ['tags', seriesType], queryFn: () => tagsApi.list(seriesType), staleTime: 0 })
 
+  const [filterBrand, setFilterBrand] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [page, setPage] = useState(1)
 
   const filteredSorted = useMemo(() => {
-    const filtered = filterCategory ? allSeries.filter((t) => t.parent_value === filterCategory) : allSeries
+    let filtered = allSeries
+    if (filterBrand) filtered = filtered.filter((t) => t.brand_value === filterBrand)
+    if (filterCategory) filtered = filtered.filter((t) => t.parent_value === filterCategory)
     return [...filtered].sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
-  }, [allSeries, filterCategory])
+  }, [allSeries, filterBrand, filterCategory])
 
   const totalPages = Math.max(1, Math.ceil(filteredSorted.length / PAGE_SIZE))
   const pagedSeries = useMemo(() => filteredSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filteredSorted, page])
 
   const categoryOptions = useMemo(() => categories.filter((c) => c.is_active).map((c) => ({ value: c.value, label: c.label_zh })), [categories])
-  const brandMap = useMemo(() => Object.fromEntries(brands.filter((b) => b.is_active).map((b) => [b.value, b.label_zh])), [brands])
+  const brandOptions = useMemo(() => brands.filter((b) => b.is_active).map((b) => ({ value: b.value, label: b.label_zh })), [brands])
+  const brandMap = useMemo(() => Object.fromEntries(brandOptions.map((b) => [b.value, b.label])), [brandOptions])
   const categoryMap = useMemo(() => Object.fromEntries(categoryOptions.map((c) => [c.value, c.label])), [categoryOptions])
 
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; tag?: ResourceTag } | null>(null)
@@ -316,8 +321,12 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">筛选{categoryLabel}：</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            options={[{ value: '', label: '全部品牌' }, ...brandOptions]}
+            value={filterBrand}
+            onChange={(e) => { setFilterBrand(e.target.value); setFilterCategory(''); setPage(1) }}
+          />
           <Select
             options={[{ value: '', label: `全部${categoryLabel}` }, ...categoryOptions]}
             value={filterCategory}
