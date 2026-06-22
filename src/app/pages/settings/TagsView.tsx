@@ -181,9 +181,14 @@ function FlatTagPanel({ type }: { type: string }) {
   const { data: tags = [], isLoading } = useQuery({ queryKey: ['tags', type], queryFn: () => tagsApi.list(type), staleTime: 0 })
   const sortedTags = useMemo(() => [...tags].sort((a, b) => a.sort_order - b.sort_order || a.id - b.id), [tags])
 
+  const [filterStatus, setFilterStatus] = useState('')
   const [page, setPage] = useState(1)
-  const totalPages = Math.max(1, Math.ceil(sortedTags.length / PAGE_SIZE))
-  const pagedTags = useMemo(() => sortedTags.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [sortedTags, page])
+  const filteredSorted = useMemo(() => {
+    if (!filterStatus) return sortedTags
+    return sortedTags.filter((t) => filterStatus === 'active' ? t.is_active : !t.is_active)
+  }, [sortedTags, filterStatus])
+  const totalPages = Math.max(1, Math.ceil(filteredSorted.length / PAGE_SIZE))
+  const pagedTags = useMemo(() => filteredSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filteredSorted, page])
 
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; tag?: ResourceTag } | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
@@ -203,8 +208,16 @@ function FlatTagPanel({ type }: { type: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">共 {sortedTags.length} 条</span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Select
+            className="w-28"
+            options={[{ value: '', label: '全部状态' }, { value: 'active', label: '启用' }, { value: 'inactive', label: '停用' }]}
+            value={filterStatus}
+            onChange={(e) => { setFilterStatus(e.target.value); setPage(1) }}
+          />
+          <span className="text-sm text-muted-foreground">共 {filteredSorted.length} 条</span>
+        </div>
         <Button size="sm" onClick={() => setModal({ mode: 'create' })}>新增标签</Button>
       </div>
 
@@ -285,14 +298,16 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
 
   const [filterBrand, setFilterBrand] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
   const [page, setPage] = useState(1)
 
   const filteredSorted = useMemo(() => {
     let filtered = allSeries
     if (filterBrand) filtered = filtered.filter((t) => t.brand_value === filterBrand)
     if (filterCategory) filtered = filtered.filter((t) => t.parent_value === filterCategory)
+    if (filterStatus) filtered = filtered.filter((t) => filterStatus === 'active' ? t.is_active : !t.is_active)
     return [...filtered].sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
-  }, [allSeries, filterBrand, filterCategory])
+  }, [allSeries, filterBrand, filterCategory, filterStatus])
 
   const totalPages = Math.max(1, Math.ceil(filteredSorted.length / PAGE_SIZE))
   const pagedSeries = useMemo(() => filteredSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filteredSorted, page])
@@ -334,6 +349,12 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
             value={filterCategory}
             onChange={(e) => { setFilterCategory(e.target.value); setPage(1) }}
           />
+          <Select
+            className="w-28"
+            options={[{ value: '', label: '全部状态' }, { value: 'active', label: '启用' }, { value: 'inactive', label: '停用' }]}
+            value={filterStatus}
+            onChange={(e) => { setFilterStatus(e.target.value); setPage(1) }}
+          />
           <span className="text-sm text-muted-foreground">共 {filteredSorted.length} 条</span>
         </div>
         <Button size="sm" onClick={() => setModal({ mode: 'create' })}>新增系列</Button>
@@ -347,8 +368,8 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
           <TableHeader>
             <TableRow>
               <TableHead className="w-16">排序</TableHead>
-              <TableHead>所属{categoryLabel}</TableHead>
               <TableHead>品牌</TableHead>
+              <TableHead>所属{categoryLabel}</TableHead>
               <TableHead>标识（value）</TableHead>
               <TableHead>中文名</TableHead>
               <TableHead>状态</TableHead>
@@ -359,8 +380,8 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
             {pagedSeries.map((tag) => (
               <TableRow key={tag.id}>
                 <TableCell className="text-sm text-muted-foreground">{tag.sort_order}</TableCell>
-                <TableCell className="text-sm">{categoryMap[tag.parent_value ?? ''] ?? tag.parent_value ?? '-'}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{tag.brand_value ? (brandMap[tag.brand_value] ?? tag.brand_value) : '-'}</TableCell>
+                <TableCell className="text-sm">{tag.brand_value ? (brandMap[tag.brand_value] ?? tag.brand_value) : '-'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{categoryMap[tag.parent_value ?? ''] ?? tag.parent_value ?? '-'}</TableCell>
                 <TableCell className="font-mono text-sm">{tag.value}</TableCell>
                 <TableCell>{tag.label_zh}</TableCell>
                 <TableCell>
