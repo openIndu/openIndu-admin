@@ -55,7 +55,7 @@ export function DocumentUpload() {
       </CardHeader>
       <CardContent>
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <label className="space-y-2">品牌<Select placeholder="请选择品牌" options={brandOptions} value={brand} onChange={(event) => setBrand(event.target.value)} required /></label>
+          <label className="space-y-2">品牌<Select placeholder="请选择品牌" options={brandOptions} value={brand} onChange={(event) => { setBrand(event.target.value); setSeries('') }} required /></label>
           <label className="space-y-2">分类<Select placeholder="请选择分类" options={categoryOptions} value={category} onChange={(event) => { setCategory(event.target.value); setSeries('') }} required /></label>
           {category && seriesOptions.length > 0 ? (
             <label className="space-y-2">系列（可选）<Select placeholder="请选择系列" options={[{ value: '', label: '不选系列' }, ...seriesOptions]} value={series} onChange={(event) => setSeries(event.target.value)} /></label>

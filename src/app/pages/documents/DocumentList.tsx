@@ -67,6 +67,7 @@ export function DocumentList() {
   const toTagArray = (d: unknown): ResourceTag[] => (Array.isArray(d) ? (d as ResourceTag[]) : [])
   const brandsQuery = useQuery({ queryKey: ['tags', 'doc_brand'], queryFn: () => tagsApi.list('doc_brand'), select: toTagArray })
   const categoriesQuery = useQuery({ queryKey: ['tags', 'doc_category'], queryFn: () => tagsApi.list('doc_category'), select: toTagArray })
+  const allSeriesQuery = useQuery({ queryKey: ['tags', 'doc_series', 'all'], queryFn: () => tagsApi.list('doc_series'), select: toTagArray })
   const seriesQuery = useQuery({
     queryKey: ['tags', 'doc_series', category, brand],
     queryFn: () => tagsApi.list('doc_series', category, brand || undefined),
@@ -89,10 +90,11 @@ export function DocumentList() {
   const categoryMap = useMemo(() => Object.fromEntries(categoryChips.map((c) => [c.value, c.label])), [categoryChips])
   const allSeriesMap = useMemo(() => {
     const m: Record<string, string> = {}
+    ;(allSeriesQuery.data ?? []).forEach((t) => { m[t.value] = t.label_zh })
     ;(seriesQuery.data ?? []).forEach((t) => { m[t.value] = t.label_zh })
     ;(editSeriesQuery.data ?? []).forEach((t) => { m[t.value] = t.label_zh })
     return m
-  }, [seriesQuery.data, editSeriesQuery.data])
+  }, [allSeriesQuery.data, seriesQuery.data, editSeriesQuery.data])
 
   const params = useMemo(
     () => ({ page, size, brand: brand || undefined, category: category || undefined, series: series || undefined, keyword: keyword || undefined }),
@@ -390,7 +392,7 @@ export function DocumentList() {
               </label>
               <label className="block space-y-1 text-sm">
                 <span>品牌</span>
-                <Select options={editBrandOptions} value={editBrand} onChange={(e) => setEditBrand(e.target.value)} />
+                <Select options={editBrandOptions} value={editBrand} onChange={(e) => { setEditBrand(e.target.value); setEditSeries('') }} />
               </label>
               <label className="block space-y-1 text-sm">
                 <span>类型</span>
@@ -416,7 +418,7 @@ export function DocumentList() {
               <Button variant="outline" onClick={() => setEditing(null)}>取消</Button>
               <Button
                 disabled={updateMutation.isPending}
-                onClick={() => updateMutation.mutate({ id: editing.id, data: { original_name: editName, brand: editBrand, category: editCategory, series: editSeries || undefined, description: editDescription } })}
+                onClick={() => updateMutation.mutate({ id: editing.id, data: { original_name: editName, brand: editBrand, category: editCategory, series: editSeries, description: editDescription } })}
               >
                 {updateMutation.isPending ? '保存中...' : '保存'}
               </Button>
