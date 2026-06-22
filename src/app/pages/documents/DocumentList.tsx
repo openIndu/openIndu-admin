@@ -266,6 +266,7 @@ export function DocumentList() {
               <span>共 {query.data.total} 条</span>
               <div className="flex flex-wrap items-center gap-2">
                 <Select
+                  className="w-28"
                   options={PAGE_SIZE_OPTIONS}
                   value={String(size)}
                   onChange={(e) => { setSize(Number(e.target.value)); setPage(1) }}
@@ -276,12 +277,12 @@ export function DocumentList() {
                 <div className="flex items-center gap-1">
                   <span>跳至</span>
                   <Input
-                    className="w-14 h-8 text-center"
+                    className="w-12 h-8 text-center"
                     value={jumpInput}
                     onChange={(e) => setJumpInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleJump() }}
-                    placeholder="页"
                   />
+                  <span>页</span>
                   <Button size="sm" variant="outline" onClick={handleJump}>Go</Button>
                 </div>
               </div>
