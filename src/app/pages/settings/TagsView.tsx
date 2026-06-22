@@ -128,6 +128,7 @@ function SeriesTable({ seriesType, categoryType, categoryLabel }: { seriesType: 
   const queryClient = useQueryClient()
 
   const { data: categories = [] } = useQuery({ queryKey: ['tags', categoryType], queryFn: () => tagsApi.list(categoryType), staleTime: 0 })
+  const { data: brands = [] } = useQuery({ queryKey: ['tags', 'brand'], queryFn: () => tagsApi.list('brand'), staleTime: 0 })
   const [filterCategory, setFilterCategory] = useState('')
 
   const { data: allSeries = [], isLoading } = useQuery({ queryKey: ['tags', seriesType], queryFn: () => tagsApi.list(seriesType), staleTime: 0 })
@@ -141,11 +142,17 @@ function SeriesTable({ seriesType, categoryType, categoryLabel }: { seriesType: 
     () => categories.filter((c) => c.is_active).map((c) => ({ value: c.value, label: c.label_zh })),
     [categories],
   )
+  const brandOptions = useMemo(
+    () => brands.filter((b) => b.is_active).map((b) => ({ value: b.value, label: b.label_zh })),
+    [brands],
+  )
   const categoryMap = useMemo(() => Object.fromEntries(categoryOptions.map((c) => [c.value, c.label])), [categoryOptions])
+  const brandMap = useMemo(() => Object.fromEntries(brandOptions.map((b) => [b.value, b.label])), [brandOptions])
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['tags', seriesType] })
 
   const [newParent, setNewParent] = useState('')
+  const [newBrand, setNewBrand] = useState('')
   const [newValue, setNewValue] = useState('')
   const [newLabel, setNewLabel] = useState('')
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -155,7 +162,7 @@ function SeriesTable({ seriesType, categoryType, categoryLabel }: { seriesType: 
 
   const createMutation = useMutation({
     mutationFn: tagsApi.create,
-    onSuccess: () => { invalidate(); setNewValue(''); setNewLabel(''); setCreateError('') },
+    onSuccess: () => { invalidate(); setNewValue(''); setNewLabel(''); setNewBrand(''); setCreateError('') },
     onError: (err: { response?: { data?: { message?: string } } }) => {
       setCreateError(err?.response?.data?.message ?? '创建失败')
     },
@@ -179,7 +186,7 @@ function SeriesTable({ seriesType, categoryType, categoryLabel }: { seriesType: 
     if (!newParent) { setCreateError(`请选择所属${categoryLabel}`); return }
     if (!newValue.trim() || !newLabel.trim()) { setCreateError('标识和中文名均不能为空'); return }
     setCreateError('')
-    createMutation.mutate({ type: seriesType, value: newValue.trim(), label_zh: newLabel.trim(), parent_value: newParent, sort_order: filteredSeries.length })
+    createMutation.mutate({ type: seriesType, value: newValue.trim(), label_zh: newLabel.trim(), parent_value: newParent, brand_value: newBrand || undefined, sort_order: filteredSeries.length })
   }
 
   return (
@@ -192,6 +199,11 @@ function SeriesTable({ seriesType, categoryType, categoryLabel }: { seriesType: 
             placeholder={`选择${categoryLabel}`}
             value={newParent}
             onChange={(e) => setNewParent(e.target.value)}
+          />
+          <Select
+            options={[{ value: '', label: '不绑定品牌' }, ...brandOptions]}
+            value={newBrand}
+            onChange={(e) => setNewBrand(e.target.value)}
           />
           <Input className="w-36" placeholder="标识（英文，如 fx）" value={newValue} onChange={(e) => setNewValue(e.target.value)} />
           <Input className="w-36" placeholder="中文名（如 FX系列）" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} />
@@ -216,6 +228,7 @@ function SeriesTable({ seriesType, categoryType, categoryLabel }: { seriesType: 
           <TableHeader>
             <TableRow>
               <TableHead>所属{categoryLabel}</TableHead>
+              <TableHead>品牌</TableHead>
               <TableHead>标识（value）</TableHead>
               <TableHead>中文名</TableHead>
               <TableHead>状态</TableHead>
@@ -226,6 +239,7 @@ function SeriesTable({ seriesType, categoryType, categoryLabel }: { seriesType: 
             {filteredSeries.map((tag) => (
               <TableRow key={tag.id}>
                 <TableCell className="text-sm text-muted-foreground">{categoryMap[tag.parent_value ?? ''] ?? tag.parent_value ?? '-'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{tag.brand_value ? (brandMap[tag.brand_value] ?? tag.brand_value) : '-'}</TableCell>
                 <TableCell className="font-mono text-sm">{tag.value}</TableCell>
                 <TableCell>
                   {editingId === tag.id ? (

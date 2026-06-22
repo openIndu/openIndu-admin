@@ -21,7 +21,7 @@ export function SoftwareUpload() {
 
   const brandsQuery = useQuery({ queryKey: ['tags', 'brand'], queryFn: () => tagsApi.list('brand') })
   const categoriesQuery = useQuery({ queryKey: ['tags', 'sw_category'], queryFn: () => tagsApi.list('sw_category') })
-  const seriesQuery = useQuery({ queryKey: ['tags', 'sw_series', category], queryFn: () => tagsApi.list('sw_series', category), enabled: !!category })
+  const seriesQuery = useQuery({ queryKey: ['tags', 'sw_series', category, brand], queryFn: () => tagsApi.list('sw_series', category, brand || undefined), enabled: !!category })
   const brandOptions = (brandsQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh }))
   const categoryOptions = (categoriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh }))
   const seriesOptions = (seriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh }))

@@ -75,14 +75,14 @@ export function SoftwareList() {
   const brandsQuery = useQuery({ queryKey: ['tags', 'brand'], queryFn: () => tagsApi.list('brand'), select: toTagArray })
   const categoriesQuery = useQuery({ queryKey: ['tags', 'sw_category'], queryFn: () => tagsApi.list('sw_category'), select: toTagArray })
   const seriesQuery = useQuery({
-    queryKey: ['tags', 'sw_series', category],
-    queryFn: () => tagsApi.list('sw_series', category),
+    queryKey: ['tags', 'sw_series', category, brand],
+    queryFn: () => tagsApi.list('sw_series', category, brand || undefined),
     enabled: !!category,
     select: toTagArray,
   })
   const editSeriesQuery = useQuery({
-    queryKey: ['tags', 'sw_series', editCategory],
-    queryFn: () => tagsApi.list('sw_series', editCategory),
+    queryKey: ['tags', 'sw_series', editCategory, editBrand],
+    queryFn: () => tagsApi.list('sw_series', editCategory, editBrand || undefined),
     enabled: !!editCategory,
     select: toTagArray,
   })
@@ -189,7 +189,7 @@ export function SoftwareList() {
               label="品牌："
               chips={brandChips}
               selected={brand}
-              onSelect={(v) => { setBrand(v); setPage(1) }}
+              onSelect={(v) => { setBrand(v); setSeries(''); setPage(1) }}
             />
             <ChipBar
               label="类型："
