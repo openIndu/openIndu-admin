@@ -1,4 +1,12 @@
-import axios, { type AxiosError } from 'axios'
+import axios, { type AxiosError, type AxiosProgressEvent } from 'axios'
+
+// Large file uploads must not be capped by the default request timeout, and they
+// expose an optional progress callback so the UI can render an upload bar.
+const uploadConfig = (onUploadProgress?: (e: AxiosProgressEvent) => void) => ({
+  headers: { 'Content-Type': 'multipart/form-data' },
+  timeout: 0,
+  onUploadProgress,
+})
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api/v1'
 const ACCESS_TOKEN_KEY = 'openindu_admin_access_token'
@@ -201,7 +209,7 @@ export const userApi = {
 
 export const documentApi = {
   list: (params: { page?: number; size?: number; brand?: string; category?: string; series?: string; keyword?: string } = {}) => unwrap<PageResult<ResourceItem>>(api.get('/documents', { params })),
-  upload: (formData: FormData) => unwrap<ResourceItem>(api.post('/documents/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })),
+  upload: (formData: FormData, onUploadProgress?: (e: AxiosProgressEvent) => void) => unwrap<ResourceItem>(api.post('/documents/upload', formData, uploadConfig(onUploadProgress))),
   get: (id: number) => unwrap<ResourceItem>(api.get(`/documents/${id}`)),
   update: (id: number, data: Partial<Pick<ResourceItem, 'original_name' | 'brand' | 'category' | 'series' | 'description'>>) => unwrap<ResourceItem>(api.patch(`/documents/${id}`, data)),
   delete: (id: number) => unwrap(api.delete(`/documents/${id}`)),
@@ -214,12 +222,12 @@ export const documentApi = {
 
 export const softwareApi = {
   list: (params: { page?: number; size?: number; brand?: string; category?: string; series?: string; keyword?: string } = {}) => unwrap<PageResult<SoftwareItem>>(api.get('/software', { params })),
-  upload: (formData: FormData) => unwrap<SoftwareItem>(api.post('/software/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })),
+  upload: (formData: FormData, onUploadProgress?: (e: AxiosProgressEvent) => void) => unwrap<SoftwareItem>(api.post('/software/upload', formData, uploadConfig(onUploadProgress))),
   get: (id: number) => unwrap<SoftwareItem>(api.get(`/software/${id}`)),
   update: (id: number, data: Partial<Pick<SoftwareItem, 'original_name' | 'brand' | 'category' | 'series' | 'description'>>) => unwrap<SoftwareItem>(api.patch(`/software/${id}`, data)),
   delete: (id: number) => unwrap(api.delete(`/software/${id}`)),
   publishToggle: (id: number) => unwrap<SoftwareItem>(api.patch(`/software/${id}/publish`)),
-  addVersion: (id: number, formData: FormData) => unwrap(api.post(`/software/${id}/versions`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })),
+  addVersion: (id: number, formData: FormData, onUploadProgress?: (e: AxiosProgressEvent) => void) => unwrap(api.post(`/software/${id}/versions`, formData, uploadConfig(onUploadProgress))),
   deleteVersion: (id: number, versionId: number) => unwrap(api.delete(`/software/${id}/versions/${versionId}`)),
   categories: () => unwrap<Array<{ value: string; label: string }> | string[]>(api.get('/software/categories/list')),
 }

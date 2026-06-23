@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Copy } from 'lucide-react'
+import { Copy, ListChecks } from 'lucide-react'
 import { documentApi, syncApi, tagsApi, type ResourceItem, type ResourceTag } from '@/api'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
@@ -268,16 +268,19 @@ export function DocumentList() {
           </div>
 
           {showSelectAllBanner ? (
-            <div className="mb-4 flex flex-wrap items-center justify-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-4 py-2 text-sm">
+            <div className="mb-4 flex flex-wrap items-center justify-center gap-3 rounded-md border border-primary/40 bg-primary/5 px-4 py-2.5 text-sm">
               {selectAllMatching ? (
                 <>
-                  <span>已选择全部 <span className="font-medium">{total}</span> 个匹配文档。</span>
-                  <button className="font-medium text-primary hover:underline" onClick={() => { setSelectAllMatching(false); setSelectedIds([]) }}>清除选择</button>
+                  <span>已选择全部 <span className="font-semibold">{total}</span> 个匹配文档。</span>
+                  <Button size="sm" variant="outline" onClick={() => { setSelectAllMatching(false); setSelectedIds([]) }}>清除选择</Button>
                 </>
               ) : (
                 <>
-                  <span>已选择本页 <span className="font-medium">{currentItems.length}</span> 项。</span>
-                  <button className="font-medium text-primary hover:underline" onClick={() => setSelectAllMatching(true)}>选择全部 {total} 个匹配文档</button>
+                  <span>已选择本页 <span className="font-semibold">{currentItems.length}</span> 项，仅对本页生效。</span>
+                  <Button size="sm" onClick={() => setSelectAllMatching(true)}>
+                    <ListChecks className="h-4 w-4" />
+                    选择全部 {total} 个匹配文档
+                  </Button>
                 </>
               )}
             </div>

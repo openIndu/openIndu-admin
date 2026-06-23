@@ -17,6 +17,7 @@ export function SoftwareUpload() {
   const [description, setDescription] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [progress, setProgress] = useState(0)
 
   const brandsQuery = useQuery({ queryKey: ['tags', 'sw_brand'], queryFn: () => tagsApi.list('sw_brand') })
   const categoriesQuery = useQuery({ queryKey: ['tags', 'sw_category'], queryFn: () => tagsApi.list('sw_category') })
@@ -24,7 +25,9 @@ export function SoftwareUpload() {
   const categoryOptions = (categoriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh }))
 
   const mutation = useMutation({
-    mutationFn: softwareApi.upload,
+    mutationFn: (formData: FormData) => softwareApi.upload(formData, (e) => {
+      if (e.total) setProgress(Math.round((e.loaded / e.total) * 100))
+    }),
     onSuccess: () => navigate('/software'),
   })
 
@@ -37,6 +40,7 @@ export function SoftwareUpload() {
     if (!file) errs.file = '请选择软件包文件'
     if (Object.keys(errs).length > 0) { setFieldErrors(errs); return }
     setFieldErrors({})
+    setProgress(0)
     const formData = new FormData()
     formData.append('file', file!)
     formData.append('brand', brand)
@@ -98,12 +102,24 @@ export function SoftwareUpload() {
             {fieldErrors.file && <p className="text-xs text-destructive">{fieldErrors.file}</p>}
           </div>
 
+          {mutation.isPending ? (
+            <div className="space-y-1">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div className="h-full bg-primary transition-all duration-150" style={{ width: `${progress}%` }} />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {progress < 100 ? `上传中 ${progress}%` : '上传完成，正在处理...'}
+              </p>
+            </div>
+          ) : null}
+
           {mutation.isError ? (
             <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
               {(() => {
-                const err = mutation.error as { response?: { data?: { detail?: string | unknown[]; message?: string } } }
+                const err = mutation.error as { code?: string; response?: { data?: { detail?: string | unknown[]; message?: string } } }
                 const detail = err?.response?.data?.detail
                 if (typeof detail === 'string') return detail
+                if (err?.code === 'ECONNABORTED') return '上传超时，请检查网络或文件大小后重试'
                 return err?.response?.data?.message || '上传失败，请检查文件和网络连接'
               })()}
             </div>
@@ -111,7 +127,7 @@ export function SoftwareUpload() {
 
           <div className="mt-6 flex gap-3">
             <Button type="submit" disabled={!brand || !category || !version.trim() || !file || mutation.isPending}>
-              {mutation.isPending ? '上传中...' : '上传'}
+              {mutation.isPending ? (progress < 100 ? `上传中 ${progress}%` : '处理中...') : '上传'}
             </Button>
             <Button type="button" variant="outline" onClick={() => navigate('/software')}>取消</Button>
           </div>

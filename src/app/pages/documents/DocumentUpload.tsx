@@ -14,6 +14,7 @@ export function DocumentUpload() {
   const [series, setSeries] = useState('')
   const [description, setDescription] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  const [progress, setProgress] = useState(0)
   const queryClient = useQueryClient()
 
   const brandsQuery = useQuery({ queryKey: ['tags', 'doc_brand'], queryFn: () => tagsApi.list('doc_brand') })
@@ -24,7 +25,9 @@ export function DocumentUpload() {
   const seriesOptions = (seriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh }))
 
   const mutation = useMutation({
-    mutationFn: documentApi.upload,
+    mutationFn: (formData: FormData) => documentApi.upload(formData, (e) => {
+      if (e.total) setProgress(Math.round((e.loaded / e.total) * 100))
+    }),
     onSuccess: (newDoc) => {
       queryClient.setQueriesData({ queryKey: ['documents'] }, (old: unknown) => {
         const data = old as { items?: unknown[]; total?: number } | undefined
@@ -38,6 +41,7 @@ export function DocumentUpload() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!file || !brand || !category) return
+    setProgress(0)
     const formData = new FormData()
     formData.append('file', file)
     formData.append('brand', brand)
@@ -62,15 +66,25 @@ export function DocumentUpload() {
           ) : null}
           <label className="space-y-2">说明<Input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="可选说明" /></label>
           <label className="space-y-2">PDF 文件<Input type="file" accept="application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] ?? null)} required /></label>
+          {mutation.isPending ? (
+            <div className="space-y-1">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div className="h-full bg-primary transition-all duration-150" style={{ width: `${progress}%` }} />
+              </div>
+              <p className="text-xs text-muted-foreground">{progress < 100 ? `上传中 ${progress}%` : '上传完成，正在处理...'}</p>
+            </div>
+          ) : null}
           {mutation.isError ? (
             <div className="text-sm text-destructive">
               {(() => {
-                const err = mutation.error as { response?: { data?: { detail?: string; message?: string } } }
-                return err?.response?.data?.detail || err?.response?.data?.message || '上传失败，请检查文件和网络'
+                const err = mutation.error as { code?: string; response?: { data?: { detail?: string; message?: string } } }
+                if (err?.response?.data?.detail || err?.response?.data?.message) return err?.response?.data?.detail || err?.response?.data?.message
+                if (err?.code === 'ECONNABORTED') return '上传超时，请检查网络或文件大小后重试'
+                return '上传失败，请检查文件和网络'
               })()}
             </div>
           ) : null}
-          <div className="mt-6 flex gap-3"><Button type="submit" disabled={!file || !brand || !category || mutation.isPending}>{mutation.isPending ? '上传中...' : '上传'}</Button><Button type="button" variant="outline" onClick={() => navigate('/documents')}>取消</Button></div>
+          <div className="mt-6 flex gap-3"><Button type="submit" disabled={!file || !brand || !category || mutation.isPending}>{mutation.isPending ? (progress < 100 ? `上传中 ${progress}%` : '处理中...') : '上传'}</Button><Button type="button" variant="outline" onClick={() => navigate('/documents')}>取消</Button></div>
         </form>
       </CardContent>
     </Card>
