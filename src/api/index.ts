@@ -247,7 +247,7 @@ export interface SoftwareUploadPart {
 export const softwareApi = {
   list: (params: { page?: number; size?: number; brand?: string; category?: string; series?: string; keyword?: string; expand_versions?: boolean } = {}) => unwrap<PageResult<SoftwareItem>>(api.get('/software', { params })),
   upload: (formData: FormData, onUploadProgress?: (e: AxiosProgressEvent) => void) => unwrap<SoftwareItem>(api.post('/software/upload', formData, uploadConfig(onUploadProgress))),
-  uploadInit: (meta: { filename: string; brand: string; category: string; series?: string; version: string; description?: string; content_type?: string; size: number }) =>
+  uploadInit: (meta: { filename: string; brand: string; category: string; series?: string; version: string; description?: string; content_type?: string; size: number; software_id?: number }) =>
     unwrap<SoftwareUploadInit>(api.post('/software/upload/init', meta)),
   uploadComplete: (payload: { token: string; parts?: SoftwareUploadPart[]; file_hash?: string }) =>
     unwrap<SoftwareItem>(api.post('/software/upload/complete', payload)),

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { softwareApi, tagsApi, type ResourceTag, type SoftwareItem } from '@/api'
+import { softwareApi, tagsApi, type ResourceTag, type SoftwareItem, type SoftwareUploadPart } from '@/api'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
@@ -10,6 +10,7 @@ import { Input } from '../../components/ui/input'
 import { Select } from '../../components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
 import { Paperclip } from 'lucide-react'
+import { uploadToOss, UploadCancelledError } from './directUpload'
 
 const PAGE_SIZE_OPTIONS = [
   { value: '10', label: '10 条/页' },
@@ -48,9 +49,28 @@ function ChipBar({ label, chips, selected, onSelect }: { label: string; chips: {
   )
 }
 
+const humanSize = (bytes: number): string => {
+  if (!bytes || bytes <= 0) return '0 B'
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`
+}
+const humanRate = (bytesPerSec: number): string => {
+  if (!bytesPerSec || bytesPerSec <= 0) return '-'
+  return `${humanSize(bytesPerSec)}/s`
+}
+
 export function SoftwareList() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const versionFileRef = useRef<HTMLInputElement>(null)
+  const versionAbortRef = useRef<AbortController | null>(null)
+  const versionSampleRef = useRef<{ loaded: number; t: number } | null>(null)
+  const [versionPhase, setVersionPhase] = useState<'idle' | 'uploading' | 'finalizing'>('idle')
+  const [versionLoaded, setVersionLoaded] = useState(0)
+  const [versionTotal, setVersionTotal] = useState(0)
+  const [versionRate, setVersionRate] = useState(0)
   const [page, setPage] = useState(1)
   const [size, setSize] = useState(10)
   const [jumpInput, setJumpInput] = useState('')
@@ -67,7 +87,6 @@ export function SoftwareList() {
   const [addVersionFile, setAddVersionFile] = useState<File | null>(null)
   const [addVersionValue, setAddVersionValue] = useState('')
   const [addVersionError, setAddVersionError] = useState('')
-  const [versionProgress, setVersionProgress] = useState(0)
   const [deletingVersion, setDeletingVersion] = useState<{ softwareId: number; versionId: number } | null>(null)
 
   const toTagArray = (d: unknown): ResourceTag[] => (Array.isArray(d) ? (d as ResourceTag[]) : [])
@@ -90,23 +109,6 @@ export function SoftwareList() {
   })
 
   const invalidateSoftware = () => queryClient.invalidateQueries({ queryKey: ['software'] })
-  const addVersionMutation = useMutation({
-    mutationFn: ({ id, formData }: { id: number; formData: FormData }) => softwareApi.addVersion(id, formData, (e) => {
-      if (e.total) setVersionProgress(Math.round((e.loaded / e.total) * 100))
-    }),
-    onSuccess: () => {
-      invalidateSoftware()
-      if (versionsModal) {
-        softwareApi.get(versionsModal.item.id).then((data) => {
-          setVersionsModal({ item: versionsModal.item, versions: (data as unknown as { versions?: SoftwareVersion[] }).versions ?? [] })
-        }).catch(() => {})
-      }
-    },
-    onError: () => {
-      // Reset progress on any error so UI doesn't get stuck
-      setVersionProgress(0)
-    },
-  })
   const deleteVersionMutation = useMutation({
     mutationFn: ({ id, versionId }: { id: number; versionId: number }) => softwareApi.deleteVersion(id, versionId),
     onSuccess: () => {
@@ -149,18 +151,88 @@ export function SoftwareList() {
     }
   }
 
-  const handleAddVersion = () => {
+  const handleAddVersion = async () => {
     if (!versionsModal) return
     if (!addVersionValue.trim()) { setAddVersionError('请填写版本号'); return }
     if (!addVersionFile) { setAddVersionError('请选择软件包文件'); return }
     setAddVersionError('')
-    setVersionProgress(0)
-    const formData = new FormData()
-    formData.append('file', addVersionFile)
-    formData.append('version', addVersionValue.trim())
-    addVersionMutation.mutate({ id: versionsModal.item.id, formData })
+
+    const file = addVersionFile!
+    const item = versionsModal.item
     setAddVersionFile(null)
     setAddVersionValue('')
+    setAddVersionError('')
+    setVersionTotal(file.size)
+    setVersionLoaded(0)
+    setVersionRate(0)
+    setVersionPhase('uploading')
+    versionSampleRef.current = { loaded: 0, t: Date.now() }
+
+    const controller = new AbortController()
+    versionAbortRef.current = controller
+
+    try {
+      const init = await softwareApi.uploadInit({
+        filename: file.name,
+        brand: item.brand,
+        category: item.category,
+        version: addVersionValue.trim(),
+        content_type: file.type || 'application/octet-stream',
+        size: file.size,
+        software_id: item.id,
+      })
+
+      let parts: SoftwareUploadPart[] | null = null
+      if (init.mode === 'sync') {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('version', addVersionValue.trim())
+        await softwareApi.addVersion(item.id, formData, (e) => {
+          if (e.total) {
+            setVersionLoaded(e.loaded)
+            setVersionTotal(e.total)
+            const now = Date.now()
+            const prev = versionSampleRef.current
+            if (prev && now - prev.t >= 800) {
+              setVersionRate(((e.loaded - prev.loaded) * 1000) / (now - prev.t))
+              versionSampleRef.current = { loaded: e.loaded, t: now }
+            }
+          }
+        })
+      } else {
+        parts = await uploadToOss(file, init, (l, t) => {
+          setVersionLoaded(l); setVersionTotal(t)
+          const now = Date.now()
+          const prev = versionSampleRef.current
+          if (prev && now - prev.t >= 800) {
+            setVersionRate(((l - prev.loaded) * 1000) / (now - prev.t))
+            versionSampleRef.current = { loaded: l, t: now }
+          }
+        }, controller.signal)
+      }
+
+      setVersionPhase('finalizing')
+      setVersionRate(0)
+      if (init.mode !== 'sync' && init.token) {
+        await softwareApi.uploadComplete({ token: init.token, parts: parts ?? undefined })
+      }
+      invalidateSoftware()
+      navigate('/software')
+    } catch (err) {
+      if (err instanceof UploadCancelledError) {
+        setVersionPhase('idle')
+        setVersionLoaded(0)
+        setVersionRate(0)
+        return
+      }
+      const e = err as { response?: { data?: { detail?: string; message?: string } }; message?: string }
+      setAddVersionError(e?.response?.data?.detail || e?.response?.data?.message || e?.message || '版本上传失败')
+      setVersionPhase('idle')
+      setVersionLoaded(0)
+      setVersionRate(0)
+    } finally {
+      versionAbortRef.current = null
+    }
   }
 
   const openEdit = (item: SoftwareItem) => {
@@ -380,20 +452,31 @@ export function SoftwareList() {
                   className="sr-only"
                   onChange={(event) => { setAddVersionFile(event.target.files?.[0] ?? null); setAddVersionError('') }}
                 />
-                <Button className="w-full whitespace-nowrap" disabled={addVersionMutation.isPending} onClick={handleAddVersion}>
-                  {addVersionMutation.isPending ? (versionProgress < 100 ? '上传中...' : '处理中...') : '添加版本'}
+                <Button className="w-full whitespace-nowrap" disabled={versionPhase !== 'idle'} onClick={() => void handleAddVersion()}>
+                  {versionPhase === 'uploading' ? '上传中...' : versionPhase === 'finalizing' ? '处理中...' : '添加版本'}
                 </Button>
               </div>
-              {addVersionMutation.isPending ? (
+              {(versionPhase === 'uploading' || versionPhase === 'finalizing') ? (
                 <div className="mt-2 space-y-1">
                   <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                    <div className="h-full bg-primary transition-all duration-150" style={{ width: `${versionProgress}%` }} />
+                    <div
+                      className={`h-full bg-primary transition-all duration-150 ${versionPhase === 'finalizing' ? 'animate-pulse' : ''}`}
+                      style={{ width: `${versionPhase === 'finalizing' ? 100 : (versionTotal > 0 ? Math.min(100, Math.round((versionLoaded / versionTotal) * 100)) : 0)}%` }}
+                    />
                   </div>
-                  <p className="text-xs text-muted-foreground">{versionProgress < 100 ? `上传中 ${versionProgress}%` : '上传完成，正在处理...'}</p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    {versionPhase === 'uploading' ? (
+                      <>
+                        <span>{humanSize(versionLoaded)} / {humanSize(versionTotal)} ({versionTotal > 0 ? Math.min(100, Math.round((versionLoaded / versionTotal) * 100)) : 0}%)</span>
+                        <span>{humanRate(versionRate)}</span>
+                      </>
+                    ) : (
+                      <span>文件已上传，正在合并并写入数据库...</span>
+                    )}
+                  </div>
                 </div>
               ) : null}
               {addVersionError ? <div className="mt-2 text-sm text-destructive">{addVersionError}</div> : null}
-              {addVersionMutation.isError ? <div className="mt-2 text-sm text-destructive">版本上传失败，请检查版本号、文件格式和网络。</div> : null}
             </div>
             {versionsModal.versions.length === 0 ? (
               <div className="text-sm text-muted-foreground">暂无版本记录</div>

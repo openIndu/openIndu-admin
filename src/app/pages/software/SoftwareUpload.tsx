@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { softwareApi, tagsApi, type SoftwareUploadPart } from '@/api'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
@@ -26,6 +26,7 @@ function humanRate(bytesPerSec: number): string {
 
 export function SoftwareUpload() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   // Rolling sample for rate calculation. We compare the latest progress event
@@ -132,6 +133,9 @@ export function SoftwareUpload() {
       if (init.mode !== 'sync' && init.token) {
         await softwareApi.uploadComplete({ token: init.token, parts: parts ?? undefined })
       }
+      // Invalidate the software list cache so the destination page refetches
+      // instead of showing stale data from before the upload.
+      await queryClient.invalidateQueries({ queryKey: ['software'] })
       navigate('/software')
     } catch (err) {
       if (err instanceof UploadCancelledError) {
