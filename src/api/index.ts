@@ -94,6 +94,7 @@ export interface ResourceTag {
 export interface SoftwareItem extends ResourceItem {
   latest_version?: string
   latest_version_size?: number
+  versions_count?: number
   version?: string
   is_active?: boolean
   is_published?: boolean
@@ -217,6 +218,7 @@ export const documentApi = {
   sync: (id: number) => unwrap<ResourceItem>(api.post(`/documents/${id}/sync`)),
   publishToggle: (id: number) => unwrap<ResourceItem>(api.patch(`/documents/${id}/publish`)),
   bulkPublish: (data: { ids?: number[]; brand?: string; category?: string; series?: string; keyword?: string; publish?: boolean }) => unwrap<{ count: number; publish: boolean }>(api.patch('/documents/publish/bulk', data)),
+  downloadLink: (id: number) => unwrap<{ download_url: string; filename?: string; expires_in?: number }>(api.get(`/documents/${id}/download-link`)),
   brands: () => unwrap<Array<{ value: string; label: string }> | string[]>(api.get('/documents/brands/list')),
   categories: () => unwrap<Array<{ value: string; label: string }> | string[]>(api.get('/documents/categories/list')),
 }
@@ -250,6 +252,7 @@ export const softwareApi = {
   publishToggle: (id: number) => unwrap<SoftwareItem>(api.patch(`/software/${id}/publish`)),
   addVersion: (id: number, formData: FormData, onUploadProgress?: (e: AxiosProgressEvent) => void) => unwrap(api.post(`/software/${id}/versions`, formData, uploadConfig(onUploadProgress))),
   deleteVersion: (id: number, versionId: number) => unwrap(api.delete(`/software/${id}/versions/${versionId}`)),
+  downloadLink: (id: number) => unwrap<{ download_url: string; filename?: string; expires_in?: number }>(api.get(`/software/${id}/download-link`)),
   categories: () => unwrap<Array<{ value: string; label: string }> | string[]>(api.get('/software/categories/list')),
 }
 

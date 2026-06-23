@@ -123,6 +123,20 @@ export function DocumentList() {
   })
   const deleteMutation = useMutation({ mutationFn: documentApi.delete, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) })
   const publishMutation = useMutation({ mutationFn: documentApi.publishToggle, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) })
+
+  const handleDownload = async (item: ResourceItem) => {
+    try {
+      const { download_url, filename } = await documentApi.downloadLink(item.id)
+      const a = document.createElement('a')
+      a.href = download_url
+      a.download = filename ?? displayName(item)
+      a.rel = 'noopener noreferrer'
+      document.body.appendChild(a); a.click(); document.body.removeChild(a)
+    } catch (err) {
+      const e = err as { response?: { data?: { detail?: string } } }
+      window.alert(e?.response?.data?.detail ?? '下载失败，请稍后重试')
+    }
+  }
   const bulkPublishMutation = useMutation({
     mutationFn: documentApi.bulkPublish,
     onSuccess: () => {
@@ -334,6 +348,7 @@ export function DocumentList() {
                     <TableCell>
                       <div className="flex gap-1">
                         <Button size="sm" variant="outline" onClick={() => openEdit(item)}>编辑</Button>
+                        <Button size="sm" variant="outline" onClick={() => handleDownload(item)}>下载</Button>
                         <Button
                           size="sm"
                           variant="outline"
