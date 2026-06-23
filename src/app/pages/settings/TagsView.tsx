@@ -441,7 +441,7 @@ export function TagsView() {
     { value: 'doc_series', label: '文档系列', content: <SeriesPanel seriesType="doc_series" categoryType="doc_category" categoryLabel="文档分类" brandType="doc_brand" /> },
     { value: 'sw_brand', label: '软件品牌', content: <FlatTagPanel type="sw_brand" /> },
     { value: 'sw_category', label: '软件分类', content: <FlatTagPanel type="sw_category" /> },
-    { value: 'sw_series', label: '软件系列', content: <SeriesPanel seriesType="sw_series" categoryType="sw_category" categoryLabel="软件分类" brandType="sw_brand" /> },
+    // 软件没有系列概念，故不提供软件系列管理。
   ]
 
   return (

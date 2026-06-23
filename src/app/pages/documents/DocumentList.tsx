@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Copy } from 'lucide-react'
@@ -65,6 +65,7 @@ export function DocumentList() {
   const [series, setSeries] = useState('')
   const [keyword, setKeyword] = useState('')
   const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [selectAllMatching, setSelectAllMatching] = useState(false)
   const [confirmBulk, setConfirmBulk] = useState<{ publish: boolean } | null>(null)
   const [deleting, setDeleting] = useState<ResourceItem | null>(null)
   const [editing, setEditing] = useState<ResourceItem | null>(null)
@@ -126,6 +127,7 @@ export function DocumentList() {
     mutationFn: documentApi.bulkPublish,
     onSuccess: () => {
       setSelectedIds([])
+      setSelectAllMatching(false)
       queryClient.invalidateQueries({ queryKey: ['documents'] })
     },
   })
@@ -151,8 +153,11 @@ export function DocumentList() {
   const currentItemIds = currentItems.map((item) => item.id)
   const allCurrentSelected = currentItemIds.length > 0 && currentItemIds.every((id) => selectedIds.includes(id))
   const selectedCount = selectedIds.length
-  const hasUnpublishedInView = currentItems.some((item) => !item.is_published)
-  const hasPublishedInView = currentItems.some((item) => item.is_published)
+  const total = query.data?.total ?? 0
+  // "Select all matching" lets a bulk action target the entire filtered set, not just the visible page.
+  const hasSelection = selectAllMatching || selectedCount > 0
+  const selectionLabel = selectAllMatching ? ` (全部 ${total})` : selectedCount ? ` (${selectedCount})` : ''
+  const showSelectAllBanner = allCurrentSelected && total > currentItems.length
 
   const handleJump = () => {
     const n = parseInt(jumpInput, 10)
@@ -161,6 +166,7 @@ export function DocumentList() {
 
   const toggleCurrentPageSelection = () => {
     if (allCurrentSelected) {
+      setSelectAllMatching(false)
       setSelectedIds((ids) => ids.filter((id) => !currentItemIds.includes(id)))
       return
     }
@@ -168,8 +174,16 @@ export function DocumentList() {
   }
 
   const toggleRowSelection = (id: number) => {
+    // A manual row pick breaks the "all matching" semantics — fall back to explicit selection.
+    setSelectAllMatching(false)
     setSelectedIds((ids) => ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id])
   }
+
+  // Changing the filter invalidates the current selection scope — clear it to avoid acting on stale picks.
+  useEffect(() => {
+    setSelectedIds([])
+    setSelectAllMatching(false)
+  }, [brand, category, series])
 
   const publishSelected = (publish: boolean) => {
     if (selectedIds.length === 0) return
@@ -243,21 +257,31 @@ export function DocumentList() {
                   清空筛选
                 </Button>
               ) : null}
-              <Button size="sm" variant="outline" onClick={() => publishSelected(true)} disabled={selectedCount === 0 || bulkPublishMutation.isPending}>
-                发布选中{selectedCount ? ` (${selectedCount})` : ''}
+              <Button size="sm" variant="outline" onClick={() => setConfirmBulk({ publish: true })} disabled={!hasSelection || bulkPublishMutation.isPending}>
+                批量发布{selectionLabel}
               </Button>
-              <Button size="sm" variant="outline" onClick={() => publishSelected(false)} disabled={selectedCount === 0 || bulkPublishMutation.isPending}>
-                取消发布选中{selectedCount ? ` (${selectedCount})` : ''}
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setConfirmBulk({ publish: true })} disabled={bulkPublishMutation.isPending || query.isLoading || !hasUnpublishedInView}>
-                一键发布当前筛选
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setConfirmBulk({ publish: false })} disabled={bulkPublishMutation.isPending || query.isLoading || !hasPublishedInView}>
-                一键取消发布当前筛选
+              <Button size="sm" variant="outline" onClick={() => setConfirmBulk({ publish: false })} disabled={!hasSelection || bulkPublishMutation.isPending}>
+                批量取消发布{selectionLabel}
               </Button>
               {bulkPublishMutation.data ? <span className="text-xs text-muted-foreground">已{bulkPublishMutation.data.publish ? '发布' : '取消发布'} {bulkPublishMutation.data.count} 个文档</span> : null}
             </div>
           </div>
+
+          {showSelectAllBanner ? (
+            <div className="mb-4 flex flex-wrap items-center justify-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-4 py-2 text-sm">
+              {selectAllMatching ? (
+                <>
+                  <span>已选择全部 <span className="font-medium">{total}</span> 个匹配文档。</span>
+                  <button className="font-medium text-primary hover:underline" onClick={() => { setSelectAllMatching(false); setSelectedIds([]) }}>清除选择</button>
+                </>
+              ) : (
+                <>
+                  <span>已选择本页 <span className="font-medium">{currentItems.length}</span> 项。</span>
+                  <button className="font-medium text-primary hover:underline" onClick={() => setSelectAllMatching(true)}>选择全部 {total} 个匹配文档</button>
+                </>
+              )}
+            </div>
+          ) : null}
 
           {query.isLoading ? <div className="text-muted-foreground">正在加载文档...</div> : null}
           {query.isError ? <div className="text-destructive">文档列表加载失败</div> : null}
@@ -508,21 +532,27 @@ export function DocumentList() {
 
       <ConfirmDialog
         open={confirmBulk !== null}
-        title={confirmBulk?.publish ? '确认一键发布当前筛选？' : '确认一键取消发布当前筛选？'}
+        title={confirmBulk?.publish ? '确认批量发布？' : '确认批量取消发布？'}
         confirmText={confirmBulk?.publish ? '发布' : '取消发布'}
         description={
           confirmBulk
-            ? (brand || category || series || keyword)
+            ? selectAllMatching
               ? (confirmBulk.publish
-                  ? '将发布当前筛选条件下所有未发布的文档。'
-                  : '将取消发布当前筛选条件下所有已发布的文档，它们会从官网下架。')
+                  ? `将发布当前筛选条件下全部 ${total} 个文档。`
+                  : `将取消发布当前筛选条件下全部 ${total} 个文档，它们会从官网下架。`)
               : (confirmBulk.publish
-                  ? '未设置筛选条件，将发布全部未发布的文档。'
-                  : '未设置筛选条件，将取消发布全部已发布的文档，官网资源将全部下架。')
+                  ? `将发布已选中的 ${selectedCount} 个文档。`
+                  : `将取消发布已选中的 ${selectedCount} 个文档，它们会从官网下架。`)
             : undefined
         }
         onCancel={() => setConfirmBulk(null)}
-        onConfirm={() => { if (confirmBulk) publishFiltered(confirmBulk.publish); setConfirmBulk(null) }}
+        onConfirm={() => {
+          if (confirmBulk) {
+            if (selectAllMatching) publishFiltered(confirmBulk.publish)
+            else publishSelected(confirmBulk.publish)
+          }
+          setConfirmBulk(null)
+        }}
       />
 
       <ConfirmDialog

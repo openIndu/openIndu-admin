@@ -56,14 +56,12 @@ export function SoftwareList() {
   const [jumpInput, setJumpInput] = useState('')
   const [brand, setBrand] = useState('')
   const [category, setCategory] = useState('')
-  const [series, setSeries] = useState('')
   const [keyword, setKeyword] = useState('')
   const [deleting, setDeleting] = useState<SoftwareItem | null>(null)
   const [editing, setEditing] = useState<SoftwareItem | null>(null)
   const [editName, setEditName] = useState('')
   const [editBrand, setEditBrand] = useState('')
   const [editCategory, setEditCategory] = useState('')
-  const [editSeries, setEditSeries] = useState('')
   const [editDescription, setEditDescription] = useState('')
   const [versionsModal, setVersionsModal] = useState<{ item: SoftwareItem; versions: SoftwareVersion[] } | null>(null)
   const [addVersionFile, setAddVersionFile] = useState<File | null>(null)
@@ -74,34 +72,14 @@ export function SoftwareList() {
   const toTagArray = (d: unknown): ResourceTag[] => (Array.isArray(d) ? (d as ResourceTag[]) : [])
   const brandsQuery = useQuery({ queryKey: ['tags', 'sw_brand'], queryFn: () => tagsApi.list('sw_brand'), select: toTagArray })
   const categoriesQuery = useQuery({ queryKey: ['tags', 'sw_category'], queryFn: () => tagsApi.list('sw_category'), select: toTagArray })
-  const seriesQuery = useQuery({
-    queryKey: ['tags', 'sw_series', category, brand],
-    queryFn: () => tagsApi.list('sw_series', category, brand || undefined),
-    enabled: !!category,
-    select: toTagArray,
-  })
-  const editSeriesQuery = useQuery({
-    queryKey: ['tags', 'sw_series', editCategory, editBrand],
-    queryFn: () => tagsApi.list('sw_series', editCategory, editBrand || undefined),
-    enabled: !!editCategory,
-    select: toTagArray,
-  })
 
   const brandChips = useMemo(() => (brandsQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })), [brandsQuery.data])
   const categoryChips = useMemo(() => (categoriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })), [categoriesQuery.data])
-  const seriesChips = useMemo(() => (seriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })), [seriesQuery.data])
-  const editSeriesChips = useMemo(() => (editSeriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh })), [editSeriesQuery.data])
 
   const brandMap = useMemo(() => Object.fromEntries(brandChips.map((c) => [c.value, c.label])), [brandChips])
   const categoryMap = useMemo(() => Object.fromEntries(categoryChips.map((c) => [c.value, c.label])), [categoryChips])
-  const allSeriesMap = useMemo(() => {
-    const m: Record<string, string> = {}
-    ;(seriesQuery.data ?? []).forEach((t) => { m[t.value] = t.label_zh })
-    ;(editSeriesQuery.data ?? []).forEach((t) => { m[t.value] = t.label_zh })
-    return m
-  }, [seriesQuery.data, editSeriesQuery.data])
 
-  const params = useMemo(() => ({ page, size, brand: brand || undefined, category: category || undefined, series: series || undefined, keyword: keyword || undefined }), [brand, category, series, keyword, page, size])
+  const params = useMemo(() => ({ page, size, brand: brand || undefined, category: category || undefined, keyword: keyword || undefined }), [brand, category, keyword, page, size])
   const query = useQuery({ queryKey: ['software', params], queryFn: () => softwareApi.list(params) })
   const deleteMutation = useMutation({ mutationFn: softwareApi.delete, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['software'] }) })
   const publishMutation = useMutation({ mutationFn: softwareApi.publishToggle, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['software'] }) })
@@ -163,7 +141,6 @@ export function SoftwareList() {
     setEditName(displayName(item))
     setEditBrand(item.brand)
     setEditCategory(item.category)
-    setEditSeries(item.series ?? '')
     setEditDescription(item.description ?? '')
   }
 
@@ -189,22 +166,14 @@ export function SoftwareList() {
               label="品牌："
               chips={brandChips}
               selected={brand}
-              onSelect={(v) => { setBrand(v); setSeries(''); setPage(1) }}
+              onSelect={(v) => { setBrand(v); setPage(1) }}
             />
             <ChipBar
               label="类型："
               chips={categoryChips}
               selected={category}
-              onSelect={(v) => { setCategory(v); setSeries(''); setPage(1) }}
+              onSelect={(v) => { setCategory(v); setPage(1) }}
             />
-            {category && seriesChips.length > 0 ? (
-              <ChipBar
-                label="系列："
-                chips={seriesChips}
-                selected={series}
-                onSelect={(v) => { setSeries(v); setPage(1) }}
-              />
-            ) : null}
             <div className="flex items-center gap-2">
               <Input
                 className="h-8 max-w-xs"
@@ -213,8 +182,8 @@ export function SoftwareList() {
                 onChange={(e) => { setKeyword(e.target.value); setPage(1) }}
               />
               <Button size="sm" variant="outline" onClick={() => void query.refetch()}>查询</Button>
-              {(brand || category || series || keyword) ? (
-                <Button size="sm" variant="ghost" onClick={() => { setBrand(''); setCategory(''); setSeries(''); setKeyword(''); setPage(1) }}>
+              {(brand || category || keyword) ? (
+                <Button size="sm" variant="ghost" onClick={() => { setBrand(''); setCategory(''); setKeyword(''); setPage(1) }}>
                   清空筛选
                 </Button>
               ) : null}
@@ -231,7 +200,6 @@ export function SoftwareList() {
                   <TableHead>名称</TableHead>
                   <TableHead>品牌</TableHead>
                   <TableHead>类型</TableHead>
-                  <TableHead>系列</TableHead>
                   <TableHead>版本</TableHead>
                   <TableHead>下载次数</TableHead>
                   <TableHead>状态</TableHead>
@@ -245,7 +213,6 @@ export function SoftwareList() {
                     <TableCell>{displayName(item)}</TableCell>
                     <TableCell>{brandMap[item.brand] ?? item.brand}</TableCell>
                     <TableCell>{categoryMap[item.category] ?? item.category}</TableCell>
-                    <TableCell>{item.series ? (allSeriesMap[item.series] ?? item.series) : '-'}</TableCell>
                     <TableCell>{item.latest_version ?? item.version ?? '-'}</TableCell>
                     <TableCell>{item.download_count ?? 0}</TableCell>
                     <TableCell>{item.is_active === false ? '下架' : '上架'}</TableCell>
@@ -323,18 +290,8 @@ export function SoftwareList() {
               </label>
               <label className="block space-y-1 text-sm">
                 <span>类型</span>
-                <Select options={categoryChips} value={editCategory} onChange={(e) => { setEditCategory(e.target.value); setEditSeries('') }} />
+                <Select options={categoryChips} value={editCategory} onChange={(e) => setEditCategory(e.target.value)} />
               </label>
-              {editCategory && editSeriesChips.length > 0 ? (
-                <label className="block space-y-1 text-sm">
-                  <span>系列（可选）</span>
-                  <Select
-                    options={[{ value: '', label: '不指定系列' }, ...editSeriesChips]}
-                    value={editSeries}
-                    onChange={(e) => setEditSeries(e.target.value)}
-                  />
-                </label>
-              ) : null}
               <label className="block space-y-1 text-sm">
                 <span>描述</span>
                 <Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="可选" />
@@ -345,7 +302,7 @@ export function SoftwareList() {
               <Button variant="outline" onClick={() => setEditing(null)}>取消</Button>
               <Button
                 disabled={updateMutation.isPending}
-                onClick={() => updateMutation.mutate({ id: editing.id, data: { original_name: editName, brand: editBrand, category: editCategory, series: editSeries || undefined, description: editDescription } })}
+                onClick={() => updateMutation.mutate({ id: editing.id, data: { original_name: editName, brand: editBrand, category: editCategory, description: editDescription } })}
               >
                 {updateMutation.isPending ? '保存中...' : '保存'}
               </Button>

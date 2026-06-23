@@ -13,7 +13,6 @@ export function SoftwareUpload() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [brand, setBrand] = useState('')
   const [category, setCategory] = useState('')
-  const [series, setSeries] = useState('')
   const [version, setVersion] = useState('')
   const [description, setDescription] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -21,10 +20,8 @@ export function SoftwareUpload() {
 
   const brandsQuery = useQuery({ queryKey: ['tags', 'sw_brand'], queryFn: () => tagsApi.list('sw_brand') })
   const categoriesQuery = useQuery({ queryKey: ['tags', 'sw_category'], queryFn: () => tagsApi.list('sw_category') })
-  const seriesQuery = useQuery({ queryKey: ['tags', 'sw_series', category, brand], queryFn: () => tagsApi.list('sw_series', category, brand || undefined), enabled: !!category })
   const brandOptions = (brandsQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh }))
   const categoryOptions = (categoriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh }))
-  const seriesOptions = (seriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh }))
 
   const mutation = useMutation({
     mutationFn: softwareApi.upload,
@@ -44,7 +41,6 @@ export function SoftwareUpload() {
     formData.append('file', file!)
     formData.append('brand', brand)
     formData.append('category', category)
-    if (series) formData.append('series', series)
     formData.append('version', version)
     formData.append('description', description)
     mutation.mutate(formData)
@@ -66,16 +62,9 @@ export function SoftwareUpload() {
 
           <div className="space-y-1">
             <label className="text-sm">分类</label>
-            <Select placeholder="请选择分类" options={categoryOptions} value={category} onChange={(e) => { setCategory(e.target.value); setSeries('') }} />
+            <Select placeholder="请选择分类" options={categoryOptions} value={category} onChange={(e) => setCategory(e.target.value)} />
             {fieldErrors.category && <p className="text-xs text-destructive">{fieldErrors.category}</p>}
           </div>
-
-          {category && seriesOptions.length > 0 ? (
-            <div className="space-y-1">
-              <label className="text-sm">系列（可选）</label>
-              <Select placeholder="不选系列" options={seriesOptions} value={series} onChange={(e) => setSeries(e.target.value)} />
-            </div>
-          ) : null}
 
           <div className="space-y-1">
             <label className="text-sm">版本</label>
