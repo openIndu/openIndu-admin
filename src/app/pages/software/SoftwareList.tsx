@@ -395,7 +395,6 @@ export function SoftwareList() {
                   <TableHead>版本</TableHead>
                   <TableHead>大小</TableHead>
                   <TableHead>下载次数</TableHead>
-                  <TableHead>状态</TableHead>
                   <TableHead>发布状态</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
@@ -428,7 +427,6 @@ export function SoftwareList() {
                     </TableCell>
                     <TableCell>{formatSize(item.latest_version_size)}</TableCell>
                     <TableCell>{item.download_count ?? 0}</TableCell>
-                    <TableCell>{item.is_active === false ? '下架' : '上架'}</TableCell>
                     <TableCell>
                       <Badge variant={item.is_published ? 'success' : 'secondary'}>
                         {item.is_published ? '已发布' : '未发布'}
