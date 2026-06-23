@@ -341,10 +341,10 @@ export function SoftwareList() {
                 <Input placeholder="版本号，如 2.1.0" value={addVersionValue} onChange={(event) => setAddVersionValue(event.target.value)} />
                 <div
                   onClick={() => versionFileRef.current?.click()}
-                  className="flex cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
+                  className="flex min-w-0 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
                 >
                   <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className={addVersionFile ? 'text-foreground' : 'text-muted-foreground'}>
+                  <span className={`overflow-hidden text-ellipsis whitespace-nowrap ${addVersionFile ? 'text-foreground' : 'text-muted-foreground'}`}>
                     {addVersionFile ? addVersionFile.name : '点击选择软件包'}
                   </span>
                 </div>
