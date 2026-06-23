@@ -67,6 +67,7 @@ export function SoftwareList() {
   const [addVersionFile, setAddVersionFile] = useState<File | null>(null)
   const [addVersionValue, setAddVersionValue] = useState('')
   const [addVersionError, setAddVersionError] = useState('')
+  const [versionProgress, setVersionProgress] = useState(0)
   const [deletingVersion, setDeletingVersion] = useState<{ softwareId: number; versionId: number } | null>(null)
 
   const toTagArray = (d: unknown): ResourceTag[] => (Array.isArray(d) ? (d as ResourceTag[]) : [])
@@ -90,7 +91,9 @@ export function SoftwareList() {
 
   const invalidateSoftware = () => queryClient.invalidateQueries({ queryKey: ['software'] })
   const addVersionMutation = useMutation({
-    mutationFn: ({ id, formData }: { id: number; formData: FormData }) => softwareApi.addVersion(id, formData),
+    mutationFn: ({ id, formData }: { id: number; formData: FormData }) => softwareApi.addVersion(id, formData, (e) => {
+      if (e.total) setVersionProgress(Math.round((e.loaded / e.total) * 100))
+    }),
     onSuccess: () => {
       invalidateSoftware()
       if (versionsModal) {
@@ -128,6 +131,7 @@ export function SoftwareList() {
     if (!addVersionValue.trim()) { setAddVersionError('请填写版本号'); return }
     if (!addVersionFile) { setAddVersionError('请选择软件包文件'); return }
     setAddVersionError('')
+    setVersionProgress(0)
     const formData = new FormData()
     formData.append('file', addVersionFile)
     formData.append('version', addVersionValue.trim())
@@ -340,9 +344,17 @@ export function SoftwareList() {
                   onChange={(event) => { setAddVersionFile(event.target.files?.[0] ?? null); setAddVersionError('') }}
                 />
                 <Button disabled={addVersionMutation.isPending} onClick={handleAddVersion}>
-                  {addVersionMutation.isPending ? '上传中...' : '添加版本'}
+                  {addVersionMutation.isPending ? (versionProgress < 100 ? `上传中 ${versionProgress}%` : '处理中...') : '添加版本'}
                 </Button>
               </div>
+              {addVersionMutation.isPending ? (
+                <div className="mt-2 space-y-1">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div className="h-full bg-primary transition-all duration-150" style={{ width: `${versionProgress}%` }} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">{versionProgress < 100 ? `上传中 ${versionProgress}%` : '上传完成，正在处理...'}</p>
+                </div>
+              ) : null}
               {addVersionError ? <div className="mt-2 text-sm text-destructive">{addVersionError}</div> : null}
               {addVersionMutation.isError ? <div className="mt-2 text-sm text-destructive">版本上传失败，请检查版本号、文件格式和网络。</div> : null}
             </div>
