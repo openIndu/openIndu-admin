@@ -93,6 +93,7 @@ export interface ResourceTag {
 
 export interface SoftwareItem extends ResourceItem {
   latest_version?: string
+  latest_version_size?: number
   version?: string
   is_active?: boolean
   is_published?: boolean
