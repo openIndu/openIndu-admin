@@ -1,16 +1,20 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { softwareApi, tagsApi } from '@/api'
+import { useQuery } from '@tanstack/react-query'
+import { softwareApi, tagsApi, type SoftwareUploadPart } from '@/api'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
 import { Select } from '../../components/ui/select'
 import { Paperclip } from 'lucide-react'
+import { uploadToOss, UploadCancelledError } from './directUpload'
+
+type Phase = 'idle' | 'uploading' | 'finalizing' | 'error'
 
 export function SoftwareUpload() {
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const abortRef = useRef<AbortController | null>(null)
   const [brand, setBrand] = useState('')
   const [category, setCategory] = useState('')
   const [version, setVersion] = useState('')
@@ -18,20 +22,28 @@ export function SoftwareUpload() {
   const [file, setFile] = useState<File | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [progress, setProgress] = useState(0)
+  const [phase, setPhase] = useState<Phase>('idle')
+  const [errorMsg, setErrorMsg] = useState('')
 
   const brandsQuery = useQuery({ queryKey: ['tags', 'sw_brand'], queryFn: () => tagsApi.list('sw_brand') })
   const categoriesQuery = useQuery({ queryKey: ['tags', 'sw_category'], queryFn: () => tagsApi.list('sw_category') })
   const brandOptions = (brandsQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh }))
   const categoryOptions = (categoriesQuery.data ?? []).filter((t) => t.is_active).map((t) => ({ value: t.value, label: t.label_zh }))
 
-  const mutation = useMutation({
-    mutationFn: (formData: FormData) => softwareApi.upload(formData, (e) => {
-      if (e.total) setProgress(Math.round((e.loaded / e.total) * 100))
-    }),
-    onSuccess: () => navigate('/software'),
-  })
+  function reset() {
+    abortRef.current?.abort()
+    abortRef.current = null
+    setPhase('idle')
+    setProgress(0)
+    setErrorMsg('')
+  }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  function handleCancel() {
+    reset()
+    navigate('/software')
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const errs: Record<string, string> = {}
     if (!brand) errs.brand = '请选择品牌'
@@ -40,21 +52,74 @@ export function SoftwareUpload() {
     if (!file) errs.file = '请选择软件包文件'
     if (Object.keys(errs).length > 0) { setFieldErrors(errs); return }
     setFieldErrors({})
+    setErrorMsg('')
     setProgress(0)
-    const formData = new FormData()
-    formData.append('file', file!)
-    formData.append('brand', brand)
-    formData.append('category', category)
-    formData.append('version', version)
-    formData.append('description', description)
-    mutation.mutate(formData)
+    setPhase('uploading')
+
+    const controller = new AbortController()
+    abortRef.current = controller
+
+    try {
+      // 1. 请求直传凭证
+      const init = await softwareApi.uploadInit({
+        filename: file!.name,
+        brand,
+        category,
+        version,
+        description,
+        content_type: file!.type || 'application/octet-stream',
+        size: file!.size,
+      })
+
+      let parts: SoftwareUploadPart[] | null = null
+      if (init.mode === 'sync') {
+        // 本地存储后端：回退到同步上传
+        const formData = new FormData()
+        formData.append('file', file!)
+        formData.append('brand', brand)
+        formData.append('category', category)
+        formData.append('version', version)
+        formData.append('description', description)
+        await softwareApi.upload(formData, (e) => {
+          if (e.total) setProgress(Math.round((e.loaded / e.total) * 100))
+        })
+      } else {
+        // 2. 浏览器直传 OSS
+        parts = await uploadToOss(file!, init, setProgress, controller.signal)
+      }
+
+      // 3. 通知后端合并并写库
+      setPhase('finalizing')
+      if (init.mode !== 'sync' && init.token) {
+        await softwareApi.uploadComplete({ token: init.token, parts: parts ?? undefined })
+      }
+      navigate('/software')
+    } catch (err) {
+      if (err instanceof UploadCancelledError) {
+        setPhase('idle')
+        setProgress(0)
+        return
+      }
+      const e = err as { code?: string; response?: { data?: { detail?: string; message?: string } }; message?: string }
+      setPhase('error')
+      setProgress(0)
+      setErrorMsg(e?.response?.data?.detail || e?.response?.data?.message || e?.message || '上传失败，请检查文件和网络连接')
+    } finally {
+      abortRef.current = null
+    }
   }
+
+  const statusText = phase === 'finalizing'
+    ? '文件已上传，正在合并并写入数据库...'
+    : phase === 'uploading' && progress >= 100
+      ? '上传完成，正在处理...'
+      : `上传中 ${progress}%`
 
   return (
     <Card className="max-w-2xl">
       <CardHeader>
         <CardTitle>上传软件</CardTitle>
-        <CardDescription>上传 zip/exe/msi/rar/7z 软件包并填写品牌、分类和版本。</CardDescription>
+        <CardDescription>上传 zip/exe/msi/rar/7z 软件包并填写品牌、分类和版本。大文件将直传对象存储。</CardDescription>
       </CardHeader>
       <CardContent>
         <form className="space-y-4" onSubmit={handleSubmit}>
@@ -89,7 +154,7 @@ export function SoftwareUpload() {
             >
               <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
               <span className={file ? 'text-foreground' : 'text-muted-foreground'}>
-                {file ? file.name : '点击选择软件包 (.zip / .exe / .msi / .rar / .7z)'}
+                {file ? `${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)` : '点击选择软件包 (.zip / .exe / .msi / .rar / .7z)'}
               </span>
             </div>
             <input
@@ -102,34 +167,28 @@ export function SoftwareUpload() {
             {fieldErrors.file && <p className="text-xs text-destructive">{fieldErrors.file}</p>}
           </div>
 
-          {mutation.isPending ? (
+          {(phase === 'uploading' || phase === 'finalizing') ? (
             <div className="space-y-1">
               <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                <div className="h-full bg-primary transition-all duration-150" style={{ width: `${progress}%` }} />
+                <div className={`h-full bg-primary transition-all duration-150 ${phase === 'finalizing' ? 'animate-pulse' : ''}`} style={{ width: `${phase === 'finalizing' ? 100 : progress}%` }} />
               </div>
-              <p className="text-xs text-muted-foreground">
-                {progress < 100 ? `上传中 ${progress}%` : '上传完成，正在处理...'}
-              </p>
+              <p className="text-xs text-muted-foreground">{statusText}</p>
             </div>
           ) : null}
 
-          {mutation.isError ? (
+          {phase === 'error' ? (
             <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
-              {(() => {
-                const err = mutation.error as { code?: string; response?: { data?: { detail?: string | unknown[]; message?: string } } }
-                const detail = err?.response?.data?.detail
-                if (typeof detail === 'string') return detail
-                if (err?.code === 'ECONNABORTED') return '上传超时，请检查网络或文件大小后重试'
-                return err?.response?.data?.message || '上传失败，请检查文件和网络连接'
-              })()}
+              {errorMsg}
             </div>
           ) : null}
 
           <div className="mt-6 flex gap-3">
-            <Button type="submit" disabled={!brand || !category || !version.trim() || !file || mutation.isPending}>
-              {mutation.isPending ? (progress < 100 ? `上传中 ${progress}%` : '处理中...') : '上传'}
+            <Button type="submit" disabled={!brand || !category || !version.trim() || !file || phase === 'uploading' || phase === 'finalizing'}>
+              {phase === 'uploading' ? statusText : phase === 'finalizing' ? '处理中...' : '上传'}
             </Button>
-            <Button type="button" variant="outline" onClick={() => navigate('/software')}>取消</Button>
+            <Button type="button" variant="outline" onClick={handleCancel}>
+              {phase === 'uploading' ? '取消上传' : '取消'}
+            </Button>
           </div>
         </form>
       </CardContent>

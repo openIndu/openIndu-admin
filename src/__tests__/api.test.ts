@@ -420,7 +420,7 @@ describe('API Client', () => {
       const formData = new FormData()
       await documentApi.upload(formData)
 
-      expect(mockedAxios.post).toHaveBeenCalledWith('/documents/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+      expect(mockedAxios.post).toHaveBeenCalledWith('/documents/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 0, onUploadProgress: undefined })
     })
 
     it('get calls correct endpoint', async () => {
@@ -485,7 +485,7 @@ describe('API Client', () => {
       const formData = new FormData()
       await softwareApi.upload(formData)
 
-      expect(mockedAxios.post).toHaveBeenCalledWith('/software/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+      expect(mockedAxios.post).toHaveBeenCalledWith('/software/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 0, onUploadProgress: undefined })
     })
 
     it('get calls correct endpoint', async () => {
@@ -516,7 +516,7 @@ describe('API Client', () => {
       const formData = new FormData()
       await softwareApi.addVersion(1, formData)
 
-      expect(mockedAxios.post).toHaveBeenCalledWith('/software/1/versions', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+      expect(mockedAxios.post).toHaveBeenCalledWith('/software/1/versions', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 0, onUploadProgress: undefined })
     })
 
     it('deleteVersion calls correct endpoint', async () => {

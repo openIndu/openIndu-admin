@@ -36,6 +36,10 @@ export function DocumentUpload() {
       })
       navigate('/documents')
     },
+    onError: () => {
+      // Reset progress on any error so UI doesn't get stuck
+      setProgress(0)
+    },
   })
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {

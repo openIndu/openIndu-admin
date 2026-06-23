@@ -102,6 +102,10 @@ export function SoftwareList() {
         }).catch(() => {})
       }
     },
+    onError: () => {
+      // Reset progress on any error so UI doesn't get stuck
+      setVersionProgress(0)
+    },
   })
   const deleteVersionMutation = useMutation({
     mutationFn: ({ id, versionId }: { id: number; versionId: number }) => softwareApi.deleteVersion(id, versionId),
