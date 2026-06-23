@@ -59,18 +59,21 @@ async function putWithRetry(url: string, blob: Blob, onLoaded: (loaded: number) 
 /**
  * Upload a file directly to OSS. Returns the part list (for multipart) or
  * null (for single PUT) to send to /upload/complete.
+ *
+ * onProgress receives (loaded, total) in bytes — callers compute % and rate
+ * themselves; that keeps the uploader stateless about presentation.
  */
 export async function uploadToOss(
   file: File,
   init: SoftwareUploadInit,
-  onProgress: (pct: number) => void,
+  onProgress: (loaded: number, total: number) => void,
   signal?: AbortSignal,
 ): Promise<SoftwareUploadPart[] | null> {
   const total = file.size
   const loaded: number[] = []
   const report = () => {
     const sum = loaded.reduce((a, b) => a + b, 0)
-    onProgress(total > 0 ? Math.min(100, Math.round((sum / total) * 100)) : 0)
+    onProgress(Math.min(sum, total), total)
   }
 
   if (init.mode === 'single') {

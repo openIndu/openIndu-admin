@@ -152,7 +152,13 @@ export function SoftwareList() {
     setEditDescription(item.description ?? '')
   }
 
-  const formatSize = (size?: number) => (size ? `${(size / 1024 / 1024).toFixed(2)} MB` : '-')
+  const formatSize = (size?: number) => {
+    if (!size || size <= 0) return '-'
+    if (size < 1024) return `${size} B`
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
+    if (size < 1024 * 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`
+    return `${(size / 1024 / 1024 / 1024).toFixed(2)} GB`
+  }
   const totalPages = query.data ? Math.ceil(query.data.total / size) : 0
 
   const handleJump = () => {
@@ -209,6 +215,7 @@ export function SoftwareList() {
                   <TableHead>品牌</TableHead>
                   <TableHead>类型</TableHead>
                   <TableHead>版本</TableHead>
+                  <TableHead>大小</TableHead>
                   <TableHead>下载次数</TableHead>
                   <TableHead>状态</TableHead>
                   <TableHead>发布状态</TableHead>
@@ -222,6 +229,7 @@ export function SoftwareList() {
                     <TableCell>{brandMap[item.brand] ?? item.brand}</TableCell>
                     <TableCell>{categoryMap[item.category] ?? item.category}</TableCell>
                     <TableCell>{item.latest_version ?? item.version ?? '-'}</TableCell>
+                    <TableCell>{formatSize(item.latest_version_size)}</TableCell>
                     <TableCell>{item.download_count ?? 0}</TableCell>
                     <TableCell>{item.is_active === false ? '下架' : '上架'}</TableCell>
                     <TableCell>
