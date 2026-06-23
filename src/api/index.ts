@@ -220,9 +220,29 @@ export const documentApi = {
   categories: () => unwrap<Array<{ value: string; label: string }> | string[]>(api.get('/documents/categories/list')),
 }
 
+export interface SoftwareUploadInit {
+  mode: 'sync' | 'single' | 'multipart'
+  token?: string
+  oss_key?: string
+  part_size?: number
+  part_urls?: string[]
+  upload_url?: string
+  expires_in?: number
+}
+
+export interface SoftwareUploadPart {
+  part_number: number
+  etag: string
+}
+
 export const softwareApi = {
   list: (params: { page?: number; size?: number; brand?: string; category?: string; series?: string; keyword?: string } = {}) => unwrap<PageResult<SoftwareItem>>(api.get('/software', { params })),
   upload: (formData: FormData, onUploadProgress?: (e: AxiosProgressEvent) => void) => unwrap<SoftwareItem>(api.post('/software/upload', formData, uploadConfig(onUploadProgress))),
+  uploadInit: (meta: { filename: string; brand: string; category: string; series?: string; version: string; description?: string; content_type?: string; size: number }) =>
+    unwrap<SoftwareUploadInit>(api.post('/software/upload/init', meta)),
+  uploadComplete: (payload: { token: string; parts?: SoftwareUploadPart[]; file_hash?: string }) =>
+    unwrap<SoftwareItem>(api.post('/software/upload/complete', payload)),
+  uploadAbort: (token: string) => unwrap(api.post('/software/upload/abort', { token })),
   get: (id: number) => unwrap<SoftwareItem>(api.get(`/software/${id}`)),
   update: (id: number, data: Partial<Pick<SoftwareItem, 'original_name' | 'brand' | 'category' | 'series' | 'description'>>) => unwrap<SoftwareItem>(api.patch(`/software/${id}`, data)),
   delete: (id: number) => unwrap(api.delete(`/software/${id}`)),
