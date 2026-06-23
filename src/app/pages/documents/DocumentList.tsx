@@ -151,6 +151,8 @@ export function DocumentList() {
   const currentItemIds = currentItems.map((item) => item.id)
   const allCurrentSelected = currentItemIds.length > 0 && currentItemIds.every((id) => selectedIds.includes(id))
   const selectedCount = selectedIds.length
+  const hasUnpublishedInView = currentItems.some((item) => !item.is_published)
+  const hasPublishedInView = currentItems.some((item) => item.is_published)
 
   const handleJump = () => {
     const n = parseInt(jumpInput, 10)
@@ -247,10 +249,10 @@ export function DocumentList() {
               <Button size="sm" variant="outline" onClick={() => publishSelected(false)} disabled={selectedCount === 0 || bulkPublishMutation.isPending}>
                 取消发布选中{selectedCount ? ` (${selectedCount})` : ''}
               </Button>
-              <Button size="sm" onClick={() => setConfirmBulk({ publish: true })} disabled={bulkPublishMutation.isPending || query.isLoading}>
+              <Button size="sm" variant="outline" onClick={() => setConfirmBulk({ publish: true })} disabled={bulkPublishMutation.isPending || query.isLoading || !hasUnpublishedInView}>
                 一键发布当前筛选
               </Button>
-              <Button size="sm" variant="secondary" onClick={() => setConfirmBulk({ publish: false })} disabled={bulkPublishMutation.isPending || query.isLoading}>
+              <Button size="sm" variant="outline" onClick={() => setConfirmBulk({ publish: false })} disabled={bulkPublishMutation.isPending || query.isLoading || !hasPublishedInView}>
                 一键取消发布当前筛选
               </Button>
               {bulkPublishMutation.data ? <span className="text-xs text-muted-foreground">已{bulkPublishMutation.data.publish ? '发布' : '取消发布'} {bulkPublishMutation.data.count} 个文档</span> : null}
