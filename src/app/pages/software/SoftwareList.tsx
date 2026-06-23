@@ -130,6 +130,20 @@ export function SoftwareList() {
     }
   }
 
+  const handleDownload = async (item: SoftwareItem) => {
+    try {
+      const { download_url, filename } = await softwareApi.downloadLink(item.id)
+      const a = document.createElement('a')
+      a.href = download_url
+      a.download = filename ?? displayName(item)
+      a.rel = 'noopener noreferrer'
+      document.body.appendChild(a); a.click(); document.body.removeChild(a)
+    } catch (err) {
+      const e = err as { response?: { data?: { detail?: string } } }
+      window.alert(e?.response?.data?.detail ?? '下载失败，请稍后重试')
+    }
+  }
+
   const handleAddVersion = () => {
     if (!versionsModal) return
     if (!addVersionValue.trim()) { setAddVersionError('请填写版本号'); return }
@@ -228,7 +242,14 @@ export function SoftwareList() {
                     <TableCell>{displayName(item)}</TableCell>
                     <TableCell>{brandMap[item.brand] ?? item.brand}</TableCell>
                     <TableCell>{categoryMap[item.category] ?? item.category}</TableCell>
-                    <TableCell>{item.latest_version ?? item.version ?? '-'}</TableCell>
+                    <TableCell>
+                      <span>{item.latest_version ?? item.version ?? '-'}</span>
+                      {(item.versions_count ?? 0) > 0 && (
+                        <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-muted px-1.5 py-0 text-[10px] font-medium text-muted-foreground">
+                          +{item.versions_count}
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell>{formatSize(item.latest_version_size)}</TableCell>
                     <TableCell>{item.download_count ?? 0}</TableCell>
                     <TableCell>{item.is_active === false ? '下架' : '上架'}</TableCell>
@@ -241,6 +262,7 @@ export function SoftwareList() {
                       <div className="flex gap-1">
                         <Button size="sm" variant="outline" onClick={() => openEdit(item)}>编辑</Button>
                         <Button size="sm" variant="outline" onClick={() => openVersions(item)}>版本</Button>
+                        <Button size="sm" variant="outline" onClick={() => handleDownload(item)}>下载</Button>
                         <Button
                           size="sm"
                           variant={item.is_published ? 'outline' : 'default'}
