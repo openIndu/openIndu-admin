@@ -337,7 +337,7 @@ export function SoftwareList() {
             </div>
             <div className="mb-4 rounded-lg border p-4">
               <label className="mb-2 block text-sm font-medium">添加新版本</label>
-              <div className="grid gap-3 md:grid-cols-[160px_1fr_auto]">
+              <div className="grid gap-3 md:grid-cols-[160px_1fr_120px]">
                 <Input placeholder="版本号，如 2.1.0" value={addVersionValue} onChange={(event) => setAddVersionValue(event.target.value)} />
                 <div
                   onClick={() => versionFileRef.current?.click()}
@@ -355,8 +355,8 @@ export function SoftwareList() {
                   className="sr-only"
                   onChange={(event) => { setAddVersionFile(event.target.files?.[0] ?? null); setAddVersionError('') }}
                 />
-                <Button disabled={addVersionMutation.isPending} onClick={handleAddVersion}>
-                  {addVersionMutation.isPending ? (versionProgress < 100 ? `上传中 ${versionProgress}%` : '处理中...') : '添加版本'}
+                <Button className="w-full whitespace-nowrap" disabled={addVersionMutation.isPending} onClick={handleAddVersion}>
+                  {addVersionMutation.isPending ? (versionProgress < 100 ? '上传中...' : '处理中...') : '添加版本'}
                 </Button>
               </div>
               {addVersionMutation.isPending ? (
