@@ -9,7 +9,7 @@ import type { SoftwareUploadPart, SoftwareUploadInit } from '@/api'
  * progress bar. The backend only signs the upload and records metadata later.
  */
 
-const CONCURRENCY = 3
+const CONCURRENCY = 8
 const MAX_RETRIES = 3
 
 export class UploadCancelledError extends Error {
