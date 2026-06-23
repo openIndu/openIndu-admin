@@ -80,7 +80,7 @@ export function SoftwareList() {
   const brandMap = useMemo(() => Object.fromEntries(brandChips.map((c) => [c.value, c.label])), [brandChips])
   const categoryMap = useMemo(() => Object.fromEntries(categoryChips.map((c) => [c.value, c.label])), [categoryChips])
 
-  const params = useMemo(() => ({ page, size, brand: brand || undefined, category: category || undefined, keyword: keyword || undefined }), [brand, category, keyword, page, size])
+  const params = useMemo(() => ({ page, size, brand: brand || undefined, category: category || undefined, keyword: keyword || undefined, expand_versions: true }), [brand, category, keyword, page, size])
   const query = useQuery({ queryKey: ['software', params], queryFn: () => softwareApi.list(params) })
   const deleteMutation = useMutation({ mutationFn: softwareApi.delete, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['software'] }) })
   const publishMutation = useMutation({ mutationFn: softwareApi.publishToggle, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['software'] }) })
@@ -132,7 +132,12 @@ export function SoftwareList() {
 
   const handleDownload = async (item: SoftwareItem) => {
     try {
-      const { download_url, filename } = await softwareApi.downloadLink(item.id)
+      // Expanded rows carry a version_id — use the per-version download
+      // link to hit the exact version instead of always fetching the latest.
+      const link = item.version_id
+        ? await softwareApi.downloadVersionLink(item.id, item.version_id)
+        : await softwareApi.downloadLink(item.id)
+      const { download_url, filename } = link
       const a = document.createElement('a')
       a.href = download_url
       a.download = filename ?? displayName(item)
@@ -238,16 +243,14 @@ export function SoftwareList() {
               </TableHeader>
               <TableBody>
                 {query.data.items.map((item) => (
-                  <TableRow key={item.id}>
+                  <TableRow key={`${item.id}-${item.version_id ?? 'none'}`}>
                     <TableCell>{displayName(item)}</TableCell>
                     <TableCell>{brandMap[item.brand] ?? item.brand}</TableCell>
                     <TableCell>{categoryMap[item.category] ?? item.category}</TableCell>
                     <TableCell>
-                      <span>{item.latest_version ?? item.version ?? '-'}</span>
-                      {(item.versions_count ?? 0) > 0 && (
-                        <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-muted px-1.5 py-0 text-[10px] font-medium text-muted-foreground">
-                          +{item.versions_count}
-                        </span>
+                      <span>{item.version ?? item.latest_version ?? '-'}</span>
+                      {item.is_latest_version && (
+                        <Badge variant="success" className="ml-1.5 text-[10px] px-1 py-0">最新</Badge>
                       )}
                     </TableCell>
                     <TableCell>{formatSize(item.latest_version_size)}</TableCell>
