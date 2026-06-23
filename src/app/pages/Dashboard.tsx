@@ -230,20 +230,13 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
                 <Marker key={`data-${geo.name}-${geo.country_code ?? ''}`} coordinates={[geo.lng, geo.lat]}>
                   {/* Single dot — color = activity level, uniform size */}
                   <circle cx={0} cy={0} r={2} fill={isHot ? '#ef4444' : '#2563eb'} stroke="#fff" strokeWidth={0.5} />
-                  {/* Label */}
+                  {/* Inline label: "<region>:<count>" on a single line above the dot. */}
                   <text
                     textAnchor="middle"
-                    y={-7}
+                    y={-5}
                     style={{ fontFamily: 'system-ui', fontSize: 9, fill: '#1e293b', fontWeight: 600 }}
                   >
-                    {geo.name}
-                  </text>
-                  <text
-                    textAnchor="middle"
-                    y={6}
-                    style={{ fontFamily: 'system-ui', fontSize: 8, fill: '#475569', fontWeight: 500 }}
-                  >
-                    {total}
+                    {geo.name}:{total}
                   </text>
                 </Marker>
               )
