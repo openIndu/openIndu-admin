@@ -105,7 +105,11 @@ export function SoftwareList() {
   const params = useMemo(() => ({ page, size, brand: brand || undefined, category: category || undefined, keyword: keyword || undefined, expand_versions: true }), [brand, category, keyword, page, size])
   const query = useQuery({ queryKey: ['software', params], queryFn: () => softwareApi.list(params) })
   const deleteMutation = useMutation({ mutationFn: softwareApi.delete, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['software'] }) })
-  const publishMutation = useMutation({ mutationFn: softwareApi.publishToggle, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['software'] }) })
+  const publishMutation = useMutation({
+    mutationFn: ({ id, versionId }: { id: number; versionId?: number }) =>
+      versionId ? softwareApi.publishVersionToggle(id, versionId) : softwareApi.publishToggle(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['software'] }),
+  })
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Parameters<typeof softwareApi.update>[1] }) => softwareApi.update(id, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['software'] }); setEditing(null) },
@@ -273,24 +277,27 @@ export function SoftwareList() {
   }
   const totalPages = query.data ? Math.ceil(query.data.total / size) : 0
   const currentItems = query.data?.items ?? []
-  // expand_versions makes the same software_id appear multiple times. Drive
-  // bulk selection at the software level (unique ids) so a single checkbox
-  // covers every version row of that software.
-  const currentSoftwareIds = useMemo(() => Array.from(new Set(currentItems.map((it) => it.id))), [currentItems])
+  // Selection now operates on version rows (one checkbox per row). The list
+  // is fetched with expand_versions=true so the same software_id can appear
+  // multiple times; we identify each row by version_id.
+  const currentVersionIds = useMemo(
+    () => currentItems.map((it) => it.version_id).filter((id): id is number => typeof id === 'number'),
+    [currentItems],
+  )
   const total = query.data?.total ?? 0
-  const allCurrentSelected = currentSoftwareIds.length > 0 && currentSoftwareIds.every((id) => selectedIds.includes(id))
+  const allCurrentSelected = currentVersionIds.length > 0 && currentVersionIds.every((id) => selectedIds.includes(id))
   const selectedCount = selectedIds.length
   const hasSelection = selectAllMatching || selectedCount > 0
   const selectionLabel = selectAllMatching ? ` (全部 ${total})` : selectedCount ? ` (${selectedCount})` : ''
-  const showSelectAllBanner = allCurrentSelected && total > currentSoftwareIds.length
+  const showSelectAllBanner = allCurrentSelected && total > currentVersionIds.length
 
   const toggleCurrentPageSelection = () => {
     if (allCurrentSelected) {
       setSelectAllMatching(false)
-      setSelectedIds((ids) => ids.filter((id) => !currentSoftwareIds.includes(id)))
+      setSelectedIds((ids) => ids.filter((id) => !currentVersionIds.includes(id)))
       return
     }
-    setSelectedIds((ids) => Array.from(new Set([...ids, ...currentSoftwareIds])))
+    setSelectedIds((ids) => Array.from(new Set([...ids, ...currentVersionIds])))
   }
 
   const toggleRowSelection = (id: number) => {
@@ -306,7 +313,7 @@ export function SoftwareList() {
 
   const publishSelected = (publish: boolean) => {
     if (selectedIds.length === 0) return
-    bulkPublishMutation.mutate({ ids: selectedIds, publish })
+    bulkPublishMutation.mutate({ version_ids: selectedIds, publish })
   }
 
   const publishFiltered = (publish: boolean) => {
@@ -372,8 +379,8 @@ export function SoftwareList() {
                 </>
               ) : (
                 <>
-                  <span>已选择本页 <span className="font-semibold">{currentSoftwareIds.length}</span> 项，仅对本页生效。</span>
-                  <Button size="sm" onClick={() => setSelectAllMatching(true)}>选择全部 {total} 个匹配软件</Button>
+                  <span>已选择本页 <span className="font-semibold">{currentVersionIds.length}</span> 项，仅对本页生效。</span>
+                  <Button size="sm" onClick={() => setSelectAllMatching(true)}>选择全部 {total} 个匹配版本</Button>
                 </>
               )}
             </div>
@@ -403,16 +410,13 @@ export function SoftwareList() {
                 {query.data.items.map((item) => (
                   <TableRow key={`${item.id}-${item.version_id ?? 'none'}`}>
                     <TableCell>
-                      {/* Checkbox only on the row carrying the latest version (or the
-                          first row if expand mode is off). Same software_id may appear
-                          multiple times when versions are expanded; we don't want two
-                          checkboxes for the same software. */}
-                      {(item.is_latest_version || item.version_id === undefined) ? (
+                      {/* One checkbox per version row — publish is version-scoped. */}
+                      {item.version_id !== undefined ? (
                         <input
                           type="checkbox"
-                          checked={selectedIds.includes(item.id)}
-                          onChange={() => toggleRowSelection(item.id)}
-                          aria-label={`选择 ${displayName(item)}`}
+                          checked={selectedIds.includes(item.version_id)}
+                          onChange={() => toggleRowSelection(item.version_id!)}
+                          aria-label={`选择 ${displayName(item)} ${item.version ?? ''}`}
                         />
                       ) : null}
                     </TableCell>
@@ -440,7 +444,7 @@ export function SoftwareList() {
                         <Button
                           size="sm"
                           variant={item.is_published ? 'outline' : 'default'}
-                          onClick={() => publishMutation.mutate(item.id)}
+                          onClick={() => publishMutation.mutate({ id: item.id, versionId: item.version_id })}
                           disabled={publishMutation.isPending}
                         >
                           {item.is_published ? '取消发布' : '发布'}
