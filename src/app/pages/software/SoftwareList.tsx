@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { softwareApi, tagsApi, type ResourceTag, type SoftwareItem, type SoftwareUploadPart } from '@/api'
@@ -77,6 +77,9 @@ export function SoftwareList() {
   const [brand, setBrand] = useState('')
   const [category, setCategory] = useState('')
   const [keyword, setKeyword] = useState('')
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [selectAllMatching, setSelectAllMatching] = useState(false)
+  const [confirmBulk, setConfirmBulk] = useState<{ publish: boolean } | null>(null)
   const [deleting, setDeleting] = useState<SoftwareItem | null>(null)
   const [editing, setEditing] = useState<SoftwareItem | null>(null)
   const [editName, setEditName] = useState('')
@@ -109,6 +112,14 @@ export function SoftwareList() {
   })
 
   const invalidateSoftware = () => queryClient.invalidateQueries({ queryKey: ['software'] })
+  const bulkPublishMutation = useMutation({
+    mutationFn: softwareApi.bulkPublish,
+    onSuccess: () => {
+      setSelectedIds([])
+      setSelectAllMatching(false)
+      invalidateSoftware()
+    },
+  })
   const deleteVersionMutation = useMutation({
     mutationFn: ({ id, versionId }: { id: number; versionId: number }) => softwareApi.deleteVersion(id, versionId),
     onSuccess: () => {
@@ -159,9 +170,11 @@ export function SoftwareList() {
 
     const file = addVersionFile!
     const item = versionsModal.item
-    setAddVersionFile(null)
-    setAddVersionValue('')
-    setAddVersionError('')
+    const versionTag = addVersionValue.trim()
+    // Don't clear the form state until we actually use it — the previous
+    // version of this code zeroed addVersionValue before the init call ran,
+    // so the API was sent an empty version string and complete silently
+    // wrote a versionless row, leaving the UI stuck on "finalizing".
     setVersionTotal(file.size)
     setVersionLoaded(0)
     setVersionRate(0)
@@ -176,7 +189,7 @@ export function SoftwareList() {
         filename: file.name,
         brand: item.brand,
         category: item.category,
-        version: addVersionValue.trim(),
+        version: versionTag,
         content_type: file.type || 'application/octet-stream',
         size: file.size,
         software_id: item.id,
@@ -186,7 +199,7 @@ export function SoftwareList() {
       if (init.mode === 'sync') {
         const formData = new FormData()
         formData.append('file', file)
-        formData.append('version', addVersionValue.trim())
+        formData.append('version', versionTag)
         await softwareApi.addVersion(item.id, formData, (e) => {
           if (e.total) {
             setVersionLoaded(e.loaded)
@@ -216,7 +229,15 @@ export function SoftwareList() {
       if (init.mode !== 'sync' && init.token) {
         await softwareApi.uploadComplete({ token: init.token, parts: parts ?? undefined })
       }
-      invalidateSoftware()
+      await invalidateSoftware()
+      // Reset modal state and navigate to refreshed list.
+      setVersionsModal(null)
+      setAddVersionFile(null)
+      setAddVersionValue('')
+      setVersionPhase('idle')
+      setVersionLoaded(0)
+      setVersionTotal(0)
+      setVersionRate(0)
       navigate('/software')
     } catch (err) {
       if (err instanceof UploadCancelledError) {
@@ -251,6 +272,46 @@ export function SoftwareList() {
     return `${(size / 1024 / 1024 / 1024).toFixed(2)} GB`
   }
   const totalPages = query.data ? Math.ceil(query.data.total / size) : 0
+  const currentItems = query.data?.items ?? []
+  // expand_versions makes the same software_id appear multiple times. Drive
+  // bulk selection at the software level (unique ids) so a single checkbox
+  // covers every version row of that software.
+  const currentSoftwareIds = useMemo(() => Array.from(new Set(currentItems.map((it) => it.id))), [currentItems])
+  const total = query.data?.total ?? 0
+  const allCurrentSelected = currentSoftwareIds.length > 0 && currentSoftwareIds.every((id) => selectedIds.includes(id))
+  const selectedCount = selectedIds.length
+  const hasSelection = selectAllMatching || selectedCount > 0
+  const selectionLabel = selectAllMatching ? ` (全部 ${total})` : selectedCount ? ` (${selectedCount})` : ''
+  const showSelectAllBanner = allCurrentSelected && total > currentSoftwareIds.length
+
+  const toggleCurrentPageSelection = () => {
+    if (allCurrentSelected) {
+      setSelectAllMatching(false)
+      setSelectedIds((ids) => ids.filter((id) => !currentSoftwareIds.includes(id)))
+      return
+    }
+    setSelectedIds((ids) => Array.from(new Set([...ids, ...currentSoftwareIds])))
+  }
+
+  const toggleRowSelection = (id: number) => {
+    setSelectAllMatching(false)
+    setSelectedIds((ids) => ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id])
+  }
+
+  // Changing the filter invalidates the current selection scope.
+  useEffect(() => {
+    setSelectedIds([])
+    setSelectAllMatching(false)
+  }, [brand, category])
+
+  const publishSelected = (publish: boolean) => {
+    if (selectedIds.length === 0) return
+    bulkPublishMutation.mutate({ ids: selectedIds, publish })
+  }
+
+  const publishFiltered = (publish: boolean) => {
+    bulkPublishMutation.mutate({ brand: brand || undefined, category: category || undefined, keyword: keyword || undefined, publish })
+  }
 
   const handleJump = () => {
     const n = parseInt(jumpInput, 10)
@@ -292,8 +353,31 @@ export function SoftwareList() {
                   清空筛选
                 </Button>
               ) : null}
+              <Button size="sm" variant="outline" onClick={() => setConfirmBulk({ publish: true })} disabled={!hasSelection || bulkPublishMutation.isPending}>
+                批量发布{selectionLabel}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setConfirmBulk({ publish: false })} disabled={!hasSelection || bulkPublishMutation.isPending}>
+                批量取消发布{selectionLabel}
+              </Button>
+              {bulkPublishMutation.data ? <span className="text-xs text-muted-foreground">已{bulkPublishMutation.data.publish ? '发布' : '取消发布'} {bulkPublishMutation.data.count} 个软件</span> : null}
             </div>
           </div>
+
+          {showSelectAllBanner ? (
+            <div className="mb-4 flex flex-wrap items-center justify-center gap-3 rounded-md border border-primary/40 bg-primary/5 px-4 py-2.5 text-sm">
+              {selectAllMatching ? (
+                <>
+                  <span>已选择全部 <span className="font-semibold">{total}</span> 个匹配软件。</span>
+                  <Button size="sm" variant="outline" onClick={() => { setSelectAllMatching(false); setSelectedIds([]) }}>清除选择</Button>
+                </>
+              ) : (
+                <>
+                  <span>已选择本页 <span className="font-semibold">{currentSoftwareIds.length}</span> 项，仅对本页生效。</span>
+                  <Button size="sm" onClick={() => setSelectAllMatching(true)}>选择全部 {total} 个匹配软件</Button>
+                </>
+              )}
+            </div>
+          ) : null}
 
           {query.isLoading ? <div className="text-muted-foreground">正在加载软件...</div> : null}
           {query.isError ? <div className="text-destructive">软件列表加载失败</div> : null}
@@ -302,6 +386,9 @@ export function SoftwareList() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <input type="checkbox" checked={allCurrentSelected} onChange={toggleCurrentPageSelection} aria-label="选择当前页软件" />
+                  </TableHead>
                   <TableHead>名称</TableHead>
                   <TableHead>品牌</TableHead>
                   <TableHead>类型</TableHead>
@@ -316,6 +403,20 @@ export function SoftwareList() {
               <TableBody>
                 {query.data.items.map((item) => (
                   <TableRow key={`${item.id}-${item.version_id ?? 'none'}`}>
+                    <TableCell>
+                      {/* Checkbox only on the row carrying the latest version (or the
+                          first row if expand mode is off). Same software_id may appear
+                          multiple times when versions are expanded; we don't want two
+                          checkboxes for the same software. */}
+                      {(item.is_latest_version || item.version_id === undefined) ? (
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(item.id)}
+                          onChange={() => toggleRowSelection(item.id)}
+                          aria-label={`选择 ${displayName(item)}`}
+                        />
+                      ) : null}
+                    </TableCell>
                     <TableCell>{displayName(item)}</TableCell>
                     <TableCell>{brandMap[item.brand] ?? item.brand}</TableCell>
                     <TableCell>{categoryMap[item.category] ?? item.category}</TableCell>
@@ -503,6 +604,27 @@ export function SoftwareList() {
       ) : null}
 
       <ConfirmDialog open={deleting !== null} title="确认删除软件？" description={deleting ? displayName(deleting) : undefined} onCancel={() => setDeleting(null)} onConfirm={() => { if (deleting) deleteMutation.mutate(deleting.id); setDeleting(null) }} />
+      <ConfirmDialog
+        open={confirmBulk !== null}
+        title={confirmBulk?.publish ? '确认批量发布？' : '确认批量取消发布？'}
+        description={
+          selectAllMatching
+            ? (confirmBulk?.publish
+                ? `将发布当前筛选条件下全部 ${total} 个软件。`
+                : `将取消发布当前筛选条件下全部 ${total} 个软件，它们会从官网下架。`)
+            : (confirmBulk?.publish
+                ? `将发布已选中的 ${selectedCount} 个软件。`
+                : `将取消发布已选中的 ${selectedCount} 个软件，它们会从官网下架。`)
+        }
+        onCancel={() => setConfirmBulk(null)}
+        onConfirm={() => {
+          if (confirmBulk) {
+            if (selectAllMatching) publishFiltered(confirmBulk.publish)
+            else publishSelected(confirmBulk.publish)
+          }
+          setConfirmBulk(null)
+        }}
+      />
       <ConfirmDialog
         open={deletingVersion !== null}
         title="确认删除版本？"
