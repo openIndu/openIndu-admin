@@ -95,7 +95,13 @@ export interface SoftwareItem extends ResourceItem {
   latest_version?: string
   latest_version_size?: number
   versions_count?: number
+  // Present when the list endpoint is called with expand_versions=true —
+  // each row represents one version of a software package.
+  version_id?: number
   version?: string
+  is_latest_version?: boolean
+  version_upload_time?: string
+  version_download_count?: number
   is_active?: boolean
   is_published?: boolean
 }
@@ -239,7 +245,7 @@ export interface SoftwareUploadPart {
 }
 
 export const softwareApi = {
-  list: (params: { page?: number; size?: number; brand?: string; category?: string; series?: string; keyword?: string } = {}) => unwrap<PageResult<SoftwareItem>>(api.get('/software', { params })),
+  list: (params: { page?: number; size?: number; brand?: string; category?: string; series?: string; keyword?: string; expand_versions?: boolean } = {}) => unwrap<PageResult<SoftwareItem>>(api.get('/software', { params })),
   upload: (formData: FormData, onUploadProgress?: (e: AxiosProgressEvent) => void) => unwrap<SoftwareItem>(api.post('/software/upload', formData, uploadConfig(onUploadProgress))),
   uploadInit: (meta: { filename: string; brand: string; category: string; series?: string; version: string; description?: string; content_type?: string; size: number }) =>
     unwrap<SoftwareUploadInit>(api.post('/software/upload/init', meta)),
@@ -253,6 +259,7 @@ export const softwareApi = {
   addVersion: (id: number, formData: FormData, onUploadProgress?: (e: AxiosProgressEvent) => void) => unwrap(api.post(`/software/${id}/versions`, formData, uploadConfig(onUploadProgress))),
   deleteVersion: (id: number, versionId: number) => unwrap(api.delete(`/software/${id}/versions/${versionId}`)),
   downloadLink: (id: number) => unwrap<{ download_url: string; filename?: string; expires_in?: number }>(api.get(`/software/${id}/download-link`)),
+  downloadVersionLink: (id: number, versionId: number) => unwrap<{ download_url: string; filename?: string; expires_in?: number }>(api.get(`/software/${id}/versions/${versionId}/download-link`)),
   categories: () => unwrap<Array<{ value: string; label: string }> | string[]>(api.get('/software/categories/list')),
 }
 
