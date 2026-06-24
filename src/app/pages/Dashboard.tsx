@@ -396,6 +396,16 @@ export function Dashboard() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">总会员人数</CardTitle>
+              <UserPlus className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{num(d?.total_users)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">累计注册用户数</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">总访问人数</CardTitle>
               <Users className="h-4 w-4 text-emerald-600" />
             </CardHeader>
@@ -428,17 +438,17 @@ export function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><UserPlus className="h-4 w-4 text-blue-600" />本月注册趋势</CardTitle>
-            <CardDescription>本月每日新增注册用户数量（无数据日默认为 0）</CardDescription>
-          </CardHeader>
-          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.monthly_registrations ?? []} color="#3b82f6" id="reg" />}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-emerald-600" />本月访问趋势</CardTitle>
             <CardDescription>本月每日访问去重 IP（匿名 + 登录，无数据日默认为 0）</CardDescription>
           </CardHeader>
           <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.monthly_visitors ?? []} color="#10b981" id="visits" />}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base"><UserPlus className="h-4 w-4 text-blue-600" />本月注册趋势</CardTitle>
+            <CardDescription>本月每日新增注册用户数量（无数据日默认为 0）</CardDescription>
+          </CardHeader>
+          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.monthly_registrations ?? []} color="#3b82f6" id="reg" />}</CardContent>
         </Card>
         <Card>
           <CardHeader>
@@ -457,6 +467,10 @@ export function Dashboard() {
       </div>
 
       <Card className="overflow-hidden">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base"><Users className="h-4 w-4 text-rose-600" />访问地域分布</CardTitle>
+          <CardDescription>本月匿名访问 + 登录用户的访问人数地理分布（按访客所在地汇总）</CardDescription>
+        </CardHeader>
         <CardContent className="p-0">
           {dashQuery.isLoading ? <div className="p-6 text-muted-foreground text-sm">加载中...</div> : geoData.length === 0 ? <div className="py-12 text-center text-muted-foreground text-sm">暂无访问数据</div> : <WorldMap data={geoData} />}
         </CardContent>
