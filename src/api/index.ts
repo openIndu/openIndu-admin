@@ -289,6 +289,7 @@ export interface DashboardStats {
   total_users: number
   total_docs: number
   total_software: number
+  total_visitors: number
   new_users_30d: number
   visitors_30d: number
   online_count: number
@@ -319,6 +320,8 @@ export interface DashboardStats {
   month_new_software: number
   monthly_registrations: Array<{ date: string; count: number }>
   monthly_visitors: Array<{ date: string; count: number }>
+  monthly_anon_visitors: Array<{ date: string; count: number }>
+  yearly_anon_visitors: Array<{ date: string; count: number }>
 }
 
 export const statsApi = {
