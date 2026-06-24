@@ -89,6 +89,8 @@ export interface ResourceTag {
   is_active: boolean
   sort_order: number
   created_at?: string
+  /** populated by /tags?type=<X> — number of documents/software currently using this tag */
+  usage_count?: number
 }
 
 export interface SoftwareItem extends ResourceItem {
@@ -321,7 +323,9 @@ export interface DashboardStats {
   monthly_registrations: Array<{ date: string; count: number }>
   monthly_visitors: Array<{ date: string; count: number }>
   monthly_anon_visitors: Array<{ date: string; count: number }>
+  monthly_login_visitors: Array<{ date: string; count: number }>
   yearly_anon_visitors: Array<{ date: string; count: number }>
+  yearly_visitors: Array<{ date: string; count: number }>
 }
 
 export const statsApi = {

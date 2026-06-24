@@ -95,7 +95,16 @@ function LineChart({
       ))}
       <path d={areaPath} fill={`url(#${gradId})`} />
       <path d={linePath} fill="none" stroke={color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-      {data.map((d, i) => <circle key={i} cx={px(i).toFixed(1)} cy={py(d.count).toFixed(1)} r="4" fill={color} />)}
+      {data.map((d, i) => (
+        // Visible dot + an invisible larger hit-target so the native <title>
+        // tooltip is easy to trigger even on dense or zero-value series.
+        <g key={i}>
+          <circle cx={px(i).toFixed(1)} cy={py(d.count).toFixed(1)} r="4" fill={color} />
+          <circle cx={px(i).toFixed(1)} cy={py(d.count).toFixed(1)} r="10" fill="transparent" style={{ cursor: 'pointer' }}>
+            <title>{d.date}：{d.count}</title>
+          </circle>
+        </g>
+      ))}
       <text x={padL - 4} y={padT + 4} textAnchor="end" fontSize="12" fill="#9ca3af">{max}</text>
       <text x={padL - 4} y={padT + innerH + 4} textAnchor="end" fontSize="12" fill="#9ca3af">0</text>
       {data.length > 0 && <text x={padL} y={H - 4} textAnchor="middle" fontSize="11" fill="#9ca3af">{data[0].date.slice(5)}</text>}
@@ -396,22 +405,22 @@ export function Dashboard() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">总会员人数</CardTitle>
-              <UserPlus className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-semibold">{num(d?.total_users)}</div>
-              <p className="mt-1 text-xs text-muted-foreground">累计注册用户数</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">总访问人数</CardTitle>
               <Users className="h-4 w-4 text-emerald-600" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-semibold">{num(d?.total_visitors)}</div>
               <p className="mt-1 text-xs text-muted-foreground">累计去重访客 IP（匿名 + 登录）</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">总会员人数</CardTitle>
+              <UserPlus className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{num(d?.total_users)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">累计注册用户数</p>
             </CardContent>
           </Card>
           <Card>
@@ -438,10 +447,17 @@ export function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-emerald-600" />本月访问趋势</CardTitle>
-            <CardDescription>本月每日访问去重 IP（匿名 + 登录，无数据日默认为 0）</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-sky-600" />本月匿名访问趋势</CardTitle>
+            <CardDescription>本月每日匿名访问去重 IP（无数据日默认为 0）</CardDescription>
           </CardHeader>
-          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.monthly_visitors ?? []} color="#10b981" id="visits" />}</CardContent>
+          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.monthly_anon_visitors ?? []} color="#0ea5e9" id="anon-month" />}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-emerald-600" />本月登录访问趋势</CardTitle>
+            <CardDescription>本月每日登录用户访问去重数（无数据日默认为 0）</CardDescription>
+          </CardHeader>
+          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.monthly_login_visitors ?? []} color="#10b981" id="login-month" />}</CardContent>
         </Card>
         <Card>
           <CardHeader>
@@ -452,17 +468,10 @@ export function Dashboard() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-sky-600" />本月匿名访问趋势</CardTitle>
-            <CardDescription>本月每日匿名访问去重 IP（无数据日默认为 0）</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-amber-600" />过去一年匿名+登录访问趋势</CardTitle>
+            <CardDescription>过去 12 个月每月匿名+登录访问去重 IP（按月聚合）</CardDescription>
           </CardHeader>
-          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.monthly_anon_visitors ?? []} color="#0ea5e9" id="anon-month" />}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-amber-600" />过去一年匿名访问趋势</CardTitle>
-            <CardDescription>过去 12 个月每月匿名访问去重 IP（按月聚合）</CardDescription>
-          </CardHeader>
-          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.yearly_anon_visitors ?? []} color="#f59e0b" id="anon-year" />}</CardContent>
+          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.yearly_visitors ?? []} color="#f59e0b" id="year-all" />}</CardContent>
         </Card>
       </div>
 
