@@ -185,10 +185,13 @@ function FlatTagPanel({ type }: { type: string }) {
   const [page, setPage] = useState(1)
   const filteredSorted = useMemo(() => {
     if (!filterStatus) return sortedTags
+    if (filterStatus === 'unused') return sortedTags.filter((t) => (t.usage_count ?? 0) === 0)
     return sortedTags.filter((t) => filterStatus === 'active' ? t.is_active : !t.is_active)
   }, [sortedTags, filterStatus])
   const totalPages = Math.max(1, Math.ceil(filteredSorted.length / PAGE_SIZE))
   const pagedTags = useMemo(() => filteredSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filteredSorted, page])
+
+  const unusedCount = useMemo(() => sortedTags.filter((t) => (t.usage_count ?? 0) === 0).length, [sortedTags])
 
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; tag?: ResourceTag } | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
@@ -211,8 +214,13 @@ function FlatTagPanel({ type }: { type: string }) {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Select
-            className="w-28"
-            options={[{ value: '', label: '全部状态' }, { value: 'active', label: '启用' }, { value: 'inactive', label: '停用' }]}
+            className="w-32"
+            options={[
+              { value: '', label: '全部状态' },
+              { value: 'active', label: '启用' },
+              { value: 'inactive', label: '停用' },
+              { value: 'unused', label: `未使用 (${unusedCount})` },
+            ]}
             value={filterStatus}
             onChange={(e) => { setFilterStatus(e.target.value); setPage(1) }}
           />
@@ -231,6 +239,7 @@ function FlatTagPanel({ type }: { type: string }) {
               <TableHead className="w-16">排序</TableHead>
               <TableHead>标识（value）</TableHead>
               <TableHead>中文名</TableHead>
+              <TableHead className="w-20">使用</TableHead>
               <TableHead>状态</TableHead>
               <TableHead>操作</TableHead>
             </TableRow>
@@ -241,6 +250,13 @@ function FlatTagPanel({ type }: { type: string }) {
                 <TableCell className="text-sm text-muted-foreground">{tag.sort_order}</TableCell>
                 <TableCell className="font-mono text-sm">{tag.value}</TableCell>
                 <TableCell>{tag.label_zh}</TableCell>
+                <TableCell>
+                  {(tag.usage_count ?? 0) === 0 ? (
+                    <Badge variant="secondary">未使用</Badge>
+                  ) : (
+                    <span className="text-sm tabular-nums">{tag.usage_count}</span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <Badge variant={tag.is_active ? 'success' : 'secondary'}>{tag.is_active ? '启用' : '停用'}</Badge>
                 </TableCell>
@@ -305,9 +321,12 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
     let filtered = allSeries
     if (filterBrand) filtered = filtered.filter((t) => t.brand_value === filterBrand)
     if (filterCategory) filtered = filtered.filter((t) => t.parent_value === filterCategory)
-    if (filterStatus) filtered = filtered.filter((t) => filterStatus === 'active' ? t.is_active : !t.is_active)
+    if (filterStatus === 'unused') filtered = filtered.filter((t) => (t.usage_count ?? 0) === 0)
+    else if (filterStatus) filtered = filtered.filter((t) => filterStatus === 'active' ? t.is_active : !t.is_active)
     return [...filtered].sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
   }, [allSeries, filterBrand, filterCategory, filterStatus])
+
+  const unusedCount = useMemo(() => allSeries.filter((t) => (t.usage_count ?? 0) === 0).length, [allSeries])
 
   const totalPages = Math.max(1, Math.ceil(filteredSorted.length / PAGE_SIZE))
   const pagedSeries = useMemo(() => filteredSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filteredSorted, page])
@@ -350,8 +369,13 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
             onChange={(e) => { setFilterCategory(e.target.value); setPage(1) }}
           />
           <Select
-            className="w-28"
-            options={[{ value: '', label: '全部状态' }, { value: 'active', label: '启用' }, { value: 'inactive', label: '停用' }]}
+            className="w-32"
+            options={[
+              { value: '', label: '全部状态' },
+              { value: 'active', label: '启用' },
+              { value: 'inactive', label: '停用' },
+              { value: 'unused', label: `未使用 (${unusedCount})` },
+            ]}
             value={filterStatus}
             onChange={(e) => { setFilterStatus(e.target.value); setPage(1) }}
           />
@@ -372,6 +396,7 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
               <TableHead>所属{categoryLabel}</TableHead>
               <TableHead>标识（value）</TableHead>
               <TableHead>中文名</TableHead>
+              <TableHead className="w-20">使用</TableHead>
               <TableHead>状态</TableHead>
               <TableHead>操作</TableHead>
             </TableRow>
@@ -384,6 +409,13 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
                 <TableCell className="text-sm text-muted-foreground">{categoryMap[tag.parent_value ?? ''] ?? tag.parent_value ?? '-'}</TableCell>
                 <TableCell className="font-mono text-sm">{tag.value}</TableCell>
                 <TableCell>{tag.label_zh}</TableCell>
+                <TableCell>
+                  {(tag.usage_count ?? 0) === 0 ? (
+                    <Badge variant="secondary">未使用</Badge>
+                  ) : (
+                    <span className="text-sm tabular-nums">{tag.usage_count}</span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <Badge variant={tag.is_active ? 'success' : 'secondary'}>{tag.is_active ? '启用' : '停用'}</Badge>
                 </TableCell>
