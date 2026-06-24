@@ -390,6 +390,41 @@ export function Dashboard() {
         </div>
       </div>
 
+      {/* 总情况 */}
+      <div>
+        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-muted-foreground"><TrendingUp className="h-4 w-4" />总情况</h3>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">总访问人数</CardTitle>
+              <Users className="h-4 w-4 text-emerald-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{num(d?.total_visitors)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">累计去重访客 IP（匿名 + 登录）</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">总文档</CardTitle>
+              <FileText className="h-4 w-4 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{num(d?.total_docs)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">总软件</CardTitle>
+              <UploadCloud className="h-4 w-4 text-violet-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{num(d?.total_software)}</div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -401,9 +436,23 @@ export function Dashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-emerald-600" />本月访问趋势</CardTitle>
-            <CardDescription>本月每日登录用户访问去重统计（无数据日默认为 0）</CardDescription>
+            <CardDescription>本月每日访问去重 IP（匿名 + 登录，无数据日默认为 0）</CardDescription>
           </CardHeader>
           <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.monthly_visitors ?? []} color="#10b981" id="visits" />}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-sky-600" />本月匿名访问趋势</CardTitle>
+            <CardDescription>本月每日匿名访问去重 IP（无数据日默认为 0）</CardDescription>
+          </CardHeader>
+          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.monthly_anon_visitors ?? []} color="#0ea5e9" id="anon-month" />}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-amber-600" />过去一年匿名访问趋势</CardTitle>
+            <CardDescription>过去 12 个月每月匿名访问去重 IP（按月聚合）</CardDescription>
+          </CardHeader>
+          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.yearly_anon_visitors ?? []} color="#f59e0b" id="anon-year" />}</CardContent>
         </Card>
       </div>
 
