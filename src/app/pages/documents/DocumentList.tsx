@@ -162,6 +162,10 @@ export function DocumentList() {
   })
 
   const statusData = syncStatusQuery.data as Record<string, unknown> | undefined
+  // Backend reports rag_sync_enabled=false on resource-constrained nodes where
+  // embedding must not run. Disable the sync buttons so a click can't fire a
+  // request that the server would only reject with 503.
+  const ragSyncDisabled = statusData?.rag_sync_enabled === false
   const totalPages = query.data ? Math.ceil(query.data.total / size) : 0
   const currentItems = query.data?.items ?? []
   const currentItemIds = currentItems.map((item) => item.id)
@@ -353,7 +357,8 @@ export function DocumentList() {
                           size="sm"
                           variant="outline"
                           onClick={() => syncMutation.mutate(item.id)}
-                          disabled={item.sync_status === 'syncing' || (syncMutation.isPending && syncMutation.variables === item.id)}
+                          disabled={ragSyncDisabled || item.sync_status === 'syncing' || (syncMutation.isPending && syncMutation.variables === item.id)}
+                          title={ragSyncDisabled ? '本环境已关闭 RAG 同步，请在离线环境同步后导入向量' : undefined}
                         >
                           {syncMutation.isPending && syncMutation.variables === item.id ? '启动中...' : item.sync_status === 'syncing' ? '同步中...' : '同步'}
                         </Button>
@@ -411,10 +416,18 @@ export function DocumentList() {
         </CardHeader>
         <CardContent>
           <div className="mb-4 flex flex-wrap items-center gap-4">
-            <Button onClick={() => triggerSyncMutation.mutate()} disabled={triggerSyncMutation.isPending}>
+            <Button
+              onClick={() => triggerSyncMutation.mutate()}
+              disabled={ragSyncDisabled || triggerSyncMutation.isPending}
+              title={ragSyncDisabled ? '本环境已关闭 RAG 同步，请在离线环境同步后导入向量' : undefined}
+            >
               {triggerSyncMutation.isPending ? '触发中...' : '立即同步全库'}
             </Button>
-            {statusData?.pending_count !== undefined ? (
+            {ragSyncDisabled ? (
+              <span className="text-sm text-amber-600">
+                本环境已关闭 RAG 同步（资源受限），请在离线环境同步后导入向量
+              </span>
+            ) : statusData?.pending_count !== undefined ? (
               <span className="text-sm text-muted-foreground">
                 待同步 / 失败：<span className="font-medium text-foreground">{String(statusData.pending_count)}</span> 个文档
               </span>
