@@ -446,6 +446,16 @@ export function Dashboard() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">总访问人数</CardTitle>
+              <Users className="h-4 w-4 text-emerald-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{num(d?.total_visitors)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">累计去重访客 IP（匿名 + 登录）</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">总会员人数</CardTitle>
               <UserPlus className="h-4 w-4 text-blue-600" />
             </CardHeader>
