@@ -73,7 +73,7 @@ export function AuditLogs() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold">审计日志</h2>
-        <p className="text-muted-foreground">管理员操作记录与审计追踪。</p>
+        <p className="text-muted-foreground">管理员操作记录与审计追踪，手机号已脱敏显示。</p>
       </div>
 
       <Card>
@@ -82,7 +82,7 @@ export function AuditLogs() {
             <ShieldAlert className="h-5 w-5" />
             操作记录
           </CardTitle>
-          <CardDescription>共 {total} 条操作记录。</CardDescription>
+          <CardDescription>共 {total} 条操作记录，手机号已脱敏显示。</CardDescription>
         </CardHeader>
         <CardContent>
           {/* Filters */}

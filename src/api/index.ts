@@ -60,6 +60,7 @@ export interface UserItem extends CurrentUser {
   online?: boolean
   last_active_at?: string
   login_ip?: string
+  login_location?: string
 }
 
 export interface ResourceItem {
