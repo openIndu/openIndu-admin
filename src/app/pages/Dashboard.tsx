@@ -315,8 +315,8 @@ export function Dashboard() {
               <TrendingUp className="h-4 w-4 text-emerald-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-semibold">{num(d?.total_visitors)}</div>
-              <p className="mt-1 text-xs text-muted-foreground">累计去重访客 IP（匿名 + 登录）</p>
+              <div className="text-3xl font-semibold">{num(d?.current_total_visitors)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">过去 5 分钟活跃访客 IP（匿名 + 登录）</p>
             </CardContent>
           </Card>
           <Card>
