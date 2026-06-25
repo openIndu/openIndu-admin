@@ -149,7 +149,7 @@ export function AuditLogs() {
                         {String(log.detail ?? '-')}
                       </TableCell>
                       <TableCell>
-                        {log.created_at ? new Date(log.created_at as string).toLocaleString('zh-CN') : '-'}
+                        {log.created_at ? new Date(log.created_at as string).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }) : '-'}
                       </TableCell>
                     </TableRow>
                   ))}
