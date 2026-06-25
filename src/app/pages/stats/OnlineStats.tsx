@@ -8,27 +8,27 @@ import { Input } from '../../components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
 import { Clock } from 'lucide-react'
 
-const statusOptions = [
+const authedOptions = [
   { value: '', label: '全部' },
-  { value: 'online', label: '在线' },
-  { value: 'offline', label: '已离线' },
+  { value: 'yes', label: '已登录' },
+  { value: 'no', label: '匿名' },
 ]
 
 export function OnlineStats() {
   const [page, setPage] = useState(1)
   const [keyword, setKeyword] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
-  const [searchParams, setSearchParams] = useState({ keyword: '', status: '' })
+  const [authedFilter, setAuthedFilter] = useState('')
+  const [searchParams, setSearchParams] = useState({ keyword: '', authed: '' })
   const pageSize = 10
 
   const query = useQuery({
-    queryKey: ['stats', 'login-history', page, searchParams],
+    queryKey: ['stats', 'visit-logs', page, searchParams],
     queryFn: () =>
-      statsApi.loginHistory({
+      statsApi.visitLogs({
         page,
         size: pageSize,
         keyword: searchParams.keyword || undefined,
-        status: searchParams.status || undefined,
+        authed: searchParams.authed || undefined,
       }),
   })
 
@@ -37,52 +37,52 @@ export function OnlineStats() {
   const totalPages = Math.ceil(total / pageSize)
 
   const handleSearch = () => {
-    setSearchParams({ keyword, status: statusFilter })
+    setSearchParams({ keyword, authed: authedFilter })
     setPage(1)
   }
 
   const handleClear = () => {
     setKeyword('')
-    setStatusFilter('')
-    setSearchParams({ keyword: '', status: '' })
+    setAuthedFilter('')
+    setSearchParams({ keyword: '', authed: '' })
     setPage(1)
   }
 
-  const hasFilter = searchParams.keyword || searchParams.status
+  const hasFilter = searchParams.keyword || searchParams.authed
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold">登录日志</h2>
-        <p className="text-muted-foreground">用户登录会话记录，支持按手机号和状态筛选。</p>
+        <h2 className="text-2xl font-semibold">访问日志</h2>
+        <p className="text-muted-foreground">网站访问记录（匿名 + 登录），支持按手机号 / IP 搜索。本地开发访问默认不展示。</p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            登录记录
+            访问记录
           </CardTitle>
-          <CardDescription>共 {total} 条登录记录。</CardDescription>
+          <CardDescription>共 {total} 条访问记录。</CardDescription>
         </CardHeader>
         <CardContent>
           {/* Filters */}
           <div className="mb-4 flex flex-wrap gap-3">
             <Input
-              placeholder="按手机号搜索"
+              placeholder="按手机号或 IP 搜索"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               className="max-w-xs"
             />
-            {/* Status filter tabs */}
+            {/* Authenticated filter tabs */}
             <div className="flex rounded-md border overflow-hidden">
-              {statusOptions.map((opt) => (
+              {authedOptions.map((opt) => (
                 <button
                   key={opt.value}
-                  onClick={() => setStatusFilter(opt.value)}
+                  onClick={() => setAuthedFilter(opt.value)}
                   className={`px-3 py-1.5 text-sm transition-colors ${
-                    statusFilter === opt.value
+                    authedFilter === opt.value
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-background hover:bg-muted'
                   }`}
@@ -105,9 +105,9 @@ export function OnlineStats() {
           </div>
 
           {query.isLoading ? <div className="text-muted-foreground py-4">正在加载...</div> : null}
-          {query.isError ? <div className="text-destructive py-4">登录日志加载失败</div> : null}
+          {query.isError ? <div className="text-destructive py-4">访问日志加载失败</div> : null}
           {!query.isLoading && !query.isError && records.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">暂无登录记录</div>
+            <div className="py-8 text-center text-muted-foreground">暂无访问记录</div>
           ) : null}
 
           {records.length > 0 && (
@@ -115,10 +115,11 @@ export function OnlineStats() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>手机号</TableHead>
+                    <TableHead>用户</TableHead>
                     <TableHead>IP 地址</TableHead>
-                    <TableHead>登录地区</TableHead>
-                    <TableHead>状态</TableHead>
+                    <TableHead>访问地区</TableHead>
+                    <TableHead>访问页面</TableHead>
+                    <TableHead>是否登录</TableHead>
                     <TableHead>时间</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -126,20 +127,21 @@ export function OnlineStats() {
                   {records.map((record: Record<string, unknown>, idx: number) => (
                     <TableRow key={(record.id as number) ?? idx}>
                       <TableCell className="font-medium">
-                        {String(record.username ?? record.user_id ?? '-')}
+                        {record.username ? String(record.username) : '匿名'}
                       </TableCell>
                       <TableCell>{String(record.ip ?? record.ip_address ?? '-')}</TableCell>
                       <TableCell>{String(record.location ?? record.geo_location ?? '-')}</TableCell>
+                      <TableCell className="max-w-[220px] truncate" title={String(record.path ?? '')}>
+                        {String(record.path ?? '-')}
+                      </TableCell>
                       <TableCell>
-                        <Badge variant={record.is_active ? 'success' : 'secondary'}>
-                          {record.is_active ? '在线' : '已离线'}
+                        <Badge variant={record.is_authenticated ? 'success' : 'secondary'}>
+                          {record.is_authenticated ? '已登录' : '匿名'}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {record.login_time ?? record.last_active_at
-                          ? new Date(
-                              (record.login_time ?? record.last_active_at) as string,
-                            ).toLocaleString('zh-CN')
+                        {record.time
+                          ? new Date(record.time as string).toLocaleString('zh-CN')
                           : '-'}
                       </TableCell>
                     </TableRow>
