@@ -170,7 +170,19 @@ const REFERENCE_CITIES: Array<[number, number, string]> = [
 ]
 
 function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
-  const maxVal = Math.max(...data.map((g) => g.visitors + g.online), 1)
+  // Filter out 本地开发 and 未知 — dev self-traffic and unresolved IPs would
+  // otherwise sit at fake centroids (Shanghai / mid-Atlantic) and skew the map.
+  const realData = data.filter((g) => g.name !== '本地开发' && g.name !== '未知')
+  const maxVal = Math.max(...realData.map((g) => g.visitors + g.online), 1)
+  // Marker radius tiered by the total count's share of the busiest region, so a
+  // glance at the map conveys volume without needing the tooltip.
+  const tierRadius = (total: number) => {
+    const ratio = total / maxVal
+    if (ratio >= 0.6) return 6
+    if (ratio >= 0.3) return 4.5
+    if (ratio >= 0.1) return 3.5
+    return 2.5
+  }
   const [tooltip, setTooltip] = useState<{ name: string; x: number; y: number } | null>(null)
 
   return (
@@ -237,17 +249,17 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
               </Marker>
             ))}
 
-            {/* Live data markers — no label by default; hover the dot to see region + count */}
-            {data.map((geo) => {
+            {/* Live data markers — radius tiered by count; hover to see region + count */}
+            {realData.map((geo) => {
               const total = geo.visitors + geo.online
-              const isHot = total / maxVal > 0.6
+              const isHot = total / maxVal >= 0.6
               const label = `${geo.name}：${total} 次访问`
               return (
                 <Marker key={`data-${geo.name}-${geo.country_code ?? ''}`} coordinates={[geo.lng, geo.lat]}>
                   <circle
                     cx={0}
                     cy={0}
-                    r={2.5}
+                    r={tierRadius(total)}
                     fill={isHot ? '#ef4444' : '#2563eb'}
                     stroke="#fff"
                     strokeWidth={0.5}
@@ -277,7 +289,8 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
       <div className="flex items-center gap-4 border-t border-[#b8c8d8] bg-[#e8edf2] px-4 py-2 text-[11px] text-slate-500">
         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-blue-600" /> 蓝点=常规访问</span>
         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-red-500" /> 红点=热点区域</span>
-        <span className="ml-auto text-slate-400">100 个参考城市 · 悬停红/蓝点查看访问量</span>
+        <span className="flex items-center gap-1 text-slate-400">圆点越大 = 访问量越高</span>
+        <span className="ml-auto text-slate-400">已隐藏本地开发与未知；悬停查看访问量</span>
       </div>
     </div>
   )
@@ -297,6 +310,7 @@ export function Dashboard() {
   const num = (v: number | undefined) => (dashQuery.isLoading ? '加载中' : dashQuery.isError ? '--' : (v ?? 0))
 
   const geoData = d?.geo_distribution ?? []
+  const visibleGeoCount = geoData.filter((g) => g.name !== '本地开发' && g.name !== '未知').length
 
   return (
     <div className="space-y-6">
@@ -447,6 +461,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-semibold">{num(d?.total_docs)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">累计已入库文档总数</p>
             </CardContent>
           </Card>
           <Card>
@@ -456,6 +471,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-semibold">{num(d?.total_software)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">累计已入库软件总数</p>
             </CardContent>
           </Card>
         </div>
@@ -498,7 +514,7 @@ export function Dashboard() {
           <CardDescription>本月匿名访问 + 登录用户的访问人数地理分布（按访客所在地汇总）</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          {dashQuery.isLoading ? <div className="p-6 text-muted-foreground text-sm">加载中...</div> : geoData.length === 0 ? <div className="py-12 text-center text-muted-foreground text-sm">暂无访问数据</div> : <WorldMap data={geoData} />}
+          {dashQuery.isLoading ? <div className="p-6 text-muted-foreground text-sm">加载中...</div> : visibleGeoCount === 0 ? <div className="py-12 text-center text-muted-foreground text-sm">暂无访问数据</div> : <WorldMap data={geoData} />}
         </CardContent>
       </Card>
 
