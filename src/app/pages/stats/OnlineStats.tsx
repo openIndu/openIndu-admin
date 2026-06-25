@@ -141,7 +141,7 @@ export function OnlineStats() {
                       </TableCell>
                       <TableCell>
                         {record.time
-                          ? new Date(record.time as string).toLocaleString('zh-CN')
+                          ? new Date(record.time as string).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })
                           : '-'}
                       </TableCell>
                     </TableRow>
