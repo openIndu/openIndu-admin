@@ -312,6 +312,7 @@ export interface DashboardStats {
   }>
   // period stats (Asia/Shanghai timezone)
   current_active_users: number
+  current_total_visitors: number
   today_active_users: number
   today_new_users: number
   today_new_docs: number
