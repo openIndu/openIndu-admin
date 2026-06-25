@@ -16,7 +16,7 @@ const COUNTRY_ZH: Record<string, string> = {
   'India': '印度', 'Brazil': '巴西', 'Canada': '加拿大', 'Australia': '澳大利亚',
   'Italy': '意大利', 'Spain': '西班牙', 'Mexico': '墨西哥', 'Indonesia': '印尼',
   'Netherlands': '荷兰', 'Turkey': '土耳其', 'Saudi Arabia': '沙特', 'Switzerland': '瑞士',
-  'Sweden': '挪威', 'Poland': '波兰', 'Belgium': '比利时', 'Argentina': '阿根廷',
+  'Sweden': '瑞典', 'Poland': '波兰', 'Belgium': '比利时', 'Argentina': '阿根廷',
   'Austria': '奥地利', 'Iran': '伊朗', 'Thailand': '泰国', 'South Africa': '南非',
   'Nigeria': '尼日利亚', 'Egypt': '埃及', 'Vietnam': '越南', 'Philippines': '菲律宾',
   'Malaysia': '马来西亚', 'Pakistan': '巴基斯坦', 'Colombia': '哥伦比亚', 'Chile': '智利',
@@ -52,6 +52,13 @@ const COUNTRY_ZH: Record<string, string> = {
   'El Salvador': '萨尔瓦多', 'Guatemala': '危地马拉', 'Belize': '伯利兹', 'Uruguay': '乌拉圭',
   'Paraguay': '巴拉圭', 'Bolivia': '玻利维亚', 'Ecuador': '厄瓜多尔', 'Guyana': '圭亚那',
   'Suriname': '苏里南', 'Fr. Guiana': '法属圭亚那', 'W. Sahara': '西撒哈拉',
+  // Exact world-atlas (countries-110m) names — keep keys matching geo.properties.name.
+  'United States of America': '美国', 'United Arab Emirates': '阿联酋', 'Central African Rep.': '中非',
+  'Norway': '挪威', 'Greenland': '格陵兰', 'Kosovo': '科索沃', 'Montenegro': '黑山', 'Macedonia': '北马其顿',
+  'Palestine': '巴勒斯坦', 'N. Cyprus': '北塞浦路斯', 'Bahamas': '巴哈马', 'Bhutan': '不丹',
+  "Côte d'Ivoire": '科特迪瓦', 'Djibouti': '吉布提', 'Gambia': '冈比亚', 'Guinea-Bissau': '几内亚比绍',
+  'Lesotho': '莱索托', 'eSwatini': '斯威士兰', 'Somaliland': '索马里兰', 'Falkland Is.': '福克兰群岛',
+  'New Caledonia': '新喀里多尼亚', 'Antarctica': '南极洲', 'Fr. S. Antarctic Lands': '法属南方领地',
 }
 
 function LineChart({
@@ -230,23 +237,25 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
               </Marker>
             ))}
 
-            {/* Live data markers */}
+            {/* Live data markers — no label by default; hover the dot to see region + count */}
             {data.map((geo) => {
               const total = geo.visitors + geo.online
-              const ratio = total / maxVal
-              const isHot = ratio > 0.6
+              const isHot = total / maxVal > 0.6
+              const label = `${geo.name}：${total} 次访问`
               return (
                 <Marker key={`data-${geo.name}-${geo.country_code ?? ''}`} coordinates={[geo.lng, geo.lat]}>
-                  {/* Single dot — color = activity level, uniform size */}
-                  <circle cx={0} cy={0} r={2} fill={isHot ? '#ef4444' : '#2563eb'} stroke="#fff" strokeWidth={0.5} />
-                  {/* Inline label: "<region>:<count>" on a single line above the dot. */}
-                  <text
-                    textAnchor="middle"
-                    y={-5}
-                    style={{ fontFamily: 'system-ui', fontSize: 9, fill: '#1e293b', fontWeight: 600 }}
-                  >
-                    {geo.name}:{total}
-                  </text>
+                  <circle
+                    cx={0}
+                    cy={0}
+                    r={2.5}
+                    fill={isHot ? '#ef4444' : '#2563eb'}
+                    stroke="#fff"
+                    strokeWidth={0.5}
+                    style={{ cursor: 'pointer' }}
+                    onMouseEnter={(evt: MouseEvent) => setTooltip({ name: label, x: evt.clientX, y: evt.clientY })}
+                    onMouseMove={(evt: MouseEvent) => setTooltip({ name: label, x: evt.clientX, y: evt.clientY })}
+                    onMouseLeave={() => setTooltip(null)}
+                  />
                 </Marker>
               )
             })}
@@ -268,7 +277,7 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
       <div className="flex items-center gap-4 border-t border-[#b8c8d8] bg-[#e8edf2] px-4 py-2 text-[11px] text-slate-500">
         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-blue-600" /> 蓝点=常规访问</span>
         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-red-500" /> 红点=热点区域</span>
-        <span className="ml-auto text-slate-400">100 个参考城市 · 圆点大小=活跃度</span>
+        <span className="ml-auto text-slate-400">100 个参考城市 · 悬停红/蓝点查看访问量</span>
       </div>
     </div>
   )
@@ -302,6 +311,16 @@ export function Dashboard() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">当前总访问人数</CardTitle>
+              <TrendingUp className="h-4 w-4 text-emerald-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{num(d?.total_visitors)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">累计去重访客 IP（匿名 + 登录）</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">当前访问人数</CardTitle>
               <Users className="h-4 w-4 text-emerald-600" />
             </CardHeader>
@@ -324,6 +343,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-semibold">{num(d?.today_active_users)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">今日去重访客 IP（匿名 + 登录）</p>
             </CardContent>
           </Card>
           <Card>
@@ -333,6 +353,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-semibold">{num(d?.today_new_users)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">今日新注册用户</p>
             </CardContent>
           </Card>
           <Card>
@@ -342,6 +363,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-semibold">{num(d?.today_new_docs)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">今日上传文档数</p>
             </CardContent>
           </Card>
           <Card>
@@ -351,6 +373,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-semibold">{num(d?.today_new_software)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">今日上传软件数</p>
             </CardContent>
           </Card>
         </div>
@@ -367,6 +390,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-semibold">{num(d?.month_active_users)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">本月去重访客 IP（匿名 + 登录）</p>
             </CardContent>
           </Card>
           <Card>
@@ -376,6 +400,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-semibold">{num(d?.month_new_users)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">本月新注册用户</p>
             </CardContent>
           </Card>
           <Card>
@@ -385,6 +410,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-semibold">{num(d?.month_new_docs)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">本月上传文档数</p>
             </CardContent>
           </Card>
           <Card>
@@ -394,6 +420,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-semibold">{num(d?.month_new_software)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">本月上传软件数</p>
             </CardContent>
           </Card>
         </div>
@@ -403,16 +430,6 @@ export function Dashboard() {
       <div>
         <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-muted-foreground"><TrendingUp className="h-4 w-4" />总情况</h3>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">总访问人数</CardTitle>
-              <Users className="h-4 w-4 text-emerald-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-semibold">{num(d?.total_visitors)}</div>
-              <p className="mt-1 text-xs text-muted-foreground">累计去重访客 IP（匿名 + 登录）</p>
-            </CardContent>
-          </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">总会员人数</CardTitle>

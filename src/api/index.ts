@@ -332,6 +332,7 @@ export const statsApi = {
   online: () => unwrap<OnlineStats>(api.get('/stats/online')),
   dashboard: () => unwrap<DashboardStats>(api.get('/stats/dashboard')),
   loginHistory: (params: { page?: number; size?: number; keyword?: string; status?: string } = {}) => unwrap<PageResult<Record<string, unknown>>>(api.get('/stats/login-history', { params })),
+  visitLogs: (params: { page?: number; size?: number; keyword?: string; authed?: string; include_local?: boolean } = {}) => unwrap<PageResult<Record<string, unknown>>>(api.get('/stats/visit-logs', { params })),
 }
 
 export const adminApi = {
