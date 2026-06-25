@@ -26,14 +26,22 @@ const formatDate = (dateStr?: string) => {
   if (!dateStr) return '-'
   const d = new Date(dateStr)
   if (isNaN(d.getTime())) return dateStr
-  return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleString('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 export function UserList() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [keyword, setKeyword] = useState('')
-  const [pendingAction, setPendingAction] = useState<{ type: 'blacklist' | 'unblacklist' | 'forceLogout'; user: UserItem } | null>(null)
+  const [pendingAction, setPendingAction] = useState<{ type: 'blacklist' | 'unblacklist' | 'forceLogout' | 'delete'; user: UserItem } | null>(null)
   const params = useMemo(() => ({ page, size: 10, keyword: keyword || undefined }), [keyword, page])
   const query = useQuery({ queryKey: ['users', params], queryFn: () => userApi.list(params), refetchInterval: 30_000 })
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['users'] })
@@ -41,12 +49,14 @@ export function UserList() {
   const blacklistMutation = useMutation({ mutationFn: userApi.blacklist, onSuccess: invalidate })
   const unblacklistMutation = useMutation({ mutationFn: userApi.unblacklist, onSuccess: invalidate })
   const forceLogoutMutation = useMutation({ mutationFn: userApi.forceLogout, onSuccess: invalidate })
+  const deleteMutation = useMutation({ mutationFn: userApi.delete, onSuccess: invalidate })
 
   const handleConfirm = () => {
     if (!pendingAction) return
     if (pendingAction.type === 'blacklist') blacklistMutation.mutate(pendingAction.user.id)
     if (pendingAction.type === 'unblacklist') unblacklistMutation.mutate(pendingAction.user.id)
     if (pendingAction.type === 'forceLogout') forceLogoutMutation.mutate(pendingAction.user.id)
+    if (pendingAction.type === 'delete') deleteMutation.mutate(pendingAction.user.id)
     setPendingAction(null)
   }
 
@@ -75,13 +85,14 @@ export function UserList() {
                     <TableCell><Badge variant={user.role === 'admin' ? 'default' : user.role === 'member' ? 'secondary' : 'outline'}>{roleLabels[user.role]}</Badge></TableCell>
                     <TableCell>{formatDate(user.created_at)}</TableCell>
                     <TableCell><span className="inline-flex items-center gap-2"><span className={`h-2 w-2 rounded-full ${user.online ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />{user.online ? '在线' : '离线'}</span></TableCell>
-                    <TableCell>{user.last_login ?? '-'}</TableCell>
+                    <TableCell>{formatDate(user.last_login)}</TableCell>
                     <TableCell>{user.login_ip ?? '-'}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-2">
                         <Select className="w-28" options={roleOptions} value={user.role} onChange={(event) => roleMutation.mutate({ id: user.id, role: event.target.value as Role })} />
                         {user.is_blacklisted ? <Button size="sm" variant="outline" onClick={() => setPendingAction({ type: 'unblacklist', user })}>解除拉黑</Button> : <Button size="sm" variant="destructive" onClick={() => setPendingAction({ type: 'blacklist', user })}>拉黑</Button>}
                         <Button size="sm" variant="outline" onClick={() => setPendingAction({ type: 'forceLogout', user })}>强制登出</Button>
+                        <Button size="sm" variant="destructive" onClick={() => setPendingAction({ type: 'delete', user })}>删除</Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -97,7 +108,17 @@ export function UserList() {
           ) : null}
         </CardContent>
       </Card>
-      <ConfirmDialog open={pendingAction !== null} title="确认执行用户操作？" description={pendingAction ? `目标用户：${pendingAction.user.phone}` : undefined} onCancel={() => setPendingAction(null)} onConfirm={handleConfirm} />
+      <ConfirmDialog
+        open={pendingAction !== null}
+        title={pendingAction?.type === 'delete' ? '确认删除用户？' : '确认执行用户操作？'}
+        description={pendingAction
+          ? pendingAction.type === 'delete'
+            ? `目标用户：${pendingAction.user.phone}。删除为软删除：用户将从列表隐藏、无法登录，历史访问/审计记录保留。`
+            : `目标用户：${pendingAction.user.phone}`
+          : undefined}
+        onCancel={() => setPendingAction(null)}
+        onConfirm={handleConfirm}
+      />
     </div>
   )
 }

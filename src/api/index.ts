@@ -215,6 +215,7 @@ export const userApi = {
   blacklist: (id: number) => unwrap(api.post(`/users/${id}/blacklist`)),
   unblacklist: (id: number) => unwrap(api.post(`/users/${id}/unblacklist`)),
   forceLogout: (id: number) => unwrap(api.post(`/users/${id}/force-logout`)),
+  delete: (id: number) => unwrap(api.delete(`/users/${id}`)),
 }
 
 export const documentApi = {
