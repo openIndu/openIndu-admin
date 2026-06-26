@@ -330,7 +330,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-semibold">{num(d?.current_5m_uv)}</div>
-              <p className="mt-1 text-xs text-muted-foreground">独立访客（visitor_id 优先，历史按 IP）</p>
+              <p className="mt-1 text-xs text-muted-foreground">独立访客（client_id 优先，历史按 IP）</p>
             </CardContent>
           </Card>
           <Card>
@@ -521,7 +521,7 @@ export function Dashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-sky-600" />本月 UV 趋势</CardTitle>
-            <CardDescription>本月每日独立访客数（visitor_id 优先，历史按 IP；无数据日默认为 0）</CardDescription>
+            <CardDescription>本月每日独立访客数（client_id 优先，历史按 IP；无数据日默认为 0）</CardDescription>
           </CardHeader>
           <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.monthly_uv ?? []} color="#0ea5e9" id="uv-month" />}</CardContent>
         </Card>
@@ -542,7 +542,7 @@ export function Dashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-amber-600" />过去一年 UV 趋势</CardTitle>
-            <CardDescription>过去 12 个月每月独立访客数（visitor_id 优先，历史按 IP）</CardDescription>
+            <CardDescription>过去 12 个月每月独立访客数（client_id 优先，历史按 IP）</CardDescription>
           </CardHeader>
           <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.yearly_uv ?? []} color="#f59e0b" id="year-uv" />}</CardContent>
         </Card>
