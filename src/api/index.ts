@@ -94,7 +94,7 @@ export interface ResourceTag {
   usage_count?: number
 }
 
-export interface SoftwareItem extends ResourceItem {
+export interface SoftwareItem extends Omit<ResourceItem, 'series'> {
   latest_version?: string
   latest_version_size?: number
   versions_count?: number
@@ -359,15 +359,15 @@ export interface SoftwareUploadPart {
 }
 
 export const softwareApi = {
-  list: (params: { page?: number; size?: number; brand?: string; category?: string; series?: string; keyword?: string; expand_versions?: boolean } = {}) => unwrap<PageResult<SoftwareItem>>(api.get('/software', { params })),
+  list: (params: { page?: number; size?: number; brand?: string; category?: string; keyword?: string; expand_versions?: boolean } = {}) => unwrap<PageResult<SoftwareItem>>(api.get('/software', { params })),
   upload: (formData: FormData, onUploadProgress?: (e: AxiosProgressEvent) => void) => unwrap<SoftwareItem>(api.post('/software/upload', formData, uploadConfig(onUploadProgress))),
-  uploadInit: (meta: { filename: string; brand: string; category: string; series?: string; version: string; description?: string; content_type?: string; size: number; software_id?: number }) =>
+  uploadInit: (meta: { filename: string; brand: string; category: string; version: string; description?: string; content_type?: string; size: number; software_id?: number }) =>
     unwrap<SoftwareUploadInit>(api.post('/software/upload/init', meta)),
   uploadComplete: (payload: { token: string; parts?: SoftwareUploadPart[]; file_hash?: string }) =>
     unwrap<SoftwareItem>(api.post('/software/upload/complete', payload)),
   uploadAbort: (token: string) => unwrap(api.post('/software/upload/abort', { token })),
   get: (id: number) => unwrap<SoftwareItem>(api.get(`/software/${id}`)),
-  update: (id: number, data: Partial<Pick<SoftwareItem, 'original_name' | 'brand' | 'category' | 'series' | 'description'>>) => unwrap<SoftwareItem>(api.patch(`/software/${id}`, data)),
+  update: (id: number, data: Partial<Pick<SoftwareItem, 'original_name' | 'brand' | 'category' | 'description'>>) => unwrap<SoftwareItem>(api.patch(`/software/${id}`, data)),
   delete: (id: number) => unwrap(api.delete(`/software/${id}`)),
   publishToggle: (id: number) => unwrap<SoftwareItem>(api.patch(`/software/${id}/publish`)),
   publishVersionToggle: (id: number, versionId: number) => unwrap(api.patch(`/software/${id}/versions/${versionId}/publish`)),
