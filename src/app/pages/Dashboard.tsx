@@ -325,22 +325,22 @@ export function Dashboard() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">当前总访问人数</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">当前 5 分钟 UV</CardTitle>
               <TrendingUp className="h-4 w-4 text-emerald-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-semibold">{num(d?.current_total_visitors)}</div>
-              <p className="mt-1 text-xs text-muted-foreground">过去 5 分钟活跃访客 IP（匿名 + 登录）</p>
+              <div className="text-3xl font-semibold">{num(d?.current_5m_uv)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">独立访客（visitor_id 优先，历史按 IP）</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">当前访问人数</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">当前 5 分钟 PV</CardTitle>
               <Users className="h-4 w-4 text-emerald-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-semibold">{num(d?.current_active_users)}</div>
-              <p className="mt-1 text-xs text-muted-foreground">当前在线登录用户</p>
+              <div className="text-3xl font-semibold">{num(d?.current_5m_pv)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">过去 5 分钟页面访问次数</p>
             </CardContent>
           </Card>
         </div>
@@ -352,12 +352,22 @@ export function Dashboard() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">今日访问人数</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">今日 UV</CardTitle>
               <Users className="h-4 w-4 text-sky-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-semibold">{num(d?.today_active_users)}</div>
-              <p className="mt-1 text-xs text-muted-foreground">今日去重访客 IP（匿名 + 登录）</p>
+              <div className="text-3xl font-semibold">{num(d?.today_uv)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">今日独立访客数</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">今日 PV</CardTitle>
+              <TrendingUp className="h-4 w-4 text-cyan-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{num(d?.today_pv)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">今日页面访问次数</p>
             </CardContent>
           </Card>
           <Card>
@@ -399,12 +409,22 @@ export function Dashboard() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">本月访问人数</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">本月 UV</CardTitle>
               <Users className="h-4 w-4 text-sky-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-semibold">{num(d?.month_active_users)}</div>
-              <p className="mt-1 text-xs text-muted-foreground">本月去重访客 IP（匿名 + 登录）</p>
+              <div className="text-3xl font-semibold">{num(d?.month_uv)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">本月独立访客数</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">本月 PV</CardTitle>
+              <TrendingUp className="h-4 w-4 text-cyan-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{num(d?.month_pv)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">本月页面访问次数</p>
             </CardContent>
           </Card>
           <Card>
@@ -446,12 +466,22 @@ export function Dashboard() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">总访问人数</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">总 UV</CardTitle>
               <Users className="h-4 w-4 text-emerald-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-semibold">{num(d?.total_visitors)}</div>
-              <p className="mt-1 text-xs text-muted-foreground">累计去重访客 IP（匿名 + 登录）</p>
+              <div className="text-3xl font-semibold">{num(d?.total_uv)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">累计独立访客数</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">总 PV</CardTitle>
+              <TrendingUp className="h-4 w-4 text-cyan-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{num(d?.total_pv)}</div>
+              <p className="mt-1 text-xs text-muted-foreground">累计页面访问次数</p>
             </CardContent>
           </Card>
           <Card>
@@ -490,17 +520,17 @@ export function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-sky-600" />本月匿名访问趋势</CardTitle>
-            <CardDescription>本月每日匿名访问去重 IP（无数据日默认为 0）</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-sky-600" />本月 UV 趋势</CardTitle>
+            <CardDescription>本月每日独立访客数（visitor_id 优先，历史按 IP；无数据日默认为 0）</CardDescription>
           </CardHeader>
-          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.monthly_anon_visitors ?? []} color="#0ea5e9" id="anon-month" />}</CardContent>
+          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.monthly_uv ?? []} color="#0ea5e9" id="uv-month" />}</CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-emerald-600" />本月登录访问趋势</CardTitle>
-            <CardDescription>本月每日登录用户访问去重数（无数据日默认为 0）</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-emerald-600" />本月 PV 趋势</CardTitle>
+            <CardDescription>本月每日页面访问次数（无数据日默认为 0）</CardDescription>
           </CardHeader>
-          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.monthly_login_visitors ?? []} color="#10b981" id="login-month" />}</CardContent>
+          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.monthly_pv ?? []} color="#10b981" id="pv-month" />}</CardContent>
         </Card>
         <Card>
           <CardHeader>
@@ -511,10 +541,10 @@ export function Dashboard() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-amber-600" />过去一年匿名+登录访问趋势</CardTitle>
-            <CardDescription>过去 12 个月每月匿名+登录访问去重 IP（按月聚合）</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-amber-600" />过去一年 UV 趋势</CardTitle>
+            <CardDescription>过去 12 个月每月独立访客数（visitor_id 优先，历史按 IP）</CardDescription>
           </CardHeader>
-          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.yearly_visitors ?? []} color="#f59e0b" id="year-all" />}</CardContent>
+          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.yearly_uv ?? []} color="#f59e0b" id="year-uv" />}</CardContent>
         </Card>
       </div>
 

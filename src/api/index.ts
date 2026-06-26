@@ -1,4 +1,5 @@
 import axios, { type AxiosError, type AxiosProgressEvent, type InternalAxiosRequestConfig } from 'axios'
+import { getClientId } from '@/lib/clientIdentity'
 
 // Large file uploads must not be capped by the default request timeout, and they
 // expose an optional progress callback so the UI can render an upload bar.
@@ -128,6 +129,7 @@ export interface SyncLog {
 
 export interface OnlineStats {
   online_users: number
+  online_clients?: number
   geo_distribution?: Array<{ name: string; count: number }>
 }
 
@@ -150,10 +152,13 @@ export const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  const token = tokenStorage.getAccessToken()
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+  const setHeader = (key: string, value: string) => {
+    if (typeof config.headers.set === 'function') config.headers.set(key, value)
+    else (config.headers as Record<string, string>)[key] = value
   }
+  setHeader('X-OpenIndu-Client-Id', getClientId())
+  const token = tokenStorage.getAccessToken()
+  if (token) setHeader('Authorization', `Bearer ${token}`)
   return config
 })
 
@@ -404,9 +409,12 @@ export interface DashboardStats {
   total_docs: number
   total_software: number
   total_visitors: number
+  total_pv: number
+  total_uv: number
   new_users_30d: number
   visitors_30d: number
   online_count: number
+  online_clients?: number
   online_visitors: number
   anonymous_online: number
   daily_registrations: Array<{ date: string; count: number }>
@@ -425,20 +433,30 @@ export interface DashboardStats {
   // period stats (Asia/Shanghai timezone)
   current_active_users: number
   current_total_visitors: number
+  current_5m_pv: number
+  current_5m_uv: number
   today_active_users: number
+  today_pv: number
+  today_uv: number
   today_new_users: number
   today_new_docs: number
   today_new_software: number
   month_active_users: number
+  month_pv: number
+  month_uv: number
   month_new_users: number
   month_new_docs: number
   month_new_software: number
   monthly_registrations: Array<{ date: string; count: number }>
   monthly_visitors: Array<{ date: string; count: number }>
+  monthly_pv: Array<{ date: string; count: number }>
+  monthly_uv: Array<{ date: string; count: number }>
   monthly_anon_visitors: Array<{ date: string; count: number }>
   monthly_login_visitors: Array<{ date: string; count: number }>
   yearly_anon_visitors: Array<{ date: string; count: number }>
   yearly_visitors: Array<{ date: string; count: number }>
+  yearly_pv: Array<{ date: string; count: number }>
+  yearly_uv: Array<{ date: string; count: number }>
 }
 
 export const statsApi = {
