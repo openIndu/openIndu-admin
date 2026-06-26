@@ -463,7 +463,7 @@ export function Dashboard() {
       {/* 总情况 */}
       <div>
         <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-muted-foreground"><TrendingUp className="h-4 w-4" />总情况</h3>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">总 UV</CardTitle>
