@@ -1,4 +1,4 @@
-import axios, { type AxiosError, type AxiosProgressEvent } from 'axios'
+import axios, { type AxiosError, type AxiosProgressEvent, type InternalAxiosRequestConfig } from 'axios'
 
 // Large file uploads must not be capped by the default request timeout, and they
 // expose an optional progress callback so the UI can render an upload bar.
@@ -9,8 +9,8 @@ const uploadConfig = (onUploadProgress?: (e: AxiosProgressEvent) => void) => ({
 })
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api/v1'
-const ACCESS_TOKEN_KEY = 'openindu_admin_access_token'
-const REFRESH_TOKEN_KEY = 'openindu_admin_refresh_token'
+export const ACCESS_TOKEN_KEY = 'openindu_admin_access_token'
+export const REFRESH_TOKEN_KEY = 'openindu_admin_refresh_token'
 
 export type Role = 'user' | 'member' | 'admin'
 
@@ -157,27 +157,8 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-api.interceptors.response.use(
-  (response) => response,
-  (error: AxiosError<ApiResponse<unknown>>) => {
-    if (error.response?.status === 401) {
-      const detail = (error.response.data as { detail?: string })?.detail ?? ''
-      if (detail) {
-        window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: detail, type: 'error' } }))
-      }
-      tokenStorage.clear()
-      if (window.location.pathname !== '/login') {
-        const isForceLogout = detail.includes('已被撤销') || detail.includes('强制登出')
-        if (isForceLogout) {
-          window.location.href = '/login?reason=force_logout&msg=' + encodeURIComponent(detail || 'Token 已被撤销，您已被强制退出')
-        } else {
-          window.location.href = '/login'
-        }
-      }
-    }
-    return Promise.reject(error)
-  },
-)
+// The auth-refresh-aware response interceptor is registered further down, after
+// normalizeLoginResponse is defined (it relies on it to parse the rotated pair).
 
 const unwrap = async <T>(promise: Promise<{ data: ApiResponse<T> }>): Promise<T> => {
   const response = await promise
@@ -201,11 +182,140 @@ const normalizeLoginResponse = (payload: LoginResponse | NestedLoginResponse): L
   return payload as LoginResponse
 }
 
+// --- Token refresh orchestration ---------------------------------------
+// The backend ROTATES refresh tokens: each /auth/refresh blacklists the
+// presented refresh token's jti and returns a brand-new access+refresh pair.
+// Concurrency is therefore dangerous — two refreshes with the same token mean
+// the second hits a blacklisted jti and 401s. We guard with:
+//   1. single-flight within a tab (isRefreshing + queue), and
+//   2. cross-tab serialization via the Web Locks API, re-reading storage inside
+//      the lock so a token another tab already rotated is reused, not rotated.
+const AUTH_REFRESH_PATH = '/auth/refresh'
+
+let isRefreshing = false
+let pendingQueue: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = []
+
+const flushQueue = (error: unknown, token: string | null) => {
+  pendingQueue.forEach((p) => (error || !token ? p.reject(error) : p.resolve(token)))
+  pendingQueue = []
+}
+
+const emitToast = (detail: string) => {
+  if (detail) {
+    window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: detail, type: 'error' } }))
+  }
+}
+
+const redirectToLogin = (detail = '') => {
+  tokenStorage.clear()
+  if (window.location.pathname !== '/login') {
+    const isForceLogout = detail.includes('已被撤销') || detail.includes('强制登出')
+    window.location.href = isForceLogout
+      ? '/login?reason=force_logout&msg=' + encodeURIComponent(detail || 'Token 已被撤销，您已被强制退出')
+      : '/login'
+  }
+}
+
+// Bare axios (no interceptors) so a 401 from the refresh endpoint itself does
+// not recurse back into this handler.
+const rawRefresh = async (refreshToken: string): Promise<LoginResponse> => {
+  const resp = await axios.post<ApiResponse<LoginResponse | NestedLoginResponse>>(
+    `${API_BASE}${AUTH_REFRESH_PATH}`,
+    { refresh_token: refreshToken },
+    { timeout: 30_000 },
+  )
+  return normalizeLoginResponse(resp.data.data)
+}
+
+const withRefreshLock = <T>(fn: () => Promise<T>): Promise<T> => {
+  const nav = navigator as Navigator & {
+    locks?: { request?: (name: string, cb: () => Promise<T>) => Promise<T> }
+  }
+  if (typeof navigator !== 'undefined' && nav.locks?.request) {
+    return nav.locks.request('openindu-admin-token-refresh', fn)
+  }
+  return fn()
+}
+
+// Runs the real refresh inside the cross-tab lock. `staleAccess` is the access
+// token that just 401'd; if storage already holds a different one, another tab
+// refreshed while we waited for the lock, so reuse it instead of rotating again.
+const performRefresh = (staleAccess: string | null): Promise<string> =>
+  withRefreshLock(async () => {
+    const current = tokenStorage.getAccessToken()
+    if (current && current !== staleAccess) return current
+    const refreshToken = tokenStorage.getRefreshToken()
+    if (!refreshToken) throw new Error('missing_refresh_token')
+    const result = await rawRefresh(refreshToken)
+    if (!result.access_token) throw new Error('refresh_failed')
+    tokenStorage.setTokens(result.access_token, result.refresh_token ?? refreshToken)
+    return result.access_token
+  })
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError<ApiResponse<unknown>>) => {
+    const original = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined
+    const status = error.response?.status
+    const detail = (error.response?.data as { detail?: string })?.detail ?? ''
+
+    if (status !== 401 || !original) {
+      return Promise.reject(error)
+    }
+
+    // 401 from the refresh endpoint itself → refresh token invalid → log out.
+    if ((original.url ?? '').includes(AUTH_REFRESH_PATH)) {
+      emitToast(detail)
+      redirectToLogin(detail)
+      return Promise.reject(error)
+    }
+
+    // Already retried once after a successful refresh and still 401 → give up.
+    if (original._retry) {
+      emitToast(detail)
+      redirectToLogin(detail)
+      return Promise.reject(error)
+    }
+
+    // No refresh token to spend → log out immediately.
+    if (!tokenStorage.getRefreshToken()) {
+      emitToast(detail)
+      redirectToLogin(detail)
+      return Promise.reject(error)
+    }
+
+    original._retry = true
+
+    // A refresh is already in flight — queue, then retry with the fresh token.
+    if (isRefreshing) {
+      return new Promise<string>((resolve, reject) => pendingQueue.push({ resolve, reject })).then((token) => {
+        original.headers.Authorization = `Bearer ${token}`
+        return api.request(original)
+      })
+    }
+
+    isRefreshing = true
+    const staleAccess = tokenStorage.getAccessToken()
+    try {
+      const newToken = await performRefresh(staleAccess)
+      flushQueue(null, newToken)
+      original.headers.Authorization = `Bearer ${newToken}`
+      return api.request(original)
+    } catch (refreshError) {
+      flushQueue(refreshError, null)
+      redirectToLogin(detail)
+      return Promise.reject(refreshError)
+    } finally {
+      isRefreshing = false
+    }
+  },
+)
+
 export const authApi = {
   sendCode: (phone: string) => unwrap(api.post('/auth/send-code', { phone })),
   login: async (phone: string, code: string) => normalizeLoginResponse(await unwrap<LoginResponse | NestedLoginResponse>(api.post('/auth/login', { phone, code }))),
   register: async (phone: string, code: string) => normalizeLoginResponse(await unwrap<LoginResponse | NestedLoginResponse>(api.post('/auth/register', { phone, code }))),
-  refresh: (refreshToken: string) => unwrap<LoginResponse>(api.post('/auth/refresh', { refresh_token: refreshToken })),
+  refresh: async (refreshToken: string) => normalizeLoginResponse(await unwrap<LoginResponse | NestedLoginResponse>(api.post('/auth/refresh', { refresh_token: refreshToken }))),
   me: () => unwrap<CurrentUser>(api.get('/auth/me')),
   logout: () => unwrap(api.post('/auth/logout')),
 }

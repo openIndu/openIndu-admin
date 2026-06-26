@@ -34,6 +34,7 @@ vi.mock('axios', () => {
     post: vi.fn(),
     put: vi.fn(),
     delete: vi.fn(),
+    request: vi.fn(),
     interceptors: {
       request: {
         use: vi.fn((success) => {
@@ -109,9 +110,9 @@ describe('API Client', () => {
       expect(result).toEqual(response)
     })
 
-    it('clears tokens and redirects on 401', async () => {
-      const { tokenStorage } = await import('@/api')
-      tokenStorage.setTokens('expired-token', 'refresh-token')
+    it('logs out and redirects on 401 when there is no refresh token', async () => {
+      const { tokenStorage, ACCESS_TOKEN_KEY } = await import('@/api')
+      localStorage.setItem(ACCESS_TOKEN_KEY, 'expired-token')
 
       const originalLocation = window.location
       delete (window as any).location
@@ -119,9 +120,10 @@ describe('API Client', () => {
 
       const error = {
         response: { status: 401 },
-      } as AxiosError
+        config: { url: '/users', headers: {} },
+      } as unknown as AxiosError
 
-      await expect(responseInterceptorError!(error)).rejects.toEqual(error)
+      await expect(responseInterceptorError!(error)).rejects.toBe(error)
       expect(tokenStorage.getAccessToken()).toBeNull()
       expect(window.location.href).toBe('/login')
 
@@ -129,8 +131,8 @@ describe('API Client', () => {
     })
 
     it('does not redirect if already on login page on 401', async () => {
-      const { tokenStorage } = await import('@/api')
-      tokenStorage.setTokens('expired-token', 'refresh-token')
+      const { ACCESS_TOKEN_KEY } = await import('@/api')
+      localStorage.setItem(ACCESS_TOKEN_KEY, 'expired-token')
 
       const originalLocation = window.location
       delete (window as any).location
@@ -138,9 +140,10 @@ describe('API Client', () => {
 
       const error = {
         response: { status: 401 },
-      } as AxiosError
+        config: { url: '/users', headers: {} },
+      } as unknown as AxiosError
 
-      await expect(responseInterceptorError!(error)).rejects.toEqual(error)
+      await expect(responseInterceptorError!(error)).rejects.toBe(error)
       expect(window.location.href).toBe('/login')
 
       window.location = originalLocation
@@ -150,8 +153,64 @@ describe('API Client', () => {
       await import('@/api')
       const error = {
         response: { status: 500 },
-      } as AxiosError
+        config: { url: '/users', headers: {} },
+      } as unknown as AxiosError
       await expect(responseInterceptorError!(error)).rejects.toEqual(error)
+    })
+
+    it('refreshes the token on 401, stores the rotated pair, and retries', async () => {
+      const { tokenStorage } = await import('@/api')
+      tokenStorage.setTokens('expired-token', 'valid-refresh')
+
+      const mockedAxios = vi.mocked(axios)
+      // rawRefresh -> axios.post(`${API_BASE}/auth/refresh`, ...) with the nested envelope
+      mockedAxios.post.mockResolvedValueOnce({
+        data: {
+          code: 200,
+          data: {
+            user: { id: 1, phone: '13800000000', role: 'admin' },
+            tokens: { access_token: 'fresh-access', refresh_token: 'fresh-refresh' },
+          },
+        },
+      })
+      // retry of the original request after refresh
+      mockedAxios.request.mockResolvedValueOnce({ data: { code: 200, data: 'retried' } })
+
+      const error = {
+        response: { status: 401 },
+        config: { url: '/users', headers: {} },
+      } as unknown as AxiosError
+
+      await responseInterceptorError!(error)
+
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        '/api/v1/auth/refresh',
+        { refresh_token: 'valid-refresh' },
+        { timeout: 30000 },
+      )
+      expect(tokenStorage.getAccessToken()).toBe('fresh-access')
+      expect(tokenStorage.getRefreshToken()).toBe('fresh-refresh')
+      expect(mockedAxios.request).toHaveBeenCalled()
+    })
+
+    it('logs out when the refresh endpoint itself returns 401', async () => {
+      const { tokenStorage } = await import('@/api')
+      tokenStorage.setTokens('expired-token', 'invalid-refresh')
+
+      const originalLocation = window.location
+      delete (window as any).location
+      window.location = { ...originalLocation, href: '/dashboard', pathname: '/dashboard' } as Location
+
+      const error = {
+        response: { status: 401 },
+        config: { url: '/api/v1/auth/refresh', headers: {} },
+      } as unknown as AxiosError
+
+      await expect(responseInterceptorError!(error)).rejects.toBe(error)
+      expect(tokenStorage.getAccessToken()).toBeNull()
+      expect(window.location.href).toBe('/login')
+
+      window.location = originalLocation
     })
   })
 
