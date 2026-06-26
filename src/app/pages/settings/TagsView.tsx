@@ -298,7 +298,7 @@ function FlatTagPanel({ type }: { type: string }) {
   )
 }
 
-// ─── Series panel (doc_series / sw_series) ───────────────────────────────────
+// ─── Series panel (doc_series only) ───────────────────────────────────────────
 function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
   seriesType: string
   categoryType: string
@@ -457,7 +457,7 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
       <ConfirmDialog
         open={deletingId !== null}
         title="确认删除系列？"
-        description="如有文档或软件仍在使用该系列，删除将被拒绝。"
+        description="如有文档仍在使用该系列，删除将被拒绝。"
         onCancel={() => setDeletingId(null)}
         onConfirm={() => { if (deletingId !== null) removeMutation.mutate(deletingId) }}
       />
