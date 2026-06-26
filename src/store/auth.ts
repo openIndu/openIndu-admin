@@ -1,5 +1,5 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react'
-import { authApi, tokenStorage, type CurrentUser, type LoginResponse } from '@/api'
+import { ACCESS_TOKEN_KEY, authApi, tokenStorage, type CurrentUser, type LoginResponse } from '@/api'
 
 interface AuthContextValue {
   user: CurrentUser | null
@@ -38,6 +38,22 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     void refreshUser()
   }, [refreshUser])
+
+  // Cross-tab logout sync: when another tab clears the access token (explicit
+  // logout, or a failed refresh), drop this tab's session too and bounce to
+  // login so the user isn't left looking at a stale, unauthenticated screen.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === ACCESS_TOKEN_KEY && e.newValue === null) {
+        setUser(null)
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login'
+        }
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
 
   const loginWithResponse = useCallback(async (response: LoginResponse) => {
     tokenStorage.setTokens(response.access_token, response.refresh_token)
