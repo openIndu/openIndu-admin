@@ -328,7 +328,7 @@ export const authApi = {
 }
 
 export const userApi = {
-  list: (params: { page?: number; size?: number; keyword?: string; apply_status?: string } = {}) => unwrap<PageResult<UserItem>>(api.get('/users', { params })),
+  list: (params: { page?: number; size?: number; keyword?: string; role?: string; apply_status?: string } = {}) => unwrap<PageResult<UserItem>>(api.get('/users', { params })),
   updateRole: (id: number, role: Role) => unwrap(api.put(`/users/${id}/role`, { role })),
   blacklist: (id: number) => unwrap(api.post(`/users/${id}/blacklist`)),
   unblacklist: (id: number) => unwrap(api.post(`/users/${id}/unblacklist`)),
@@ -496,6 +496,8 @@ export const memberApplicationApi = {
     ),
   approve: (id: number) =>
     unwrap<MemberApplicationItem>(api.put(`/admin/member-applications/${id}/approve`)),
+  reject: (id: number) =>
+    unwrap<MemberApplicationItem>(api.put(`/admin/member-applications/${id}/reject`)),
 }
 
 export const portalApi = {

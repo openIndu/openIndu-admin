@@ -16,6 +16,21 @@ const roleOptions = [
   { value: 'admin', label: '管理员' },
 ]
 
+const roleFilterOptions = [
+  { value: '', label: '全部角色' },
+  { value: 'user', label: '普通用户' },
+  { value: 'member', label: '会员' },
+  { value: 'admin', label: '管理员' },
+]
+
+const applyFilterOptions = [
+  { value: '', label: '全部申请状态' },
+  { value: 'pending', label: '待审核' },
+  { value: 'approved', label: '已通过' },
+  { value: 'rejected', label: '已驳回' },
+  { value: 'none', label: '未申请' },
+]
+
 const roleLabels: Record<Role, string> = {
   user: '普通用户',
   member: '会员',
@@ -25,6 +40,13 @@ const roleLabels: Record<Role, string> = {
 const applyStatusLabel: Record<string, string> = {
   pending: '待审核',
   approved: '已通过',
+  rejected: '已驳回',
+}
+
+const applyStatusVariant: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  pending: 'default',
+  approved: 'secondary',
+  rejected: 'destructive',
 }
 
 const formatDate = (dateStr?: string) => {
@@ -46,18 +68,28 @@ export function UserList() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [keyword, setKeyword] = useState('')
-  const [pendingOnly, setPendingOnly] = useState(false)
-  const [pendingAction, setPendingAction] = useState<{ type: 'blacklist' | 'unblacklist' | 'forceLogout' | 'delete'; user: UserItem } | null>(null)
+  const [roleFilter, setRoleFilter] = useState('')
+  const [applyFilter, setApplyFilter] = useState('')
+  const [pendingAction, setPendingAction] = useState<{
+    type: 'blacklist' | 'unblacklist' | 'forceLogout' | 'delete'
+    user: UserItem
+  } | null>(null)
   const [pendingApprove, setPendingApprove] = useState<UserItem | null>(null)
+  const [pendingReject, setPendingReject] = useState<UserItem | null>(null)
 
   const params = useMemo(() => ({
     page,
     size: 10,
     keyword: keyword || undefined,
-    apply_status: pendingOnly ? 'pending' : undefined,
-  }), [keyword, page, pendingOnly])
+    role: roleFilter || undefined,
+    apply_status: applyFilter || undefined,
+  }), [keyword, page, roleFilter, applyFilter])
 
-  const query = useQuery({ queryKey: ['users', params], queryFn: () => userApi.list(params), refetchInterval: 30_000 })
+  const query = useQuery({
+    queryKey: ['users', params],
+    queryFn: () => userApi.list(params),
+    refetchInterval: 30_000,
+  })
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['users'] })
 
   const roleMutation = useMutation({ mutationFn: ({ id, role }: { id: number; role: Role }) => userApi.updateRole(id, role), onSuccess: invalidate })
@@ -66,6 +98,7 @@ export function UserList() {
   const forceLogoutMutation = useMutation({ mutationFn: userApi.forceLogout, onSuccess: invalidate })
   const deleteMutation = useMutation({ mutationFn: userApi.delete, onSuccess: invalidate })
   const approveMutation = useMutation({ mutationFn: (id: number) => memberApplicationApi.approve(id), onSuccess: invalidate })
+  const rejectMutation = useMutation({ mutationFn: (id: number) => memberApplicationApi.reject(id), onSuccess: invalidate })
 
   const handleConfirm = () => {
     if (!pendingAction) return
@@ -76,6 +109,8 @@ export function UserList() {
     setPendingAction(null)
   }
 
+  const resetPage = () => setPage(1)
+
   return (
     <div className="space-y-6">
       <Card>
@@ -84,28 +119,33 @@ export function UserList() {
           <CardDescription>分页查看用户，调整角色、审批会员申请、拉黑或强制登出。</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 flex gap-3 flex-wrap">
+          {/* 筛选栏 */}
+          <div className="mb-4 flex flex-wrap gap-3">
             <Input
               placeholder="按手机号搜索"
               value={keyword}
-              className="max-w-60"
-              onChange={(e) => { setKeyword(e.target.value); setPage(1) }}
+              className="max-w-48"
+              onChange={(e) => { setKeyword(e.target.value); resetPage() }}
             />
-            <Button
-              variant={pendingOnly ? 'default' : 'outline'}
-              onClick={() => { setPendingOnly((v) => !v); setPage(1) }}
-            >
-              仅看待审核申请
-            </Button>
+            <Select
+              options={roleFilterOptions}
+              value={roleFilter}
+              className="w-36"
+              onChange={(e) => { setRoleFilter(e.target.value); resetPage() }}
+            />
+            <Select
+              options={applyFilterOptions}
+              value={applyFilter}
+              className="w-40"
+              onChange={(e) => { setApplyFilter(e.target.value); resetPage() }}
+            />
             <Button variant="outline" onClick={() => void query.refetch()}>刷新</Button>
           </div>
 
           {query.isLoading ? <div className="text-muted-foreground py-4">正在加载用户...</div> : null}
           {query.isError ? <div className="text-destructive py-4">用户列表加载失败</div> : null}
           {!query.isLoading && !query.isError && query.data?.items.length === 0 ? (
-            <div className="text-muted-foreground py-4">
-              {pendingOnly ? '暂无待审核申请' : '暂无用户'}
-            </div>
+            <div className="text-muted-foreground py-4">暂无匹配用户</div>
           ) : null}
 
           {query.data && query.data.items.length > 0 ? (
@@ -144,21 +184,9 @@ export function UserList() {
                     <TableCell>{user.login_ip ?? '-'}</TableCell>
                     <TableCell>
                       {user.member_apply_status ? (
-                        <div className="flex items-center gap-2">
-                          <Badge variant={user.member_apply_status === 'pending' ? 'default' : 'secondary'}>
-                            {applyStatusLabel[user.member_apply_status] ?? user.member_apply_status}
-                          </Badge>
-                          {user.member_apply_status === 'pending' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-green-700 border-green-200 hover:bg-green-50 h-6 px-2 text-xs"
-                              onClick={() => setPendingApprove(user)}
-                            >
-                              通过
-                            </Button>
-                          )}
-                        </div>
+                        <Badge variant={applyStatusVariant[user.member_apply_status] ?? 'outline'}>
+                          {applyStatusLabel[user.member_apply_status] ?? user.member_apply_status}
+                        </Badge>
                       ) : (
                         <span className="text-muted-foreground text-sm">—</span>
                       )}
@@ -171,6 +199,26 @@ export function UserList() {
                           value={user.role}
                           onChange={(e) => roleMutation.mutate({ id: user.id, role: e.target.value as Role })}
                         />
+                        {user.member_apply_status === 'pending' && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-green-700 border-green-200 hover:bg-green-50"
+                              onClick={() => setPendingApprove(user)}
+                            >
+                              通过
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-600 border-red-200 hover:bg-red-50"
+                              onClick={() => setPendingReject(user)}
+                            >
+                              驳回
+                            </Button>
+                          </>
+                        )}
                         {user.is_blacklisted
                           ? <Button size="sm" variant="outline" onClick={() => setPendingAction({ type: 'unblacklist', user })}>解除拉黑</Button>
                           : <Button size="sm" variant="destructive" onClick={() => setPendingAction({ type: 'blacklist', user })}>拉黑</Button>
@@ -218,6 +266,17 @@ export function UserList() {
           setPendingApprove(null)
         }}
         onCancel={() => setPendingApprove(null)}
+      />
+
+      <ConfirmDialog
+        open={!!pendingReject}
+        title="确认驳回会员申请"
+        description={`驳回后，用户 ${pendingReject?.phone ?? ''} 的申请将被拒绝，用户可重新申请。`}
+        onConfirm={() => {
+          if (pendingReject) rejectMutation.mutate(pendingReject.id)
+          setPendingReject(null)
+        }}
+        onCancel={() => setPendingReject(null)}
       />
     </div>
   )
