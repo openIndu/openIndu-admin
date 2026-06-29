@@ -6,6 +6,7 @@ import { Login } from './pages/Login'
 import { Dashboard } from './pages/Dashboard'
 import { UserList } from './pages/users/UserList'
 import { UserDetail } from './pages/users/UserDetail'
+import { MemberApplicationList } from './pages/users/MemberApplicationList'
 import { DocumentList } from './pages/documents/DocumentList'
 import { DocumentUpload } from './pages/documents/DocumentUpload'
 import { SoftwareList } from './pages/software/SoftwareList'
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
             element: <AdminGuard />,
             children: [
               { path: '/users', element: <UserList /> },
+              { path: '/users/applications', element: <MemberApplicationList /> },
               { path: '/users/:id', element: <UserDetail /> },
               { path: '/documents', element: <DocumentList /> },
               { path: '/documents/upload', element: <DocumentUpload /> },
