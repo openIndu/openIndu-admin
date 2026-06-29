@@ -337,7 +337,7 @@ export const userApi = {
 }
 
 export const documentApi = {
-  list: (params: { page?: number; size?: number; brand?: string; category?: string; series?: string; keyword?: string } = {}) => unwrap<PageResult<ResourceItem>>(api.get('/documents', { params })),
+  list: (params: { page?: number; size?: number; brand?: string; category?: string; series?: string; keyword?: string; sort_by?: string; sort_order?: 'asc' | 'desc' } = {}) => unwrap<PageResult<ResourceItem>>(api.get('/documents', { params })),
   upload: (formData: FormData, onUploadProgress?: (e: AxiosProgressEvent) => void) => unwrap<ResourceItem>(api.post('/documents/upload', formData, uploadConfig(onUploadProgress))),
   get: (id: number) => unwrap<ResourceItem>(api.get(`/documents/${id}`)),
   update: (id: number, data: Partial<Pick<ResourceItem, 'original_name' | 'brand' | 'category' | 'series' | 'description'>>) => unwrap<ResourceItem>(api.patch(`/documents/${id}`, data)),
@@ -366,7 +366,7 @@ export interface SoftwareUploadPart {
 }
 
 export const softwareApi = {
-  list: (params: { page?: number; size?: number; brand?: string; category?: string; keyword?: string; expand_versions?: boolean } = {}) => unwrap<PageResult<SoftwareItem>>(api.get('/software', { params })),
+  list: (params: { page?: number; size?: number; brand?: string; category?: string; keyword?: string; expand_versions?: boolean; sort_by?: string; sort_order?: 'asc' | 'desc' } = {}) => unwrap<PageResult<SoftwareItem>>(api.get('/software', { params })),
   upload: (formData: FormData, onUploadProgress?: (e: AxiosProgressEvent) => void) => unwrap<SoftwareItem>(api.post('/software/upload', formData, uploadConfig(onUploadProgress))),
   uploadInit: (meta: { filename: string; brand: string; category: string; version: string; description?: string; content_type?: string; size: number; software_id?: number }) =>
     unwrap<SoftwareUploadInit>(api.post('/software/upload/init', meta)),

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Copy, ListChecks } from 'lucide-react'
+import { Copy, ListChecks, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { documentApi, syncApi, tagsApi, type ResourceItem, type ResourceTag } from '@/api'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
@@ -10,6 +10,43 @@ import { ConfirmDialog } from '../../components/ui/dialog'
 import { Input } from '../../components/ui/input'
 import { Select } from '../../components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
+
+function SortableHead({
+  label,
+  sortKey,
+  currentSortBy,
+  currentSortOrder,
+  onSort,
+  className,
+}: {
+  label: string
+  sortKey: string
+  currentSortBy?: string
+  currentSortOrder?: 'asc' | 'desc'
+  onSort: (key: string) => void
+  className?: string
+}) {
+  const isActive = currentSortBy === sortKey
+  return (
+    <TableHead
+      className={`cursor-pointer select-none hover:bg-muted/50 ${className || ''}`}
+      onClick={() => onSort(sortKey)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        {isActive ? (
+          currentSortOrder === 'asc' ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )
+        ) : (
+          <ChevronsUpDown className="h-4 w-4 text-muted-foreground/50" />
+        )}
+      </div>
+    </TableHead>
+  )
+}
 
 const PAGE_SIZE_OPTIONS = [
   { value: '10', label: '10 条/页' },
@@ -72,6 +109,8 @@ export function DocumentList() {
   const [category, setCategory] = useState('')
   const [series, setSeries] = useState('')
   const [keyword, setKeyword] = useState('')
+  const [sortBy, setSortBy] = useState<string>('upload_time')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [selectAllMatching, setSelectAllMatching] = useState(false)
   const [confirmBulk, setConfirmBulk] = useState<{ publish: boolean } | null>(null)
@@ -84,6 +123,18 @@ export function DocumentList() {
   const [editDescription, setEditDescription] = useState('')
   const [logPage, setLogPage] = useState(1)
   const [copiedId, setCopiedId] = useState<number | null>(null)
+
+  const handleSort = (key: string) => {
+    if (sortBy === key) {
+      // Toggle order if same column
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      // New column, default to desc
+      setSortBy(key)
+      setSortOrder('desc')
+    }
+    setPage(1)
+  }
 
   const toTagArray = (d: unknown): ResourceTag[] => (Array.isArray(d) ? (d as ResourceTag[]) : [])
   const brandsQuery = useQuery({ queryKey: ['tags', 'doc_brand'], queryFn: () => tagsApi.list('doc_brand'), select: toTagArray })
@@ -118,8 +169,8 @@ export function DocumentList() {
   }, [allSeriesQuery.data, seriesQuery.data, editSeriesQuery.data])
 
   const params = useMemo(
-    () => ({ page, size, brand: brand || undefined, category: category || undefined, series: series || undefined, keyword: keyword || undefined }),
-    [brand, category, series, keyword, page, size],
+    () => ({ page, size, brand: brand || undefined, category: category || undefined, series: series || undefined, keyword: keyword || undefined, sort_by: sortBy, sort_order: sortOrder }),
+    [brand, category, series, keyword, page, size, sortBy, sortOrder],
   )
   const query = useQuery({
     queryKey: ['documents', params],
@@ -326,9 +377,27 @@ export function DocumentList() {
                   <TableHead>品牌</TableHead>
                   <TableHead>类型</TableHead>
                   <TableHead>系列</TableHead>
-                  <TableHead>大小</TableHead>
-                  <TableHead>上传时间</TableHead>
-                  <TableHead>下载次数</TableHead>
+                  <SortableHead
+                    label="大小"
+                    sortKey="file_size"
+                    currentSortBy={sortBy}
+                    currentSortOrder={sortOrder}
+                    onSort={handleSort}
+                  />
+                  <SortableHead
+                    label="上传时间"
+                    sortKey="upload_time"
+                    currentSortBy={sortBy}
+                    currentSortOrder={sortOrder}
+                    onSort={handleSort}
+                  />
+                  <SortableHead
+                    label="下载次数"
+                    sortKey="download_count"
+                    currentSortBy={sortBy}
+                    currentSortOrder={sortOrder}
+                    onSort={handleSort}
+                  />
                   <TableHead>同步状态</TableHead>
                   <TableHead>发布状态</TableHead>
                   <TableHead>操作</TableHead>

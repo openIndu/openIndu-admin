@@ -9,8 +9,45 @@ import { ConfirmDialog } from '../../components/ui/dialog'
 import { Input } from '../../components/ui/input'
 import { Select } from '../../components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
-import { Paperclip } from 'lucide-react'
+import { Paperclip, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { uploadToOss, UploadCancelledError } from './directUpload'
+
+function SortableHead({
+  label,
+  sortKey,
+  currentSortBy,
+  currentSortOrder,
+  onSort,
+  className,
+}: {
+  label: string
+  sortKey: string
+  currentSortBy?: string
+  currentSortOrder?: 'asc' | 'desc'
+  onSort: (key: string) => void
+  className?: string
+}) {
+  const isActive = currentSortBy === sortKey
+  return (
+    <TableHead
+      className={`cursor-pointer select-none hover:bg-muted/50 ${className || ''}`}
+      onClick={() => onSort(sortKey)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        {isActive ? (
+          currentSortOrder === 'asc' ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )
+        ) : (
+          <ChevronsUpDown className="h-4 w-4 text-muted-foreground/50" />
+        )}
+      </div>
+    </TableHead>
+  )
+}
 
 const PAGE_SIZE_OPTIONS = [
   { value: '10', label: '10 条/页' },
@@ -77,6 +114,8 @@ export function SoftwareList() {
   const [brand, setBrand] = useState('')
   const [category, setCategory] = useState('')
   const [keyword, setKeyword] = useState('')
+  const [sortBy, setSortBy] = useState<string>('upload_time')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [selectAllMatching, setSelectAllMatching] = useState(false)
   const [confirmBulk, setConfirmBulk] = useState<{ publish: boolean } | null>(null)
@@ -90,6 +129,16 @@ export function SoftwareList() {
   const [addVersionFile, setAddVersionFile] = useState<File | null>(null)
   const [addVersionValue, setAddVersionValue] = useState('')
   const [addVersionError, setAddVersionError] = useState('')
+
+  const handleSort = (key: string) => {
+    if (sortBy === key) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(key)
+      setSortOrder('desc')
+    }
+    setPage(1)
+  }
   const [deletingVersion, setDeletingVersion] = useState<{ softwareId: number; versionId: number } | null>(null)
 
   const toTagArray = (d: unknown): ResourceTag[] => (Array.isArray(d) ? (d as ResourceTag[]) : [])
@@ -102,7 +151,7 @@ export function SoftwareList() {
   const brandMap = useMemo(() => Object.fromEntries(brandChips.map((c) => [c.value, c.label])), [brandChips])
   const categoryMap = useMemo(() => Object.fromEntries(categoryChips.map((c) => [c.value, c.label])), [categoryChips])
 
-  const params = useMemo(() => ({ page, size, brand: brand || undefined, category: category || undefined, keyword: keyword || undefined, expand_versions: true }), [brand, category, keyword, page, size])
+  const params = useMemo(() => ({ page, size, brand: brand || undefined, category: category || undefined, keyword: keyword || undefined, expand_versions: true, sort_by: sortBy, sort_order: sortOrder }), [brand, category, keyword, page, size, sortBy, sortOrder])
   const query = useQuery({ queryKey: ['software', params], queryFn: () => softwareApi.list(params) })
   const deleteMutation = useMutation({ mutationFn: softwareApi.delete, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['software'] }) })
   const publishMutation = useMutation({
@@ -400,8 +449,20 @@ export function SoftwareList() {
                   <TableHead>品牌</TableHead>
                   <TableHead>类型</TableHead>
                   <TableHead>版本</TableHead>
-                  <TableHead>大小</TableHead>
-                  <TableHead>下载次数</TableHead>
+                  <SortableHead
+                    label="大小"
+                    sortKey="file_size"
+                    currentSortBy={sortBy}
+                    currentSortOrder={sortOrder}
+                    onSort={handleSort}
+                  />
+                  <SortableHead
+                    label="下载次数"
+                    sortKey="download_count"
+                    currentSortBy={sortBy}
+                    currentSortOrder={sortOrder}
+                    onSort={handleSort}
+                  />
                   <TableHead>发布状态</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>

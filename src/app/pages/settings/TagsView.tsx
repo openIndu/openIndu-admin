@@ -179,7 +179,19 @@ function FlatTagPanel({ type }: { type: string }) {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['tags', type] })
 
   const { data: tags = [], isLoading } = useQuery({ queryKey: ['tags', type], queryFn: () => tagsApi.list(type), staleTime: 0 })
-  const sortedTags = useMemo(() => [...tags].sort((a, b) => a.sort_order - b.sort_order || a.id - b.id), [tags])
+
+  const [sortBy, setSortBy] = useState<'sort_order' | 'usage_asc' | 'usage_desc'>('sort_order')
+  const sortedTags = useMemo(() => {
+    const copy = [...tags]
+    if (sortBy === 'usage_asc') {
+      copy.sort((a, b) => (a.usage_count ?? 0) - (b.usage_count ?? 0) || a.sort_order - b.sort_order)
+    } else if (sortBy === 'usage_desc') {
+      copy.sort((a, b) => (b.usage_count ?? 0) - (a.usage_count ?? 0) || a.sort_order - b.sort_order)
+    } else {
+      copy.sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
+    }
+    return copy
+  }, [tags, sortBy])
 
   const [filterStatus, setFilterStatus] = useState('')
   const [page, setPage] = useState(1)
@@ -213,6 +225,16 @@ function FlatTagPanel({ type }: { type: string }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
+          <Select
+            className="w-40"
+            options={[
+              { value: 'sort_order', label: '按排序' },
+              { value: 'usage_asc', label: '使用量 ↑' },
+              { value: 'usage_desc', label: '使用量 ↓' },
+            ]}
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+          />
           <Select
             className="w-32"
             options={[
@@ -252,7 +274,7 @@ function FlatTagPanel({ type }: { type: string }) {
                 <TableCell>{tag.label_zh}</TableCell>
                 <TableCell>
                   {(tag.usage_count ?? 0) === 0 ? (
-                    <Badge variant="secondary">未使用</Badge>
+                    <Badge variant="secondary" className="whitespace-nowrap">未使用</Badge>
                   ) : (
                     <span className="text-sm tabular-nums">{tag.usage_count}</span>
                   )}
@@ -315,6 +337,7 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
   const [filterBrand, setFilterBrand] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [sortBy, setSortBy] = useState<'sort_order' | 'usage_asc' | 'usage_desc'>('sort_order')
   const [page, setPage] = useState(1)
 
   const filteredSorted = useMemo(() => {
@@ -323,8 +346,17 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
     if (filterCategory) filtered = filtered.filter((t) => t.parent_value === filterCategory)
     if (filterStatus === 'unused') filtered = filtered.filter((t) => (t.usage_count ?? 0) === 0)
     else if (filterStatus) filtered = filtered.filter((t) => filterStatus === 'active' ? t.is_active : !t.is_active)
-    return [...filtered].sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
-  }, [allSeries, filterBrand, filterCategory, filterStatus])
+
+    const copy = [...filtered]
+    if (sortBy === 'usage_asc') {
+      copy.sort((a, b) => (a.usage_count ?? 0) - (b.usage_count ?? 0) || a.sort_order - b.sort_order)
+    } else if (sortBy === 'usage_desc') {
+      copy.sort((a, b) => (b.usage_count ?? 0) - (a.usage_count ?? 0) || a.sort_order - b.sort_order)
+    } else {
+      copy.sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
+    }
+    return copy
+  }, [allSeries, filterBrand, filterCategory, filterStatus, sortBy])
 
   const unusedCount = useMemo(() => allSeries.filter((t) => (t.usage_count ?? 0) === 0).length, [allSeries])
 
@@ -355,7 +387,17 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            className="w-40"
+            options={[
+              { value: 'sort_order', label: '按排序' },
+              { value: 'usage_asc', label: '使用量 ↑' },
+              { value: 'usage_desc', label: '使用量 ↓' },
+            ]}
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+          />
           <Select
             className="w-36"
             options={[{ value: '', label: '全部品牌' }, ...brandOptions]}
@@ -411,7 +453,7 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
                 <TableCell>{tag.label_zh}</TableCell>
                 <TableCell>
                   {(tag.usage_count ?? 0) === 0 ? (
-                    <Badge variant="secondary">未使用</Badge>
+                    <Badge variant="secondary" className="whitespace-nowrap">未使用</Badge>
                   ) : (
                     <span className="text-sm tabular-nums">{tag.usage_count}</span>
                   )}
