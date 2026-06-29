@@ -62,6 +62,8 @@ export interface UserItem extends CurrentUser {
   last_active_at?: string
   login_ip?: string
   login_location?: string
+  member_apply_status?: string
+  member_apply_at?: string
 }
 
 export interface ResourceItem {
@@ -326,7 +328,7 @@ export const authApi = {
 }
 
 export const userApi = {
-  list: (params: { page?: number; size?: number; keyword?: string } = {}) => unwrap<PageResult<UserItem>>(api.get('/users', { params })),
+  list: (params: { page?: number; size?: number; keyword?: string; apply_status?: string } = {}) => unwrap<PageResult<UserItem>>(api.get('/users', { params })),
   updateRole: (id: number, role: Role) => unwrap(api.put(`/users/${id}/role`, { role })),
   blacklist: (id: number) => unwrap(api.post(`/users/${id}/blacklist`)),
   unblacklist: (id: number) => unwrap(api.post(`/users/${id}/unblacklist`)),

@@ -4,7 +4,7 @@ import { AuthGuard } from './components/AuthGuard'
 import { Layout } from './components/Layout'
 import { Login } from './pages/Login'
 import { Dashboard } from './pages/Dashboard'
-import { UsersPage } from './pages/users/UsersPage'
+import { UserList } from './pages/users/UserList'
 import { UserDetail } from './pages/users/UserDetail'
 import { DocumentList } from './pages/documents/DocumentList'
 import { DocumentUpload } from './pages/documents/DocumentUpload'
@@ -28,7 +28,7 @@ export const router = createBrowserRouter([
           {
             element: <AdminGuard />,
             children: [
-              { path: '/users', element: <UsersPage /> },
+              { path: '/users', element: <UserList /> },
               { path: '/users/:id', element: <UserDetail /> },
               { path: '/documents', element: <DocumentList /> },
               { path: '/documents/upload', element: <DocumentUpload /> },
