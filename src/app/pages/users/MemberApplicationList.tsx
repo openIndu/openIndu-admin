@@ -1,11 +1,49 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { memberApplicationApi, type MemberApplicationItem } from '@/api'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { ConfirmDialog } from '../../components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
+
+function SortableHead({
+  label,
+  sortKey,
+  currentSortBy,
+  currentSortOrder,
+  onSort,
+  className,
+}: {
+  label: string
+  sortKey: string
+  currentSortBy?: string
+  currentSortOrder?: 'asc' | 'desc'
+  onSort: (key: string) => void
+  className?: string
+}) {
+  const isActive = currentSortBy === sortKey
+  return (
+    <TableHead
+      className={`cursor-pointer select-none hover:bg-muted/50 ${className || ''}`}
+      onClick={() => onSort(sortKey)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        {isActive ? (
+          currentSortOrder === 'asc' ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )
+        ) : (
+          <ChevronsUpDown className="h-4 w-4 text-muted-foreground/50" />
+        )}
+      </div>
+    </TableHead>
+  )
+}
 
 const formatDate = (dateStr?: string) => {
   if (!dateStr) return '-'
@@ -35,12 +73,26 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'outline'> = {
 export function MemberApplicationList() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
+  const [sortBy, setSortBy] = useState<string>('created_at')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [pendingApprove, setPendingApprove] = useState<MemberApplicationItem | null>(null)
   const size = 20
 
+  const handleSort = (key: string) => {
+    if (sortBy === key) {
+      // Toggle order if same column
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      // New column, default to desc
+      setSortBy(key)
+      setSortOrder('desc')
+    }
+    setPage(1)
+  }
+
   const query = useQuery({
-    queryKey: ['member-applications', page],
-    queryFn: () => memberApplicationApi.list({ page, size }),
+    queryKey: ['member-applications', page, sortBy, sortOrder],
+    queryFn: () => memberApplicationApi.list({ page, size, sort_by: sortBy, sort_order: sortOrder }),
     refetchInterval: 30_000,
   })
 
@@ -62,7 +114,7 @@ export function MemberApplicationList() {
           <CardDescription>审核用户提交的会员升级申请，通过后自动将角色改为会员。</CardDescription>
         </CardHeader>
         <CardContent>
-          {query.isLoading ? (
+          {query.isLoading && !data ? (
             <p className="text-sm text-muted-foreground py-8 text-center">加载中…</p>
           ) : (
             <Table>
@@ -72,7 +124,13 @@ export function MemberApplicationList() {
                   <TableHead>昵称</TableHead>
                   <TableHead>当前角色</TableHead>
                   <TableHead>留言</TableHead>
-                  <TableHead>申请时间</TableHead>
+                  <SortableHead
+                    label="申请时间"
+                    sortKey="created_at"
+                    currentSortBy={sortBy}
+                    currentSortOrder={sortOrder}
+                    onSort={handleSort}
+                  />
                   <TableHead>状态</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>

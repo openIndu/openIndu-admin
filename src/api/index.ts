@@ -328,7 +328,7 @@ export const authApi = {
 }
 
 export const userApi = {
-  list: (params: { page?: number; size?: number; keyword?: string; role?: string; apply_status?: string } = {}) => unwrap<PageResult<UserItem>>(api.get('/users', { params })),
+  list: (params: { page?: number; size?: number; keyword?: string; role?: string; apply_status?: string; sort_by?: string; sort_order?: 'asc' | 'desc' } = {}) => unwrap<PageResult<UserItem>>(api.get('/users', { params })),
   updateRole: (id: number, role: Role) => unwrap(api.put(`/users/${id}/role`, { role })),
   blacklist: (id: number) => unwrap(api.post(`/users/${id}/blacklist`)),
   unblacklist: (id: number) => unwrap(api.post(`/users/${id}/unblacklist`)),
@@ -465,11 +465,11 @@ export const statsApi = {
   online: () => unwrap<OnlineStats>(api.get('/stats/online')),
   dashboard: () => unwrap<DashboardStats>(api.get('/stats/dashboard')),
   loginHistory: (params: { page?: number; size?: number; keyword?: string; status?: string } = {}) => unwrap<PageResult<Record<string, unknown>>>(api.get('/stats/login-history', { params })),
-  visitLogs: (params: { page?: number; size?: number; keyword?: string; authed?: string; include_local?: boolean } = {}) => unwrap<PageResult<Record<string, unknown>>>(api.get('/stats/visit-logs', { params })),
+  visitLogs: (params: { page?: number; size?: number; keyword?: string; authed?: string; include_local?: boolean; sort_by?: string; sort_order?: 'asc' | 'desc' } = {}) => unwrap<PageResult<Record<string, unknown>>>(api.get('/stats/visit-logs', { params })),
 }
 
 export const adminApi = {
-  auditLogs: (params: { page?: number; page_size?: number; admin_keyword?: string; target_keyword?: string; action?: string } = {}) =>
+  auditLogs: (params: { page?: number; page_size?: number; admin_keyword?: string; target_keyword?: string; action?: string; sort_by?: string; sort_order?: 'asc' | 'desc' } = {}) =>
     api.get('/admin/audit-logs', { params }).then((r) => {
       const data = (r.data.data ?? r.data) as { items?: Record<string, unknown>[]; total?: number }
       return data
@@ -490,7 +490,7 @@ export interface MemberApplicationItem {
 }
 
 export const memberApplicationApi = {
-  list: (params: { page?: number; size?: number; status?: string } = {}) =>
+  list: (params: { page?: number; size?: number; status?: string; sort_by?: string; sort_order?: 'asc' | 'desc' } = {}) =>
     unwrap<{ items: MemberApplicationItem[]; total: number; page: number; size: number }>(
       api.get('/admin/member-applications', { params }),
     ),

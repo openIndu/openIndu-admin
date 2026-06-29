@@ -6,7 +6,44 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Input } from '../../components/ui/input'
 import { Select } from '../../components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
-import { ShieldAlert } from 'lucide-react'
+import { ShieldAlert, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+
+function SortableHead({
+  label,
+  sortKey,
+  currentSortBy,
+  currentSortOrder,
+  onSort,
+  className,
+}: {
+  label: string
+  sortKey: string
+  currentSortBy?: string
+  currentSortOrder?: 'asc' | 'desc'
+  onSort: (key: string) => void
+  className?: string
+}) {
+  const isActive = currentSortBy === sortKey
+  return (
+    <TableHead
+      className={`cursor-pointer select-none hover:bg-muted/50 ${className || ''}`}
+      onClick={() => onSort(sortKey)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        {isActive ? (
+          currentSortOrder === 'asc' ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )
+        ) : (
+          <ChevronsUpDown className="h-4 w-4 text-muted-foreground/50" />
+        )}
+      </div>
+    </TableHead>
+  )
+}
 
 const actionOptions = [
   { value: '', label: '全部操作' },
@@ -21,17 +58,33 @@ export function AuditLogs() {
   const [adminKeyword, setAdminKeyword] = useState('')
   const [targetKeyword, setTargetKeyword] = useState('')
   const [actionFilter, setActionFilter] = useState('')
+  const [sortBy, setSortBy] = useState<string>('created_at')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [searchParams, setSearchParams] = useState({ adminKeyword: '', targetKeyword: '', action: '' })
   const pageSize = 10
 
+  const handleSort = (key: string) => {
+    if (sortBy === key) {
+      // Toggle order if same column
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      // New column, default to desc
+      setSortBy(key)
+      setSortOrder('desc')
+    }
+    setPage(1)
+  }
+
   const query = useQuery({
-    queryKey: ['audit-logs', page, searchParams],
+    queryKey: ['audit-logs', page, searchParams, sortBy, sortOrder],
     queryFn: () => adminApi.auditLogs({
       page,
       page_size: pageSize,
       admin_keyword: searchParams.adminKeyword || undefined,
       target_keyword: searchParams.targetKeyword || undefined,
       action: searchParams.action || undefined,
+      sort_by: sortBy,
+      sort_order: sortOrder,
     }),
     retry: false,
   })
@@ -114,7 +167,7 @@ export function AuditLogs() {
             <Button variant="outline" className="ml-auto" onClick={() => void query.refetch()}>刷新</Button>
           </div>
 
-          {query.isLoading ? <div className="text-muted-foreground py-4">正在加载...</div> : null}
+          {query.isLoading && !query.data ? <div className="text-muted-foreground py-4">正在加载...</div> : null}
           {!query.isLoading && logs.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground">暂无审计记录</div>
           ) : null}
@@ -128,7 +181,13 @@ export function AuditLogs() {
                     <TableHead>目标用户</TableHead>
                     <TableHead>操作类型</TableHead>
                     <TableHead>详情</TableHead>
-                    <TableHead>操作时间</TableHead>
+                    <SortableHead
+                      label="操作时间"
+                      sortKey="created_at"
+                      currentSortBy={sortBy}
+                      currentSortOrder={sortOrder}
+                      onSort={handleSort}
+                    />
                   </TableRow>
                 </TableHeader>
                 <TableBody>

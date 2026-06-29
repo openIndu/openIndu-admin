@@ -6,7 +6,44 @@ import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
-import { Clock } from 'lucide-react'
+import { Clock, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+
+function SortableHead({
+  label,
+  sortKey,
+  currentSortBy,
+  currentSortOrder,
+  onSort,
+  className,
+}: {
+  label: string
+  sortKey: string
+  currentSortBy?: string
+  currentSortOrder?: 'asc' | 'desc'
+  onSort: (key: string) => void
+  className?: string
+}) {
+  const isActive = currentSortBy === sortKey
+  return (
+    <TableHead
+      className={`cursor-pointer select-none hover:bg-muted/50 ${className || ''}`}
+      onClick={() => onSort(sortKey)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        {isActive ? (
+          currentSortOrder === 'asc' ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )
+        ) : (
+          <ChevronsUpDown className="h-4 w-4 text-muted-foreground/50" />
+        )}
+      </div>
+    </TableHead>
+  )
+}
 
 const authedOptions = [
   { value: '', label: '全部' },
@@ -18,17 +55,33 @@ export function OnlineStats() {
   const [page, setPage] = useState(1)
   const [keyword, setKeyword] = useState('')
   const [authedFilter, setAuthedFilter] = useState('')
+  const [sortBy, setSortBy] = useState<string>('created_at')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [searchParams, setSearchParams] = useState({ keyword: '', authed: '' })
   const pageSize = 10
 
+  const handleSort = (key: string) => {
+    if (sortBy === key) {
+      // Toggle order if same column
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      // New column, default to desc
+      setSortBy(key)
+      setSortOrder('desc')
+    }
+    setPage(1)
+  }
+
   const query = useQuery({
-    queryKey: ['stats', 'visit-logs', page, searchParams],
+    queryKey: ['stats', 'visit-logs', page, searchParams, sortBy, sortOrder],
     queryFn: () =>
       statsApi.visitLogs({
         page,
         size: pageSize,
         keyword: searchParams.keyword || undefined,
         authed: searchParams.authed || undefined,
+        sort_by: sortBy,
+        sort_order: sortOrder,
       }),
   })
 
@@ -104,8 +157,8 @@ export function OnlineStats() {
             </Button>
           </div>
 
-          {query.isLoading ? <div className="text-muted-foreground py-4">正在加载...</div> : null}
-          {query.isError ? <div className="text-destructive py-4">访问日志加载失败</div> : null}
+          {query.isLoading && !query.data ? <div className="text-muted-foreground py-4">正在加载...</div> : null}
+          {query.isError && !query.data ? <div className="text-destructive py-4">访问日志加载失败</div> : null}
           {!query.isLoading && !query.isError && records.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground">暂无访问记录</div>
           ) : null}
@@ -120,7 +173,13 @@ export function OnlineStats() {
                     <TableHead>访问地区</TableHead>
                     <TableHead>访问页面</TableHead>
                     <TableHead>是否登录</TableHead>
-                    <TableHead>时间</TableHead>
+                    <SortableHead
+                      label="时间"
+                      sortKey="created_at"
+                      currentSortBy={sortBy}
+                      currentSortOrder={sortOrder}
+                      onSort={handleSort}
+                    />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
