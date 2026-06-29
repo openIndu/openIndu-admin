@@ -13,7 +13,6 @@ import {
   SlidersHorizontal,
   Tag,
   UploadCloud,
-  UserCheck,
   Users,
 } from 'lucide-react'
 import { cn } from './ui/utils'
@@ -23,7 +22,6 @@ const mainNavItems = [
   { to: '/documents', label: '文档管理', icon: FileText },
   { to: '/software', label: '软件管理', icon: UploadCloud },
   { to: '/users', label: '用户管理', icon: Users, end: true },
-  { to: '/users/applications', label: '会员申请', icon: UserCheck },
 ]
 
 const settingsSubItems = [
