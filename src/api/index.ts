@@ -474,6 +474,28 @@ export const adminApi = {
     }),
 }
 
+export interface MemberApplicationItem {
+  id: number
+  user_id: number
+  status: 'pending' | 'approved'
+  note?: string
+  reviewed_by?: number
+  created_at?: string
+  updated_at?: string
+  phone?: string
+  nickname?: string
+  current_role?: string
+}
+
+export const memberApplicationApi = {
+  list: (params: { page?: number; size?: number; status?: string } = {}) =>
+    unwrap<{ items: MemberApplicationItem[]; total: number; page: number; size: number }>(
+      api.get('/admin/member-applications', { params }),
+    ),
+  approve: (id: number) =>
+    unwrap<MemberApplicationItem>(api.put(`/admin/member-applications/${id}/approve`)),
+}
+
 export const portalApi = {
   getHero: () => unwrap<Record<string, unknown>>(api.get('/portal/hero')),
   updateHero: (data: Record<string, unknown>) => unwrap<Record<string, unknown>>(api.put('/portal/hero', data)),
