@@ -19,10 +19,10 @@ import {
 import { cn } from './ui/utils'
 
 const mainNavItems = [
-  { to: '/dashboard', label: '仪表盘', icon: BarChart3 },
+  { to: '/dashboard', label: '仪表盘', icon: BarChart3, end: true },
   { to: '/documents', label: '文档管理', icon: FileText },
   { to: '/software', label: '软件管理', icon: UploadCloud },
-  { to: '/users', label: '用户管理', icon: Users },
+  { to: '/users', label: '用户管理', icon: Users, end: true },
   { to: '/users/applications', label: '会员申请', icon: UserCheck },
 ]
 
@@ -96,6 +96,7 @@ export function Sidebar() {
             <NavLink
               key={item.to}
               to={item.to}
+              end={item.end}
               title={collapsed ? item.label : undefined}
               className={({ isActive }) => linkClass(isActive)}
             >
