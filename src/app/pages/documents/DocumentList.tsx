@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Copy, ListChecks, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { Copy, ListChecks, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { documentApi, syncApi, tagsApi, type ResourceItem, type ResourceTag } from '@/api'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
@@ -36,12 +36,12 @@ function SortableHead({
         {label}
         {isActive ? (
           currentSortOrder === 'asc' ? (
-            <ChevronUp className="h-4 w-4" />
+            <ArrowUp className="h-4 w-4" />
           ) : (
-            <ChevronDown className="h-4 w-4" />
+            <ArrowDown className="h-4 w-4" />
           )
         ) : (
-          <ChevronsUpDown className="h-4 w-4 text-muted-foreground/50" />
+          <ArrowUpDown className="h-4 w-4 text-muted-foreground/50" />
         )}
       </div>
     </TableHead>
@@ -363,8 +363,8 @@ export function DocumentList() {
             </div>
           ) : null}
 
-          {query.isLoading ? <div className="text-muted-foreground">正在加载文档...</div> : null}
-          {query.isError ? <div className="text-destructive">文档列表加载失败</div> : null}
+          {query.isLoading && !query.data ? <div className="text-muted-foreground">正在加载文档...</div> : null}
+          {query.isError && !query.data ? <div className="text-destructive">文档列表加载失败</div> : null}
           {!query.isLoading && !query.isError && query.data?.items.length === 0 ? <div className="text-muted-foreground">暂无文档</div> : null}
           {query.data && query.data.items.length > 0 ? (
             <Table>

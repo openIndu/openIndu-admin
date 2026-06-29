@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { tagsApi, type ResourceTag } from '@/api'
 import { Badge } from '../../components/ui/badge'
@@ -11,6 +12,41 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Tabs } from '../../components/ui/tabs'
 
 const PAGE_SIZE = 10
+
+function SortableHead({
+  label,
+  currentSortBy,
+  currentSortOrder,
+  onSort,
+  className,
+}: {
+  label: string
+  currentSortBy: 'sort_order' | 'usage'
+  currentSortOrder: 'asc' | 'desc'
+  onSort: () => void
+  className?: string
+}) {
+  const isActive = currentSortBy === 'usage'
+  return (
+    <TableHead
+      className={`cursor-pointer select-none hover:bg-muted/50 ${className || ''}`}
+      onClick={onSort}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        {isActive ? (
+          currentSortOrder === 'asc' ? (
+            <ArrowUp className="h-4 w-4" />
+          ) : (
+            <ArrowDown className="h-4 w-4" />
+          )
+        ) : (
+          <ArrowUpDown className="h-4 w-4 text-muted-foreground/50" />
+        )}
+      </div>
+    </TableHead>
+  )
+}
 
 // ─── Tag form modal (create / edit for flat types) ───────────────────────────
 function TagModal({ mode, tag, type, onClose, onSuccess }: {
@@ -180,18 +216,30 @@ function FlatTagPanel({ type }: { type: string }) {
 
   const { data: tags = [], isLoading } = useQuery({ queryKey: ['tags', type], queryFn: () => tagsApi.list(type), staleTime: 0 })
 
-  const [sortBy, setSortBy] = useState<'sort_order' | 'usage_asc' | 'usage_desc'>('sort_order')
+  const [sortBy, setSortBy] = useState<'sort_order' | 'usage'>('sort_order')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const sortedTags = useMemo(() => {
     const copy = [...tags]
-    if (sortBy === 'usage_asc') {
-      copy.sort((a, b) => (a.usage_count ?? 0) - (b.usage_count ?? 0) || a.sort_order - b.sort_order)
-    } else if (sortBy === 'usage_desc') {
-      copy.sort((a, b) => (b.usage_count ?? 0) - (a.usage_count ?? 0) || a.sort_order - b.sort_order)
+    if (sortBy === 'usage') {
+      if (sortOrder === 'asc') {
+        copy.sort((a, b) => (a.usage_count ?? 0) - (b.usage_count ?? 0) || a.sort_order - b.sort_order)
+      } else {
+        copy.sort((a, b) => (b.usage_count ?? 0) - (a.usage_count ?? 0) || a.sort_order - b.sort_order)
+      }
     } else {
       copy.sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
     }
     return copy
-  }, [tags, sortBy])
+  }, [tags, sortBy, sortOrder])
+
+  const handleSort = () => {
+    if (sortBy === 'usage') {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy('usage')
+      setSortOrder('desc')
+    }
+  }
 
   const [filterStatus, setFilterStatus] = useState('')
   const [page, setPage] = useState(1)
@@ -226,16 +274,6 @@ function FlatTagPanel({ type }: { type: string }) {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Select
-            className="w-40"
-            options={[
-              { value: 'sort_order', label: '按排序' },
-              { value: 'usage_asc', label: '使用量 ↑' },
-              { value: 'usage_desc', label: '使用量 ↓' },
-            ]}
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-          />
-          <Select
             className="w-32"
             options={[
               { value: '', label: '全部状态' },
@@ -261,7 +299,13 @@ function FlatTagPanel({ type }: { type: string }) {
               <TableHead className="w-16">排序</TableHead>
               <TableHead>标识（value）</TableHead>
               <TableHead>中文名</TableHead>
-              <TableHead className="w-20">使用</TableHead>
+              <SortableHead
+                label="使用"
+                className="w-20"
+                currentSortBy={sortBy}
+                currentSortOrder={sortOrder}
+                onSort={handleSort}
+              />
               <TableHead>状态</TableHead>
               <TableHead>操作</TableHead>
             </TableRow>
@@ -337,7 +381,8 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
   const [filterBrand, setFilterBrand] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
-  const [sortBy, setSortBy] = useState<'sort_order' | 'usage_asc' | 'usage_desc'>('sort_order')
+  const [sortBy, setSortBy] = useState<'sort_order' | 'usage'>('sort_order')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [page, setPage] = useState(1)
 
   const filteredSorted = useMemo(() => {
@@ -348,15 +393,26 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
     else if (filterStatus) filtered = filtered.filter((t) => filterStatus === 'active' ? t.is_active : !t.is_active)
 
     const copy = [...filtered]
-    if (sortBy === 'usage_asc') {
-      copy.sort((a, b) => (a.usage_count ?? 0) - (b.usage_count ?? 0) || a.sort_order - b.sort_order)
-    } else if (sortBy === 'usage_desc') {
-      copy.sort((a, b) => (b.usage_count ?? 0) - (a.usage_count ?? 0) || a.sort_order - b.sort_order)
+    if (sortBy === 'usage') {
+      if (sortOrder === 'asc') {
+        copy.sort((a, b) => (a.usage_count ?? 0) - (b.usage_count ?? 0) || a.sort_order - b.sort_order)
+      } else {
+        copy.sort((a, b) => (b.usage_count ?? 0) - (a.usage_count ?? 0) || a.sort_order - b.sort_order)
+      }
     } else {
       copy.sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
     }
     return copy
-  }, [allSeries, filterBrand, filterCategory, filterStatus, sortBy])
+  }, [allSeries, filterBrand, filterCategory, filterStatus, sortBy, sortOrder])
+
+  const handleSort = () => {
+    if (sortBy === 'usage') {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy('usage')
+      setSortOrder('desc')
+    }
+  }
 
   const unusedCount = useMemo(() => allSeries.filter((t) => (t.usage_count ?? 0) === 0).length, [allSeries])
 
@@ -388,16 +444,6 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <Select
-            className="w-40"
-            options={[
-              { value: 'sort_order', label: '按排序' },
-              { value: 'usage_asc', label: '使用量 ↑' },
-              { value: 'usage_desc', label: '使用量 ↓' },
-            ]}
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-          />
           <Select
             className="w-36"
             options={[{ value: '', label: '全部品牌' }, ...brandOptions]}
@@ -438,7 +484,13 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
               <TableHead>所属{categoryLabel}</TableHead>
               <TableHead>标识（value）</TableHead>
               <TableHead>中文名</TableHead>
-              <TableHead className="w-20">使用</TableHead>
+              <SortableHead
+                label="使用"
+                className="w-20"
+                currentSortBy={sortBy}
+                currentSortOrder={sortOrder}
+                onSort={handleSort}
+              />
               <TableHead>状态</TableHead>
               <TableHead>操作</TableHead>
             </TableRow>

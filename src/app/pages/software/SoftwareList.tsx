@@ -9,7 +9,7 @@ import { ConfirmDialog } from '../../components/ui/dialog'
 import { Input } from '../../components/ui/input'
 import { Select } from '../../components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
-import { Paperclip, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { Paperclip, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { uploadToOss, UploadCancelledError } from './directUpload'
 
 function SortableHead({
@@ -37,12 +37,12 @@ function SortableHead({
         {label}
         {isActive ? (
           currentSortOrder === 'asc' ? (
-            <ChevronUp className="h-4 w-4" />
+            <ArrowUp className="h-4 w-4" />
           ) : (
-            <ChevronDown className="h-4 w-4" />
+            <ArrowDown className="h-4 w-4" />
           )
         ) : (
-          <ChevronsUpDown className="h-4 w-4 text-muted-foreground/50" />
+          <ArrowUpDown className="h-4 w-4 text-muted-foreground/50" />
         )}
       </div>
     </TableHead>
@@ -435,8 +435,8 @@ export function SoftwareList() {
             </div>
           ) : null}
 
-          {query.isLoading ? <div className="text-muted-foreground">正在加载软件...</div> : null}
-          {query.isError ? <div className="text-destructive">软件列表加载失败</div> : null}
+          {query.isLoading && !query.data ? <div className="text-muted-foreground">正在加载软件...</div> : null}
+          {query.isError && !query.data ? <div className="text-destructive">软件列表加载失败</div> : null}
           {!query.isLoading && !query.isError && query.data?.items.length === 0 ? <div className="text-muted-foreground">暂无软件</div> : null}
           {query.data && query.data.items.length > 0 ? (
             <Table>
