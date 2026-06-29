@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { memberApplicationApi, userApi, type Role, type UserItem } from '@/api'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
@@ -9,6 +10,43 @@ import { ConfirmDialog } from '../../components/ui/dialog'
 import { Input } from '../../components/ui/input'
 import { Select } from '../../components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
+
+function SortableHead({
+  label,
+  sortKey,
+  currentSortBy,
+  currentSortOrder,
+  onSort,
+  className,
+}: {
+  label: string
+  sortKey: string
+  currentSortBy?: string
+  currentSortOrder?: 'asc' | 'desc'
+  onSort: (key: string) => void
+  className?: string
+}) {
+  const isActive = currentSortBy === sortKey
+  return (
+    <TableHead
+      className={`cursor-pointer select-none hover:bg-muted/50 ${className || ''}`}
+      onClick={() => onSort(sortKey)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        {isActive ? (
+          currentSortOrder === 'asc' ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )
+        ) : (
+          <ChevronsUpDown className="h-4 w-4 text-muted-foreground/50" />
+        )}
+      </div>
+    </TableHead>
+  )
+}
 
 const roleOptions = [
   { value: 'user', label: '普通用户' },
@@ -70,6 +108,8 @@ export function UserList() {
   const [keyword, setKeyword] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [applyFilter, setApplyFilter] = useState('')
+  const [sortBy, setSortBy] = useState<string>('created_at')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [pendingAction, setPendingAction] = useState<{
     type: 'blacklist' | 'unblacklist' | 'forceLogout' | 'delete'
     user: UserItem
@@ -77,13 +117,27 @@ export function UserList() {
   const [pendingApprove, setPendingApprove] = useState<UserItem | null>(null)
   const [pendingReject, setPendingReject] = useState<UserItem | null>(null)
 
+  const handleSort = (key: string) => {
+    if (sortBy === key) {
+      // Toggle order if same column
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      // New column, default to desc
+      setSortBy(key)
+      setSortOrder('desc')
+    }
+    setPage(1)
+  }
+
   const params = useMemo(() => ({
     page,
     size: 10,
     keyword: keyword || undefined,
     role: roleFilter || undefined,
     apply_status: applyFilter || undefined,
-  }), [keyword, page, roleFilter, applyFilter])
+    sort_by: sortBy,
+    sort_order: sortOrder,
+  }), [keyword, page, roleFilter, applyFilter, sortBy, sortOrder])
 
   const query = useQuery({
     queryKey: ['users', params],
@@ -142,8 +196,8 @@ export function UserList() {
             <Button variant="outline" onClick={() => void query.refetch()}>刷新</Button>
           </div>
 
-          {query.isLoading ? <div className="text-muted-foreground py-4">正在加载用户...</div> : null}
-          {query.isError ? <div className="text-destructive py-4">用户列表加载失败</div> : null}
+          {query.isLoading && !query.data ? <div className="text-muted-foreground py-4">正在加载用户...</div> : null}
+          {query.isError && !query.data ? <div className="text-destructive py-4">用户列表加载失败</div> : null}
           {!query.isLoading && !query.isError && query.data?.items.length === 0 ? (
             <div className="text-muted-foreground py-4">暂无匹配用户</div>
           ) : null}
@@ -154,9 +208,21 @@ export function UserList() {
                 <TableRow>
                   <TableHead>手机号</TableHead>
                   <TableHead>角色</TableHead>
-                  <TableHead>注册时间</TableHead>
+                  <SortableHead
+                    label="注册时间"
+                    sortKey="created_at"
+                    currentSortBy={sortBy}
+                    currentSortOrder={sortOrder}
+                    onSort={handleSort}
+                  />
                   <TableHead>在线状态</TableHead>
-                  <TableHead>最后登录</TableHead>
+                  <SortableHead
+                    label="最后登录"
+                    sortKey="last_login"
+                    currentSortBy={sortBy}
+                    currentSortOrder={sortOrder}
+                    onSort={handleSort}
+                  />
                   <TableHead>登录 IP</TableHead>
                   <TableHead>会员申请</TableHead>
                   <TableHead>操作</TableHead>
