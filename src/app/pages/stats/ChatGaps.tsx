@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { statsApi, type KnowledgeGapItem } from '@/api'
-import { Badge } from '../../components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { Tabs } from '../../components/ui/tabs'
 import { ThumbsDown, AlertTriangle, MessageSquare } from 'lucide-react'
