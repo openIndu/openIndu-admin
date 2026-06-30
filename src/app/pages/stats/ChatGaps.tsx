@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { statsApi, type KnowledgeGapItem } from '@/api'
 import { Badge } from '../../components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
+import { Tabs } from '../../components/ui/tabs'
 import { ThumbsDown, AlertTriangle, MessageSquare } from 'lucide-react'
 
 function GapRow({ item, showSnippet }: { item: KnowledgeGapItem; showSnippet?: boolean }) {
@@ -48,6 +48,44 @@ export function ChatGaps() {
     queryFn: () => statsApi.chatKnowledgeGaps(),
     staleTime: 60_000,
   })
+
+  const dislikedContent = (
+    <div>
+      <Card>
+        <CardContent className="pt-4">
+          {isLoading && <p className="py-8 text-center text-sm text-gray-400">加载中…</p>}
+          {!isLoading && data?.disliked.length === 0 && (
+            <p className="py-8 text-center text-sm text-gray-400">暂无负面反馈，继续保持！</p>
+          )}
+          {data?.disliked.map((item) => (
+            <GapRow key={item.message_id} item={item} showSnippet />
+          ))}
+        </CardContent>
+      </Card>
+      <p className="mt-2 text-xs text-gray-400">
+        建议：针对上述提问补充相关文档，上传至后台"文档管理"并同步向量库。
+      </p>
+    </div>
+  )
+
+  const fallbackContent = (
+    <div>
+      <Card>
+        <CardContent className="pt-4">
+          {isLoading && <p className="py-8 text-center text-sm text-gray-400">加载中…</p>}
+          {!isLoading && data?.fallbacks.length === 0 && (
+            <p className="py-8 text-center text-sm text-gray-400">所有提问均命中知识库！</p>
+          )}
+          {data?.fallbacks.map((item) => (
+            <GapRow key={item.message_id} item={item} />
+          ))}
+        </CardContent>
+      </Card>
+      <p className="mt-2 text-xs text-gray-400">
+        建议：这些提问在知识库中未找到匹配文档（相似度低于阈值），优先补充对应品牌/分类的手册。
+      </p>
+    </div>
+  )
 
   return (
     <div className="space-y-6">
@@ -96,56 +134,21 @@ export function ChatGaps() {
         </div>
       )}
 
-      <Tabs defaultValue="disliked">
-        <TabsList>
-          <TabsTrigger value="disliked">
-            负面反馈
-            {data && data.disliked.length > 0 && (
-              <Badge variant="destructive" className="ml-2">{data.disliked.length}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="fallbacks">
-            知识库未命中
-            {data && data.fallbacks.length > 0 && (
-              <Badge variant="secondary" className="ml-2">{data.fallbacks.length}</Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="disliked" className="mt-4">
-          <Card>
-            <CardContent className="pt-4">
-              {isLoading && <p className="py-8 text-center text-sm text-gray-400">加载中…</p>}
-              {!isLoading && data?.disliked.length === 0 && (
-                <p className="py-8 text-center text-sm text-gray-400">暂无负面反馈，继续保持！</p>
-              )}
-              {data?.disliked.map((item) => (
-                <GapRow key={item.message_id} item={item} showSnippet />
-              ))}
-            </CardContent>
-          </Card>
-          <p className="mt-2 text-xs text-gray-400">
-            建议：针对上述提问补充相关文档，上传至后台"文档管理"并同步向量库。
-          </p>
-        </TabsContent>
-
-        <TabsContent value="fallbacks" className="mt-4">
-          <Card>
-            <CardContent className="pt-4">
-              {isLoading && <p className="py-8 text-center text-sm text-gray-400">加载中…</p>}
-              {!isLoading && data?.fallbacks.length === 0 && (
-                <p className="py-8 text-center text-sm text-gray-400">所有提问均命中知识库！</p>
-              )}
-              {data?.fallbacks.map((item) => (
-                <GapRow key={item.message_id} item={item} />
-              ))}
-            </CardContent>
-          </Card>
-          <p className="mt-2 text-xs text-gray-400">
-            建议：这些提问在知识库中未找到匹配文档（相似度低于阈值），优先补充对应品牌/分类的手册。
-          </p>
-        </TabsContent>
-      </Tabs>
+      <Tabs
+        defaultValue="disliked"
+        items={[
+          {
+            value: 'disliked',
+            label: `负面反馈${data && data.disliked.length > 0 ? ` (${data.disliked.length})` : ''}`,
+            content: dislikedContent,
+          },
+          {
+            value: 'fallbacks',
+            label: `知识库未命中${data && data.fallbacks.length > 0 ? ` (${data.fallbacks.length})` : ''}`,
+            content: fallbackContent,
+          },
+        ]}
+      />
     </div>
   )
 }
