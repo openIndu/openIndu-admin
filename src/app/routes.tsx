@@ -14,6 +14,7 @@ import { SettingsView } from './pages/settings/SettingsView'
 import { TagsView } from './pages/settings/TagsView'
 import { OnlineStats } from './pages/stats/OnlineStats'
 import { AuditLogs } from './pages/stats/AuditLogs'
+import { ChatGaps } from './pages/stats/ChatGaps'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
@@ -38,6 +39,7 @@ export const router = createBrowserRouter([
               { path: '/settings/tags', element: <TagsView /> },
               { path: '/stats', element: <OnlineStats /> },
               { path: '/stats/audit', element: <AuditLogs /> },
+              { path: '/stats/chat-gaps', element: <ChatGaps /> },
             ],
           },
         ],

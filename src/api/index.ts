@@ -466,6 +466,16 @@ export const statsApi = {
   dashboard: () => unwrap<DashboardStats>(api.get('/stats/dashboard')),
   loginHistory: (params: { page?: number; size?: number; keyword?: string; status?: string } = {}) => unwrap<PageResult<Record<string, unknown>>>(api.get('/stats/login-history', { params })),
   visitLogs: (params: { page?: number; size?: number; keyword?: string; authed?: string; include_local?: boolean; sort_by?: string; sort_order?: 'asc' | 'desc' } = {}) => unwrap<PageResult<Record<string, unknown>>>(api.get('/stats/visit-logs', { params })),
+  chatKnowledgeGaps: () => unwrap<{ disliked: KnowledgeGapItem[]; fallbacks: KnowledgeGapItem[] }>(api.get('/stats/chat/knowledge-gaps')),
+}
+
+export interface KnowledgeGapItem {
+  message_id: number;
+  session_id: number;
+  question: string | null;
+  answer_snippet?: string | null;
+  mode?: string | null;
+  created_at: string;
 }
 
 export const adminApi = {

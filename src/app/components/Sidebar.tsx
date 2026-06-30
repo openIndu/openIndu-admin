@@ -8,6 +8,7 @@ import {
   ChevronUp,
   Clock,
   FileText,
+  MessageSquare,
   Settings,
   Shield,
   SlidersHorizontal,
@@ -29,6 +30,7 @@ const settingsSubItems = [
   { to: '/settings/tags', label: '品牌与分类', icon: Tag },
   { to: '/stats', label: '访问日志', icon: Clock, end: true },
   { to: '/stats/audit', label: '审计日志', icon: Shield },
+  { to: '/stats/chat-gaps', label: '知识盲区', icon: MessageSquare },
 ]
 
 export function Sidebar() {
