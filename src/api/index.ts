@@ -379,6 +379,7 @@ export const softwareApi = {
   publishToggle: (id: number) => unwrap<SoftwareItem>(api.patch(`/software/${id}/publish`)),
   publishVersionToggle: (id: number, versionId: number) => unwrap(api.patch(`/software/${id}/versions/${versionId}/publish`)),
   bulkPublish: (data: { ids?: number[]; version_ids?: number[]; brand?: string; category?: string; keyword?: string; publish?: boolean }) => unwrap<{ count: number; publish: boolean }>(api.patch('/software/publish/bulk', data)),
+  bulkDelete: (data: { ids?: number[]; version_ids?: number[]; brand?: string; category?: string; keyword?: string }) => unwrap<{ count: number }>(api.delete('/software/bulk', { data })),
   addVersion: (id: number, formData: FormData, onUploadProgress?: (e: AxiosProgressEvent) => void) => unwrap(api.post(`/software/${id}/versions`, formData, uploadConfig(onUploadProgress))),
   deleteVersion: (id: number, versionId: number) => unwrap(api.delete(`/software/${id}/versions/${versionId}`)),
   downloadLink: (id: number) => unwrap<{ download_url: string; filename?: string; expires_in?: number }>(api.get(`/software/${id}/download-link`)),
