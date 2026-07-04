@@ -5,13 +5,74 @@ import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { ConfirmDialog } from '../../components/ui/dialog'
+import { DropdownMenu, DropdownMenuItem } from '../../components/ui/dropdown-menu'
 import { Input } from '../../components/ui/input'
 import { Select } from '../../components/ui/select'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '../../components/ui/sheet'
+import { Sheet, SheetContent } from '../../components/ui/sheet'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
 import { Tabs } from '../../components/ui/tabs'
+import { ChevronDown, ChevronUp, ChevronsUpDown } from 'lucide-react'
 
-const PAGE_SIZE = 10
+const PAGE_SIZE_OPTIONS = [10, 20, 50]
+
+// ─── Clickable sortable column header ─────────────────────────────────────────
+function SortableHead({ label, sortKey, currentSortBy, currentSortOrder, onSort, className }: {
+  label: string
+  sortKey: string
+  currentSortBy: string
+  currentSortOrder: 'asc' | 'desc'
+  onSort: (key: string) => void
+  className?: string
+}) {
+  const isActive = currentSortBy === sortKey
+  return (
+    <TableHead className={`cursor-pointer select-none hover:bg-muted/50 ${className || ''}`} onClick={() => onSort(sortKey)}>
+      <div className="flex items-center gap-1 whitespace-nowrap">
+        {label}
+        {isActive
+          ? (currentSortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)
+          : <ChevronsUpDown className="h-4 w-4 text-muted-foreground/40" />}
+      </div>
+    </TableHead>
+  )
+}
+
+// ─── Filterable column header with dropdown ───────────────────────────────────
+function FilterableHead({ label, options, value, onChange, align = 'right' }: {
+  label: string
+  options: { value: string; label: string }[]
+  value: string
+  onChange: (value: string) => void
+  align?: 'left' | 'right'
+}) {
+  const isActive = value !== ''
+  const selectedLabel = options.find((o) => o.value === value)?.label
+  return (
+    <TableHead className="cursor-pointer select-none hover:bg-muted/50">
+      <DropdownMenu
+        align={align}
+        trigger={
+          <div className={`flex items-center gap-1 whitespace-nowrap ${isActive ? 'text-primary font-semibold' : ''}`}>
+            {isActive ? selectedLabel : label}
+            <svg className="h-3.5 w-3.5 text-muted-foreground" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+            </svg>
+          </div>
+        }
+      >
+        {(close) => options.map((opt) => (
+          <DropdownMenuItem
+            key={opt.value}
+            onClick={() => { onChange(opt.value); close() }}
+            className={value === opt.value ? 'bg-accent font-semibold' : ''}
+          >
+            {opt.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenu>
+    </TableHead>
+  )
+}
 
 // ─── Tag form modal (create / edit for flat types) ───────────────────────────
 function TagModal({ mode, tag, type, onClose, onSuccess }: {
@@ -51,9 +112,9 @@ function TagModal({ mode, tag, type, onClose, onSuccess }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-sm rounded-xl border bg-card p-6 shadow-lg">
-        <h3 className="mb-4 text-lg font-semibold">{mode === 'create' ? '新增标签' : '编辑标签'}</h3>
-        <div className="space-y-3">
+      <div className="w-full max-w-sm rounded-xl border bg-card p-5 shadow-lg">
+        <h3 className="mb-3 text-lg font-semibold">{mode === 'create' ? '新增标签' : '编辑标签'}</h3>
+        <div className="space-y-2.5">
           {mode === 'create' ? (
             <label className="block space-y-1 text-sm">
               <span>标识（英文 slug）</span>
@@ -75,7 +136,7 @@ function TagModal({ mode, tag, type, onClose, onSuccess }: {
           </label>
         </div>
         {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
-        <div className="mt-5 flex justify-end gap-3">
+        <div className="mt-4 flex justify-end gap-3">
           <Button variant="outline" onClick={onClose}>取消</Button>
           <Button disabled={isPending} onClick={handleSubmit}>{isPending ? '提交中...' : '确定'}</Button>
         </div>
@@ -131,9 +192,9 @@ function SeriesModal({ mode, tag, seriesType, brands, categories, onClose, onSuc
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-sm rounded-xl border bg-card p-6 shadow-lg">
-        <h3 className="mb-4 text-lg font-semibold">{mode === 'create' ? '新增系列' : '编辑系列'}</h3>
-        <div className="space-y-3">
+      <div className="w-full max-w-sm rounded-xl border bg-card p-5 shadow-lg">
+        <h3 className="mb-3 text-lg font-semibold">{mode === 'create' ? '新增系列' : '编辑系列'}</h3>
+        <div className="space-y-2.5">
           {mode === 'create' ? (
             <>
               <label className="block space-y-1 text-sm">
@@ -165,7 +226,7 @@ function SeriesModal({ mode, tag, seriesType, brands, categories, onClose, onSuc
           </label>
         </div>
         {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
-        <div className="mt-5 flex justify-end gap-3">
+        <div className="mt-4 flex justify-end gap-3">
           <Button variant="outline" onClick={onClose}>取消</Button>
           <Button disabled={isPending} onClick={handleSubmit}>{isPending ? '提交中...' : '确定'}</Button>
         </div>
@@ -181,30 +242,38 @@ function FlatTagPanel({ type }: { type: string }) {
 
   const { data: tags = [], isLoading } = useQuery({ queryKey: ['tags', type], queryFn: () => tagsApi.list(type), staleTime: 0 })
 
-  const [sortBy, setSortBy] = useState<'sort_order' | 'usage_asc' | 'usage_desc'>('sort_order')
+  const [sortBy, setSortBy] = useState<'sort_order' | 'usage_count'>('sort_order')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+
+  const handleSort = (key: string) => {
+    if (sortBy === key) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortBy(key as 'sort_order' | 'usage_count')
+      setSortOrder(key === 'usage_count' ? 'desc' : 'asc')
+    }
+  }
+
   const sortedTags = useMemo(() => {
     const copy = [...tags]
-    if (sortBy === 'usage_asc') {
-      copy.sort((a, b) => (a.usage_count ?? 0) - (b.usage_count ?? 0) || a.sort_order - b.sort_order)
-    } else if (sortBy === 'usage_desc') {
-      copy.sort((a, b) => (b.usage_count ?? 0) - (a.usage_count ?? 0) || a.sort_order - b.sort_order)
-    } else {
-      copy.sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
-    }
+    copy.sort((a, b) => {
+      const av = sortBy === 'sort_order' ? a.sort_order : (a.usage_count ?? 0)
+      const bv = sortBy === 'sort_order' ? b.sort_order : (b.usage_count ?? 0)
+      const diff = sortOrder === 'asc' ? av - bv : bv - av
+      return diff || a.sort_order - b.sort_order || a.id - b.id
+    })
     return copy
-  }, [tags, sortBy])
+  }, [tags, sortBy, sortOrder])
 
   const [filterStatus, setFilterStatus] = useState('')
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const filteredSorted = useMemo(() => {
     if (!filterStatus) return sortedTags
-    if (filterStatus === 'unused') return sortedTags.filter((t) => (t.usage_count ?? 0) === 0)
     return sortedTags.filter((t) => filterStatus === 'active' ? t.is_active : !t.is_active)
   }, [sortedTags, filterStatus])
-  const totalPages = Math.max(1, Math.ceil(filteredSorted.length / PAGE_SIZE))
-  const pagedTags = useMemo(() => filteredSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filteredSorted, page])
-
-  const unusedCount = useMemo(() => sortedTags.filter((t) => (t.usage_count ?? 0) === 0).length, [sortedTags])
+  const totalPages = Math.max(1, Math.ceil(filteredSorted.length / pageSize))
+  const pagedTags = useMemo(() => filteredSorted.slice((page - 1) * pageSize, page * pageSize), [filteredSorted, page, pageSize])
 
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; tag?: ResourceTag } | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
@@ -225,31 +294,7 @@ function FlatTagPanel({ type }: { type: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Select
-            className="w-40"
-            options={[
-              { value: 'sort_order', label: '按排序' },
-              { value: 'usage_asc', label: '使用量 ↑' },
-              { value: 'usage_desc', label: '使用量 ↓' },
-            ]}
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-          />
-          <Select
-            className="w-32"
-            options={[
-              { value: '', label: '全部状态' },
-              { value: 'active', label: '启用' },
-              { value: 'inactive', label: '停用' },
-              { value: 'unused', label: `未使用 (${unusedCount})` },
-            ]}
-            value={filterStatus}
-            onChange={(e) => { setFilterStatus(e.target.value); setPage(1) }}
-          />
-          <span className="text-sm text-muted-foreground">共 {filteredSorted.length} 条</span>
-        </div>
+      <div className="flex items-center gap-2">
         <Button size="sm" onClick={() => setModal({ mode: 'create' })}>新增标签</Button>
       </div>
 
@@ -260,11 +305,20 @@ function FlatTagPanel({ type }: { type: string }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-16">排序</TableHead>
+              <SortableHead label="排序" sortKey="sort_order" currentSortBy={sortBy} currentSortOrder={sortOrder} onSort={handleSort} className="w-16" />
               <TableHead>标识（value）</TableHead>
               <TableHead>中文名</TableHead>
-              <TableHead className="w-20">使用</TableHead>
-              <TableHead>状态</TableHead>
+              <SortableHead label="使用" sortKey="usage_count" currentSortBy={sortBy} currentSortOrder={sortOrder} onSort={handleSort} className="w-20" />
+              <FilterableHead
+                label="状态"
+                options={[
+                  { value: '', label: '全部状态' },
+                  { value: 'active', label: '启用' },
+                  { value: 'inactive', label: '停用' },
+                ]}
+                value={filterStatus}
+                onChange={(v) => { setFilterStatus(v); setPage(1) }}
+              />
               <TableHead>操作</TableHead>
             </TableRow>
           </TableHeader>
@@ -275,11 +329,7 @@ function FlatTagPanel({ type }: { type: string }) {
                 <TableCell className="font-mono text-sm">{tag.value}</TableCell>
                 <TableCell>{tag.label_zh}</TableCell>
                 <TableCell>
-                  {(tag.usage_count ?? 0) === 0 ? (
-                    <Badge variant="secondary" className="whitespace-nowrap">未使用</Badge>
-                  ) : (
-                    <span className="text-sm tabular-nums">{tag.usage_count}</span>
-                  )}
+                  <span className="text-sm tabular-nums">{tag.usage_count ?? 0}</span>
                 </TableCell>
                 <TableCell>
                   <Badge variant={tag.is_active ? 'success' : 'secondary'}>{tag.is_active ? '启用' : '停用'}</Badge>
@@ -299,13 +349,18 @@ function FlatTagPanel({ type }: { type: string }) {
         </Table>
       ) : null}
 
-      {totalPages > 1 ? (
-        <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
-          <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>上一页</Button>
-          <span>{page} / {totalPages}</span>
-          <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>下一页</Button>
-        </div>
-      ) : null}
+      <div className="flex items-center justify-end gap-3 text-sm text-muted-foreground">
+        <span>共 {filteredSorted.length} 条</span>
+        <Select
+          className="w-24"
+          options={PAGE_SIZE_OPTIONS.map((n) => ({ value: String(n), label: `${n} 条/页` }))}
+          value={String(pageSize)}
+          onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }}
+        />
+        <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>上一页</Button>
+        <span>{page} / {totalPages}</span>
+        <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>下一页</Button>
+      </div>
 
       {modal ? (
         <TagModal mode={modal.mode} tag={modal.tag} type={type} onClose={() => setModal(null)} onSuccess={() => { invalidate(); setPage(1) }} />
@@ -320,11 +375,8 @@ function FlatTagPanel({ type }: { type: string }) {
       />
 
       <Sheet open={deleteError !== null} onOpenChange={(open) => { if (!open) setDeleteError(null) }} autoClose={3000}>
-        <SheetContent side="top">
-          <SheetHeader>
-            <SheetTitle>删除失败</SheetTitle>
-            <SheetDescription>{deleteError}</SheetDescription>
-          </SheetHeader>
+        <SheetContent side="top" bare className="pt-8 [animation:sheetSlideInTop_0.3s_ease]">
+          <p className="mx-auto w-fit text-lg font-semibold text-red-600 bg-red-50 px-4 py-2 rounded">{deleteError}</p>
         </SheetContent>
       </Sheet>
     </div>
@@ -348,31 +400,38 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
   const [filterBrand, setFilterBrand] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
-  const [sortBy, setSortBy] = useState<'sort_order' | 'usage_asc' | 'usage_desc'>('sort_order')
+  const [sortBy, setSortBy] = useState<'sort_order' | 'usage_count'>('sort_order')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+
+  const handleSort = (key: string) => {
+    if (sortBy === key) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortBy(key as 'sort_order' | 'usage_count')
+      setSortOrder(key === 'usage_count' ? 'desc' : 'asc')
+    }
+  }
 
   const filteredSorted = useMemo(() => {
     let filtered = allSeries
     if (filterBrand) filtered = filtered.filter((t) => t.brand_value === filterBrand)
     if (filterCategory) filtered = filtered.filter((t) => t.parent_value === filterCategory)
-    if (filterStatus === 'unused') filtered = filtered.filter((t) => (t.usage_count ?? 0) === 0)
-    else if (filterStatus) filtered = filtered.filter((t) => filterStatus === 'active' ? t.is_active : !t.is_active)
+    if (filterStatus) filtered = filtered.filter((t) => filterStatus === 'active' ? t.is_active : !t.is_active)
 
     const copy = [...filtered]
-    if (sortBy === 'usage_asc') {
-      copy.sort((a, b) => (a.usage_count ?? 0) - (b.usage_count ?? 0) || a.sort_order - b.sort_order)
-    } else if (sortBy === 'usage_desc') {
-      copy.sort((a, b) => (b.usage_count ?? 0) - (a.usage_count ?? 0) || a.sort_order - b.sort_order)
-    } else {
-      copy.sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
-    }
+    copy.sort((a, b) => {
+      const av = sortBy === 'sort_order' ? a.sort_order : (a.usage_count ?? 0)
+      const bv = sortBy === 'sort_order' ? b.sort_order : (b.usage_count ?? 0)
+      const diff = sortOrder === 'asc' ? av - bv : bv - av
+      return diff || a.sort_order - b.sort_order || a.id - b.id
+    })
     return copy
-  }, [allSeries, filterBrand, filterCategory, filterStatus, sortBy])
+  }, [allSeries, filterBrand, filterCategory, filterStatus, sortBy, sortOrder])
 
-  const unusedCount = useMemo(() => allSeries.filter((t) => (t.usage_count ?? 0) === 0).length, [allSeries])
-
-  const totalPages = Math.max(1, Math.ceil(filteredSorted.length / PAGE_SIZE))
-  const pagedSeries = useMemo(() => filteredSorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filteredSorted, page])
+  const totalPages = Math.max(1, Math.ceil(filteredSorted.length / pageSize))
+  const pagedSeries = useMemo(() => filteredSorted.slice((page - 1) * pageSize, page * pageSize), [filteredSorted, page, pageSize])
 
   const categoryOptions = useMemo(() => categories.filter((c) => c.is_active).map((c) => ({ value: c.value, label: c.label_zh })), [categories])
   const brandOptions = useMemo(() => brands.filter((b) => b.is_active).map((b) => ({ value: b.value, label: b.label_zh })), [brands])
@@ -398,43 +457,7 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <Select
-            className="w-40"
-            options={[
-              { value: 'sort_order', label: '按排序' },
-              { value: 'usage_asc', label: '使用量 ↑' },
-              { value: 'usage_desc', label: '使用量 ↓' },
-            ]}
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-          />
-          <Select
-            className="w-36"
-            options={[{ value: '', label: '全部品牌' }, ...brandOptions]}
-            value={filterBrand}
-            onChange={(e) => { setFilterBrand(e.target.value); setFilterCategory(''); setPage(1) }}
-          />
-          <Select
-            className="w-40"
-            options={[{ value: '', label: `全部${categoryLabel}` }, ...categoryOptions]}
-            value={filterCategory}
-            onChange={(e) => { setFilterCategory(e.target.value); setPage(1) }}
-          />
-          <Select
-            className="w-32"
-            options={[
-              { value: '', label: '全部状态' },
-              { value: 'active', label: '启用' },
-              { value: 'inactive', label: '停用' },
-              { value: 'unused', label: `未使用 (${unusedCount})` },
-            ]}
-            value={filterStatus}
-            onChange={(e) => { setFilterStatus(e.target.value); setPage(1) }}
-          />
-          <span className="text-sm text-muted-foreground">共 {filteredSorted.length} 条</span>
-        </div>
+      <div className="flex items-center gap-2">
         <Button size="sm" onClick={() => setModal({ mode: 'create' })}>新增系列</Button>
       </div>
 
@@ -445,13 +468,33 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-16">排序</TableHead>
-              <TableHead>品牌</TableHead>
-              <TableHead>所属{categoryLabel}</TableHead>
+              <SortableHead label="排序" sortKey="sort_order" currentSortBy={sortBy} currentSortOrder={sortOrder} onSort={handleSort} className="w-16" />
+              <FilterableHead
+                label="品牌"
+                options={[{ value: '', label: '全部品牌' }, ...brandOptions]}
+                value={filterBrand}
+                onChange={(v) => { setFilterBrand(v); setFilterCategory(''); setPage(1) }}
+                align="left"
+              />
+              <FilterableHead
+                label={categoryLabel}
+                options={[{ value: '', label: `全部${categoryLabel}` }, ...categoryOptions]}
+                value={filterCategory}
+                onChange={(v) => { setFilterCategory(v); setPage(1) }}
+              />
               <TableHead>标识（value）</TableHead>
               <TableHead>中文名</TableHead>
-              <TableHead className="w-20">使用</TableHead>
-              <TableHead>状态</TableHead>
+              <SortableHead label="使用" sortKey="usage_count" currentSortBy={sortBy} currentSortOrder={sortOrder} onSort={handleSort} className="w-20" />
+              <FilterableHead
+                label="状态"
+                options={[
+                  { value: '', label: '全部状态' },
+                  { value: 'active', label: '启用' },
+                  { value: 'inactive', label: '停用' },
+                ]}
+                value={filterStatus}
+                onChange={(v) => { setFilterStatus(v); setPage(1) }}
+              />
               <TableHead>操作</TableHead>
             </TableRow>
           </TableHeader>
@@ -464,11 +507,7 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
                 <TableCell className="font-mono text-sm">{tag.value}</TableCell>
                 <TableCell>{tag.label_zh}</TableCell>
                 <TableCell>
-                  {(tag.usage_count ?? 0) === 0 ? (
-                    <Badge variant="secondary" className="whitespace-nowrap">未使用</Badge>
-                  ) : (
-                    <span className="text-sm tabular-nums">{tag.usage_count}</span>
-                  )}
+                  <span className="text-sm tabular-nums">{tag.usage_count ?? 0}</span>
                 </TableCell>
                 <TableCell>
                   <Badge variant={tag.is_active ? 'success' : 'secondary'}>{tag.is_active ? '启用' : '停用'}</Badge>
@@ -488,13 +527,18 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
         </Table>
       ) : null}
 
-      {totalPages > 1 ? (
-        <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
-          <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>上一页</Button>
-          <span>{page} / {totalPages}</span>
-          <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>下一页</Button>
-        </div>
-      ) : null}
+      <div className="flex items-center justify-end gap-3 text-sm text-muted-foreground">
+        <span>共 {filteredSorted.length} 条</span>
+        <Select
+          className="w-24"
+          options={PAGE_SIZE_OPTIONS.map((n) => ({ value: String(n), label: `${n} 条/页` }))}
+          value={String(pageSize)}
+          onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }}
+        />
+        <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>上一页</Button>
+        <span>{page} / {totalPages}</span>
+        <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>下一页</Button>
+      </div>
 
       {modal ? (
         <SeriesModal
@@ -517,11 +561,8 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
       />
 
       <Sheet open={deleteError !== null} onOpenChange={(open) => { if (!open) setDeleteError(null) }} autoClose={3000}>
-        <SheetContent side="top">
-          <SheetHeader>
-            <SheetTitle>删除失败</SheetTitle>
-            <SheetDescription>{deleteError}</SheetDescription>
-          </SheetHeader>
+        <SheetContent side="top" bare className="pt-8 [animation:sheetSlideInTop_0.3s_ease]">
+          <p className="mx-auto w-fit text-lg font-semibold text-red-600 bg-red-50 px-4 py-2 rounded">{deleteError}</p>
         </SheetContent>
       </Sheet>
     </div>
