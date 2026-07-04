@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { ConfirmDialog } from '../../components/ui/dialog'
 import { Input } from '../../components/ui/input'
 import { Select } from '../../components/ui/select'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '../../components/ui/sheet'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
 import { Tabs } from '../../components/ui/tabs'
 
@@ -207,6 +208,7 @@ function FlatTagPanel({ type }: { type: string }) {
 
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; tag?: ResourceTag } | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Parameters<typeof tagsApi.update>[1] }) => tagsApi.update(id, data),
@@ -216,7 +218,7 @@ function FlatTagPanel({ type }: { type: string }) {
     mutationFn: tagsApi.remove,
     onSuccess: () => { invalidate(); setDeletingId(null) },
     onError: (err: { response?: { data?: { message?: string } } }) => {
-      window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: err?.response?.data?.message ?? '删除失败', type: 'error' } }))
+      setDeleteError(err?.response?.data?.message ?? '删除失败')
       setDeletingId(null)
     },
   })
@@ -316,6 +318,15 @@ function FlatTagPanel({ type }: { type: string }) {
         onCancel={() => setDeletingId(null)}
         onConfirm={() => { if (deletingId !== null) removeMutation.mutate(deletingId) }}
       />
+
+      <Sheet open={deleteError !== null} onOpenChange={(open) => { if (!open) setDeleteError(null) }} autoClose={3000}>
+        <SheetContent side="top">
+          <SheetHeader>
+            <SheetTitle>删除失败</SheetTitle>
+            <SheetDescription>{deleteError}</SheetDescription>
+          </SheetHeader>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
@@ -370,6 +381,7 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
 
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; tag?: ResourceTag } | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Parameters<typeof tagsApi.update>[1] }) => tagsApi.update(id, data),
@@ -379,7 +391,7 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
     mutationFn: tagsApi.remove,
     onSuccess: () => { invalidate(); setDeletingId(null) },
     onError: (err: { response?: { data?: { message?: string } } }) => {
-      window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: err?.response?.data?.message ?? '删除失败', type: 'error' } }))
+      setDeleteError(err?.response?.data?.message ?? '删除失败')
       setDeletingId(null)
     },
   })
@@ -503,6 +515,15 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
         onCancel={() => setDeletingId(null)}
         onConfirm={() => { if (deletingId !== null) removeMutation.mutate(deletingId) }}
       />
+
+      <Sheet open={deleteError !== null} onOpenChange={(open) => { if (!open) setDeleteError(null) }} autoClose={3000}>
+        <SheetContent side="top">
+          <SheetHeader>
+            <SheetTitle>删除失败</SheetTitle>
+            <SheetDescription>{deleteError}</SheetDescription>
+          </SheetHeader>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
