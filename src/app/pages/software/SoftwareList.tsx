@@ -6,6 +6,7 @@ import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { ConfirmDialog } from '../../components/ui/dialog'
+import { DropdownMenu, DropdownMenuItem } from '../../components/ui/dropdown-menu'
 import { Input } from '../../components/ui/input'
 import { Select } from '../../components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
@@ -65,24 +66,39 @@ interface SoftwareVersion {
 
 const displayName = (item: SoftwareItem) => item.original_name ?? item.name ?? item.filename ?? `软件 #${item.id}`
 
-function ChipBar({ label, chips, selected, onSelect }: { label: string; chips: { value: string; label: string }[]; selected: string; onSelect: (v: string) => void }) {
+function FilterableHead({ label, options, value, onChange, align = 'right' }: {
+  label: string
+  options: { value: string; label: string }[]
+  value: string
+  onChange: (value: string) => void
+  align?: 'left' | 'right'
+}) {
+  const isActive = value !== ''
+  const selectedLabel = options.find((o) => o.value === value)?.label
   return (
-    <div className="flex flex-wrap items-center gap-2 text-sm">
-      <span className="shrink-0 font-medium text-muted-foreground">{label}</span>
-      {[{ value: '', label: '全部' }, ...chips].map((chip) => (
-        <button
-          key={chip.value}
-          onClick={() => onSelect(chip.value)}
-          className={`rounded-full border px-3 py-0.5 text-xs transition-colors ${
-            selected === chip.value
-              ? 'border-primary bg-primary text-primary-foreground'
-              : 'border-border bg-background hover:border-primary/50 hover:bg-muted'
-          }`}
-        >
-          {chip.label}
-        </button>
-      ))}
-    </div>
+    <TableHead className="cursor-pointer select-none hover:bg-muted/50">
+      <DropdownMenu
+        align={align}
+        trigger={
+          <div className={`flex items-center gap-1 whitespace-nowrap ${isActive ? 'text-primary font-semibold' : ''}`}>
+            {isActive ? selectedLabel : label}
+            <svg className="h-3.5 w-3.5 text-muted-foreground" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+            </svg>
+          </div>
+        }
+      >
+        {(close) => options.map((opt) => (
+          <DropdownMenuItem
+            key={opt.value}
+            onClick={() => { onChange(opt.value); close() }}
+            className={value === opt.value ? 'bg-accent font-semibold' : ''}
+          >
+            {opt.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenu>
+    </TableHead>
   )
 }
 
@@ -119,6 +135,7 @@ export function SoftwareList() {
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [selectAllMatching, setSelectAllMatching] = useState(false)
   const [confirmBulk, setConfirmBulk] = useState<{ publish: boolean } | null>(null)
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
   const [deleting, setDeleting] = useState<SoftwareItem | null>(null)
   const [editing, setEditing] = useState<SoftwareItem | null>(null)
   const [editName, setEditName] = useState('')
@@ -170,6 +187,15 @@ export function SoftwareList() {
     onSuccess: () => {
       setSelectedIds([])
       setSelectAllMatching(false)
+      invalidateSoftware()
+    },
+  })
+  const bulkDeleteMutation = useMutation({
+    mutationFn: softwareApi.bulkDelete,
+    onSuccess: () => {
+      setSelectedIds([])
+      setSelectAllMatching(false)
+      setConfirmBulkDelete(false)
       invalidateSoftware()
     },
   })
@@ -382,41 +408,29 @@ export function SoftwareList() {
           <Button asChild><Link to="/software/upload">上传软件</Link></Button>
         </CardHeader>
         <CardContent>
-          {/* Cascading chip filter */}
-          <div className="mb-5 space-y-3 rounded-lg border bg-muted/30 px-4 py-3">
-            <ChipBar
-              label="品牌："
-              chips={brandChips}
-              selected={brand}
-              onSelect={(v) => { setBrand(v); setPage(1) }}
+          <div className="mb-5 flex flex-wrap items-center gap-2">
+            <Input
+              className="h-8 max-w-xs"
+              placeholder="关键词搜索..."
+              value={keyword}
+              onChange={(e) => { setKeyword(e.target.value); setPage(1) }}
             />
-            <ChipBar
-              label="类型："
-              chips={categoryChips}
-              selected={category}
-              onSelect={(v) => { setCategory(v); setPage(1) }}
-            />
-            <div className="flex items-center gap-2">
-              <Input
-                className="h-8 max-w-xs"
-                placeholder="关键词搜索..."
-                value={keyword}
-                onChange={(e) => { setKeyword(e.target.value); setPage(1) }}
-              />
-              <Button size="sm" variant="outline" onClick={() => void query.refetch()}>查询</Button>
-              {(brand || category || keyword) ? (
-                <Button size="sm" variant="ghost" onClick={() => { setBrand(''); setCategory(''); setKeyword(''); setPage(1) }}>
-                  清空筛选
-                </Button>
-              ) : null}
-              <Button size="sm" variant="outline" onClick={() => setConfirmBulk({ publish: true })} disabled={!hasSelection || bulkPublishMutation.isPending}>
-                批量发布{selectionLabel}
+            <Button size="sm" variant="outline" onClick={() => void query.refetch()}>查询</Button>
+            {(brand || category || keyword) ? (
+              <Button size="sm" variant="ghost" onClick={() => { setBrand(''); setCategory(''); setKeyword(''); setPage(1) }}>
+                清空筛选
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setConfirmBulk({ publish: false })} disabled={!hasSelection || bulkPublishMutation.isPending}>
-                批量取消发布{selectionLabel}
-              </Button>
-              {bulkPublishMutation.data ? <span className="text-xs text-muted-foreground">已{bulkPublishMutation.data.publish ? '发布' : '取消发布'} {bulkPublishMutation.data.count} 个软件</span> : null}
-            </div>
+            ) : null}
+            <Button size="sm" variant="outline" onClick={() => setConfirmBulk({ publish: true })} disabled={!hasSelection || bulkPublishMutation.isPending}>
+              批量发布{selectionLabel}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setConfirmBulk({ publish: false })} disabled={!hasSelection || bulkPublishMutation.isPending}>
+              批量取消发布{selectionLabel}
+            </Button>
+            <Button size="sm" variant="destructive" onClick={() => setConfirmBulkDelete(true)} disabled={!hasSelection || bulkDeleteMutation.isPending}>
+              批量删除{selectionLabel}
+            </Button>
+            {bulkPublishMutation.data ? <span className="text-xs text-muted-foreground">已{bulkPublishMutation.data.publish ? '发布' : '取消发布'} {bulkPublishMutation.data.count} 个软件</span> : null}
           </div>
 
           {showSelectAllBanner ? (
@@ -446,8 +460,8 @@ export function SoftwareList() {
                     <input type="checkbox" checked={allCurrentSelected} onChange={toggleCurrentPageSelection} aria-label="选择当前页软件" />
                   </TableHead>
                   <TableHead>名称</TableHead>
-                  <TableHead>品牌</TableHead>
-                  <TableHead>类型</TableHead>
+                  <FilterableHead label="品牌" options={[{ value: '', label: '全部品牌' }, ...brandChips]} value={brand} onChange={(v) => { setBrand(v); setPage(1) }} align="left" />
+                  <FilterableHead label="类型" options={[{ value: '', label: '全部类型' }, ...categoryChips]} value={category} onChange={(v) => { setCategory(v); setPage(1) }} align="left" />
                   <TableHead>版本</TableHead>
                   <SortableHead
                     label="大小"
@@ -686,6 +700,23 @@ export function SoftwareList() {
             else publishSelected(confirmBulk.publish)
           }
           setConfirmBulk(null)
+        }}
+      />
+      <ConfirmDialog
+        open={confirmBulkDelete}
+        title="确认批量删除？"
+        description={
+          selectAllMatching
+            ? `将删除当前筛选条件下全部 ${total} 个软件及其所有版本文件，此操作不可撤销。`
+            : `将删除已选中的 ${selectedCount} 个版本，若软件无剩余版本则一并删除软件。此操作不可撤销。`
+        }
+        onCancel={() => setConfirmBulkDelete(false)}
+        onConfirm={() => {
+          if (selectAllMatching) {
+            bulkDeleteMutation.mutate({ brand: brand || undefined, category: category || undefined, keyword: keyword || undefined })
+          } else {
+            bulkDeleteMutation.mutate({ version_ids: selectedIds })
+          }
         }}
       />
       <ConfirmDialog
