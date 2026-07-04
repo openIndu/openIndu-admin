@@ -374,7 +374,13 @@ export function DocumentList() {
                     <input type="checkbox" checked={allCurrentSelected} onChange={toggleCurrentPageSelection} aria-label="选择当前页文档" />
                   </TableHead>
                   <TableHead>名称</TableHead>
-                  <TableHead>品牌</TableHead>
+                  <SortableHead
+                    label="品牌"
+                    sortKey="brand"
+                    currentSortBy={sortBy}
+                    currentSortOrder={sortOrder}
+                    onSort={handleSort}
+                  />
                   <TableHead>类型</TableHead>
                   <TableHead>系列</TableHead>
                   <SortableHead
