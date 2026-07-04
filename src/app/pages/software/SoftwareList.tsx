@@ -476,6 +476,13 @@ export function SoftwareList() {
                     currentSortOrder={sortOrder}
                     onSort={handleSort}
                   />
+                  <SortableHead
+                    label="上传时间"
+                    sortKey="upload_time"
+                    currentSortBy={sortBy}
+                    currentSortOrder={sortOrder}
+                    onSort={handleSort}
+                  />
                   <TableHead>发布状态</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
@@ -505,6 +512,11 @@ export function SoftwareList() {
                     </TableCell>
                     <TableCell>{formatSize(item.latest_version_size)}</TableCell>
                     <TableCell>{item.download_count ?? 0}</TableCell>
+                    <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                      {(item as any).version_upload_time
+                        ? new Date((item as any).version_upload_time).toLocaleDateString("zh-CN")
+                        : "-"}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={item.is_published ? 'success' : 'secondary'}>
                         {item.is_published ? '已发布' : '未发布'}
