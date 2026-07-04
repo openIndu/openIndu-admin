@@ -1,15 +1,32 @@
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useState, useEffect, useRef, useCallback } from 'react'
 import { cn } from './utils'
 
-export function DropdownMenu({ trigger, children }: { trigger: ReactNode; children: ReactNode }) {
+export function DropdownMenu({ trigger, children, align = 'right' }: {
+  trigger: ReactNode
+  children: ReactNode | ((close: () => void) => ReactNode)
+  align?: 'left' | 'right'
+}) {
   const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  const close = useCallback(() => setOpen(false), [])
+
+  // Click outside to close
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) close()
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open, close])
 
   return (
-    <div className="relative inline-block text-left">
-      <button type="button" onClick={() => setOpen((value) => !value)}>{trigger}</button>
+    <div className="relative inline-block text-left" ref={ref}>
+      <button type="button" onClick={() => setOpen((v) => !v)}>{trigger}</button>
       {open ? (
-        <div className="absolute right-0 z-20 mt-2 min-w-40 rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
-          {children}
+        <div className={`absolute z-20 mt-2 min-w-40 rounded-md border bg-popover p-1 text-popover-foreground shadow-md ${align === 'left' ? 'left-0' : 'right-0'}`}>
+          {typeof children === 'function' ? children(close) : children}
         </div>
       ) : null}
     </div>

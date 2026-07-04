@@ -11,6 +11,7 @@ interface SheetProps {
 
 interface SheetContentProps {
   side?: 'top' | 'right' | 'bottom' | 'left'
+  bare?: boolean
   className?: string
   children: ReactNode
 }
@@ -51,12 +52,11 @@ export function Sheet({ open, onOpenChange, overlay = false, autoClose, children
   )
 }
 
-export function SheetContent({ side = 'top', className, children }: SheetContentProps) {
+export function SheetContent({ side = 'top', bare = false, className, children }: SheetContentProps) {
   const sideClasses: Record<string, string> = {
     top: cn(
-      'top-0 left-0 right-0 max-h-[50vh]',
-      'border-b',
-      'animate-in slide-in-from-top duration-300',
+      'top-0 left-0 right-0',
+      bare ? '' : 'max-h-[50vh] border-b animate-in slide-in-from-top duration-300',
     ),
     bottom: cn(
       'bottom-0 left-0 right-0 max-h-[50vh]',
@@ -78,14 +78,15 @@ export function SheetContent({ side = 'top', className, children }: SheetContent
   return (
     <div
       className={cn(
-        'fixed bg-background border-border shadow-xl',
+        'fixed',
+        bare ? '' : 'bg-background border-border shadow-xl',
         'flex flex-col',
         sideClasses[side],
         className,
       )}
-      onClick={(e) => e.stopPropagation()}
+      onClick={bare ? undefined : (e) => e.stopPropagation()}
     >
-      <div className="overflow-y-auto p-6">
+      <div className={bare ? 'px-4 py-3' : 'overflow-y-auto p-6'}>
         {children}
       </div>
     </div>
