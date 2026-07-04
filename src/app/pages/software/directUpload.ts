@@ -19,10 +19,11 @@ export class UploadCancelledError extends Error {
   }
 }
 
-function putBlob(url: string, blob: Blob, onLoaded: (loaded: number) => void, signal?: AbortSignal): Promise<string> {
+function putBlob(url: string, blob: Blob, contentType: string, onLoaded: (loaded: number) => void, signal?: AbortSignal): Promise<string> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
     xhr.open('PUT', url)
+    xhr.setRequestHeader('Content-Type', contentType)
     xhr.upload.onprogress = (e) => onLoaded(e.loaded)
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
@@ -40,12 +41,12 @@ function putBlob(url: string, blob: Blob, onLoaded: (loaded: number) => void, si
   })
 }
 
-async function putWithRetry(url: string, blob: Blob, onLoaded: (loaded: number) => void, signal?: AbortSignal): Promise<string> {
+async function putWithRetry(url: string, blob: Blob, contentType: string, onLoaded: (loaded: number) => void, signal?: AbortSignal): Promise<string> {
   let lastErr: unknown
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     if (signal?.aborted) throw new UploadCancelledError()
     try {
-      return await putBlob(url, blob, onLoaded, signal)
+      return await putBlob(url, blob, contentType, onLoaded, signal)
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') throw new UploadCancelledError()
       lastErr = err
@@ -70,6 +71,7 @@ export async function uploadToOss(
   signal?: AbortSignal,
 ): Promise<SoftwareUploadPart[] | null> {
   const total = file.size
+  const contentType = file.type || 'application/octet-stream'
   const loaded: number[] = []
   const report = () => {
     const sum = loaded.reduce((a, b) => a + b, 0)
@@ -78,7 +80,7 @@ export async function uploadToOss(
 
   if (init.mode === 'single') {
     loaded[0] = 0
-    const etag = await putWithRetry(init.upload_url!, file, (l) => { loaded[0] = l; report() }, signal)
+    const etag = await putWithRetry(init.upload_url!, file, contentType, (l) => { loaded[0] = l; report() }, signal)
     loaded[0] = total
     report()
     void etag
@@ -103,7 +105,7 @@ export async function uploadToOss(
       const end = Math.min(start + partSize, total)
       const blob = file.slice(start, end)
       loaded[i] = 0
-      const etag = await putWithRetry(urls[i], blob, (l) => { loaded[i] = l; report() }, signal)
+      const etag = await putWithRetry(urls[i], blob, contentType, (l) => { loaded[i] = l; report() }, signal)
       loaded[i] = end - start
       report()
       results[i] = { part_number: i + 1, etag }
