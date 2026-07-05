@@ -13,7 +13,7 @@ export function Tabs({ items, defaultValue }: { items: TabItem[]; defaultValue?:
 
   return (
     <div>
-      <div className="mb-4 flex gap-2 border-b">
+      <div className="mb-4 flex gap-2 overflow-x-auto border-b">
         {items.map((item) => (
           <button
             key={item.value}

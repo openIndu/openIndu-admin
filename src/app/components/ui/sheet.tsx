@@ -80,6 +80,7 @@ export function SheetContent({ side = 'top', bare = false, className, children }
       className={cn(
         'fixed',
         bare ? '' : 'bg-background border-border shadow-xl',
+        'pointer-events-auto',
         'flex flex-col',
         sideClasses[side],
         className,
