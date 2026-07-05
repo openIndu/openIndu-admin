@@ -196,7 +196,7 @@ export function SoftwareUpload() {
             >
               <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
               <span className={file ? 'text-foreground' : 'text-muted-foreground'}>
-                {file ? `${file.name} (${humanSize(file.size)})` : '点击选择软件包 (.zip / .exe / .msi / .rar / .7z / .pkg / .package)'}
+                {file ? `${file.name} (${humanSize(file.size)})` : '点击选择软件包 (.zip/.exe/.msi/.rar/.7z/.pkg/.package)'}
               </span>
             </div>
             <input
