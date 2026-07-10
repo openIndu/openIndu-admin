@@ -255,7 +255,7 @@ export function UserList() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
                         {user.member_apply_status === 'pending' && (
                           <>
                             <Button
