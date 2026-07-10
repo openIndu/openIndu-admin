@@ -335,7 +335,7 @@ function FlatTagPanel({ type }: { type: string }) {
                   <Badge variant={tag.is_active ? 'success' : 'secondary'}>{tag.is_active ? '启用' : '停用'}</Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="flex gap-1">
+                  <div className="flex items-center gap-1">
                     <Button size="sm" variant="outline" onClick={() => setModal({ mode: 'edit', tag })}>编辑</Button>
                     <Button size="sm" variant="outline" disabled={updateMutation.isPending} onClick={() => updateMutation.mutate({ id: tag.id, data: { is_active: !tag.is_active } })}>
                       {tag.is_active ? '停用' : '启用'}
@@ -513,7 +513,7 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
                   <Badge variant={tag.is_active ? 'success' : 'secondary'}>{tag.is_active ? '启用' : '停用'}</Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="flex gap-1">
+                  <div className="flex items-center gap-1">
                     <Button size="sm" variant="outline" onClick={() => setModal({ mode: 'edit', tag })}>编辑</Button>
                     <Button size="sm" variant="outline" disabled={updateMutation.isPending} onClick={() => updateMutation.mutate({ id: tag.id, data: { is_active: !tag.is_active } })}>
                       {tag.is_active ? '停用' : '启用'}
