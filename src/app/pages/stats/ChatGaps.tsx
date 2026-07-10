@@ -1,9 +1,13 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { statsApi, type KnowledgeGapItem } from '@/api'
+import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
+import { Select } from '../../components/ui/select'
 import { Tabs } from '../../components/ui/tabs'
 import { ThumbsDown, AlertTriangle, MessageSquare } from 'lucide-react'
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50]
 
 function GapRow({ item, showSnippet }: { item: KnowledgeGapItem; showSnippet?: boolean }) {
   const [expanded, setExpanded] = useState(false)
@@ -41,26 +45,72 @@ function GapRow({ item, showSnippet }: { item: KnowledgeGapItem; showSnippet?: b
   )
 }
 
+function Pagination({ page, pageSize, total, onPageChange, onPageSizeChange }: {
+  page: number
+  pageSize: number
+  total: number
+  onPageChange: (p: number) => void
+  onPageSizeChange: (s: number) => void
+}) {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  return (
+    <div className="flex items-center justify-end gap-3 text-sm text-muted-foreground mt-3">
+      <span>共 {total} 条</span>
+      <Select
+        className="w-24"
+        options={PAGE_SIZE_OPTIONS.map((n) => ({ value: String(n), label: `${n} 条/页` }))}
+        value={String(pageSize)}
+        onChange={(e) => onPageSizeChange(Number(e.target.value))}
+      />
+      <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>上一页</Button>
+      <span>{page} / {totalPages}</span>
+      <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>下一页</Button>
+    </div>
+  )
+}
+
 export function ChatGaps() {
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [activeTab, setActiveTab] = useState('disliked')
+
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['chat-knowledge-gaps'],
     queryFn: () => statsApi.chatKnowledgeGaps(),
     staleTime: 60_000,
   })
 
+  const disliked = data?.disliked ?? []
+  const fallbacks = data?.fallbacks ?? []
+  const activeItems = activeTab === 'disliked' ? disliked : fallbacks
+  const pagedItems = activeItems.slice((page - 1) * pageSize, page * pageSize)
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab)
+    setPage(1)
+  }
+
+  const handlePageSizeChange = (s: number) => {
+    setPageSize(s)
+    setPage(1)
+  }
+
   const dislikedContent = (
     <div>
       <Card>
         <CardContent className="pt-4">
           {isLoading && <p className="py-8 text-center text-sm text-gray-400">加载中…</p>}
-          {!isLoading && data?.disliked.length === 0 && (
+          {!isLoading && disliked.length === 0 && (
             <p className="py-8 text-center text-sm text-gray-400">暂无负面反馈，继续保持！</p>
           )}
-          {data?.disliked.map((item) => (
+          {pagedItems.map((item) => (
             <GapRow key={item.message_id} item={item} showSnippet />
           ))}
         </CardContent>
       </Card>
+      {disliked.length > 0 && (
+        <Pagination page={page} pageSize={pageSize} total={disliked.length} onPageChange={setPage} onPageSizeChange={handlePageSizeChange} />
+      )}
       <p className="mt-2 text-xs text-gray-400">
         建议：针对上述提问补充相关文档，上传至后台"文档管理"并同步向量库。
       </p>
@@ -72,14 +122,17 @@ export function ChatGaps() {
       <Card>
         <CardContent className="pt-4">
           {isLoading && <p className="py-8 text-center text-sm text-gray-400">加载中…</p>}
-          {!isLoading && data?.fallbacks.length === 0 && (
+          {!isLoading && fallbacks.length === 0 && (
             <p className="py-8 text-center text-sm text-gray-400">所有提问均命中知识库！</p>
           )}
-          {data?.fallbacks.map((item) => (
+          {pagedItems.map((item) => (
             <GapRow key={item.message_id} item={item} />
           ))}
         </CardContent>
       </Card>
+      {fallbacks.length > 0 && (
+        <Pagination page={page} pageSize={pageSize} total={fallbacks.length} onPageChange={setPage} onPageSizeChange={handlePageSizeChange} />
+      )}
       <p className="mt-2 text-xs text-gray-400">
         建议：这些提问在知识库中未找到匹配文档（相似度低于阈值），优先补充对应品牌/分类的手册。
       </p>
@@ -106,7 +159,7 @@ export function ChatGaps() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-red-600">
-              {isLoading ? '—' : (data?.disliked.length ?? 0)}
+              {isLoading ? '—' : disliked.length}
             </p>
           </CardContent>
         </Card>
@@ -120,7 +173,7 @@ export function ChatGaps() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-amber-600">
-              {isLoading ? '—' : (data?.fallbacks.length ?? 0)}
+              {isLoading ? '—' : fallbacks.length}
             </p>
           </CardContent>
         </Card>
@@ -134,16 +187,17 @@ export function ChatGaps() {
       )}
 
       <Tabs
-        defaultValue="disliked"
+        value={activeTab}
+        onValueChange={handleTabChange}
         items={[
           {
             value: 'disliked',
-            label: `负面反馈${data && data.disliked.length > 0 ? ` (${data.disliked.length})` : ''}`,
+            label: `负面反馈${disliked.length > 0 ? ` (${disliked.length})` : ''}`,
             content: dislikedContent,
           },
           {
             value: 'fallbacks',
-            label: `知识库未命中${data && data.fallbacks.length > 0 ? ` (${data.fallbacks.length})` : ''}`,
+            label: `知识库未命中${fallbacks.length > 0 ? ` (${fallbacks.length})` : ''}`,
             content: fallbackContent,
           },
         ]}
