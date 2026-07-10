@@ -69,12 +69,6 @@ const applyFilterOptions = [
   { value: 'none', label: '未申请' },
 ]
 
-const roleLabels: Record<Role, string> = {
-  user: '普通用户',
-  member: '会员',
-  admin: '管理员',
-}
-
 const applyStatusLabel: Record<string, string> = {
   pending: '待审核',
   approved: '已通过',
@@ -235,9 +229,12 @@ export function UserList() {
                       <Link className="text-primary hover:underline" to={`/users/${user.id}`}>{user.phone}</Link>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.role === 'admin' ? 'default' : user.role === 'member' ? 'secondary' : 'outline'}>
-                        {roleLabels[user.role]}
-                      </Badge>
+                      <Select
+                        className="w-28"
+                        options={roleOptions}
+                        value={user.role}
+                        onChange={(e) => roleMutation.mutate({ id: user.id, role: e.target.value as Role })}
+                      />
                     </TableCell>
                     <TableCell>{formatDate(user.created_at)}</TableCell>
                     <TableCell>
@@ -259,12 +256,6 @@ export function UserList() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-2">
-                        <Select
-                          className="w-28"
-                          options={roleOptions}
-                          value={user.role}
-                          onChange={(e) => roleMutation.mutate({ id: user.id, role: e.target.value as Role })}
-                        />
                         {user.member_apply_status === 'pending' && (
                           <>
                             <Button
