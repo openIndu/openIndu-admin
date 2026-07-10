@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router'
 import {
   BarChart3,
@@ -55,6 +55,11 @@ export function Sidebar({ mobileOpen = false, onMobileClose, className }: {
     )
 
   const closeMobile = () => onMobileClose?.()
+
+  // Auto-close mobile drawer on navigation
+  useEffect(() => {
+    closeMobile()
+  }, [location.pathname])
 
   const inner = (
     <>
