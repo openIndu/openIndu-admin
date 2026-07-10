@@ -7,8 +7,19 @@ export interface TabItem {
   content: ReactNode
 }
 
-export function Tabs({ items, defaultValue }: { items: TabItem[]; defaultValue?: string }) {
-  const [active, setActive] = useState(defaultValue ?? items[0]?.value)
+export function Tabs({ items, defaultValue, value: controlledValue, onValueChange }: {
+  items: TabItem[]
+  defaultValue?: string
+  value?: string
+  onValueChange?: (value: string) => void
+}) {
+  const [internalActive, setInternalActive] = useState(defaultValue ?? items[0]?.value)
+  const isControlled = controlledValue !== undefined
+  const active = isControlled ? controlledValue : internalActive
+  const setActive = (v: string) => {
+    if (isControlled) onValueChange?.(v)
+    else setInternalActive(v)
+  }
   const current = items.find((item) => item.value === active)
 
   return (
