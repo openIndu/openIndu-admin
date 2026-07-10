@@ -302,7 +302,7 @@ function FlatTagPanel({ type }: { type: string }) {
       {!isLoading && sortedTags.length === 0 ? <div className="text-sm text-muted-foreground">暂无标签</div> : null}
 
       {pagedTags.length > 0 ? (
-        <Table>
+        <Table className="[&_td]:whitespace-nowrap">
           <TableHeader>
             <TableRow>
               <SortableHead label="排序" sortKey="sort_order" currentSortBy={sortBy} currentSortOrder={sortOrder} onSort={handleSort} className="w-16" />
@@ -465,7 +465,7 @@ function SeriesPanel({ seriesType, categoryType, categoryLabel, brandType }: {
       {!isLoading && filteredSorted.length === 0 ? <div className="text-sm text-muted-foreground">暂无系列标签</div> : null}
 
       {pagedSeries.length > 0 ? (
-        <Table>
+        <Table className="[&_td]:whitespace-nowrap">
           <TableHeader>
             <TableRow>
               <SortableHead label="排序" sortKey="sort_order" currentSortBy={sortBy} currentSortOrder={sortOrder} onSort={handleSort} className="w-16" />

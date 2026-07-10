@@ -367,7 +367,7 @@ export function DocumentList() {
           {query.isError ? <div className="text-destructive">文档列表加载失败</div> : null}
           {!query.isLoading && !query.isError && query.data?.items.length === 0 ? <div className="text-muted-foreground">暂无文档</div> : null}
           {query.data && query.data.items.length > 0 ? (
-            <Table>
+            <Table className="[&_td]:whitespace-nowrap">
               <TableHeader>
                 <TableRow>
                   <TableHead>
@@ -523,7 +523,7 @@ export function DocumentList() {
             {!syncLogsQuery.isLoading && !syncLogsQuery.isError && syncLogsQuery.data?.items.length === 0 ? <div className="text-sm text-muted-foreground">暂无同步日志</div> : null}
             {syncLogsQuery.data && syncLogsQuery.data.items.length > 0 ? (
               <>
-                <Table>
+                <Table className="[&_td]:whitespace-nowrap">
                   <TableHeader>
                     <TableRow>
                       <TableHead>文档 ID</TableHead>

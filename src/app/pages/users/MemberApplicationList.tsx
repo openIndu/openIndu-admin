@@ -117,7 +117,7 @@ export function MemberApplicationList() {
           {query.isLoading && !data ? (
             <p className="text-sm text-muted-foreground py-8 text-center">加载中…</p>
           ) : (
-            <Table>
+            <Table className="[&_td]:whitespace-nowrap">
               <TableHeader>
                 <TableRow>
                   <TableHead>手机号</TableHead>

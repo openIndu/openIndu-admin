@@ -165,7 +165,7 @@ export function OnlineStats() {
 
           {records.length > 0 && (
             <>
-              <Table>
+              <Table className="[&_td]:whitespace-nowrap">
                 <TableHeader>
                   <TableRow>
                     <TableHead>用户</TableHead>

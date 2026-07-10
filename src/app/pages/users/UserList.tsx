@@ -197,7 +197,7 @@ export function UserList() {
           ) : null}
 
           {query.data && query.data.items.length > 0 ? (
-            <Table>
+            <Table className="[&_td]:whitespace-nowrap">
               <TableHeader>
                 <TableRow>
                   <TableHead>手机号</TableHead>

@@ -174,7 +174,7 @@ export function AuditLogs() {
 
           {logs.length > 0 && (
             <>
-              <Table>
+              <Table className="[&_td]:whitespace-nowrap">
                 <TableHeader>
                   <TableRow>
                     <TableHead>操作管理员</TableHead>

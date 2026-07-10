@@ -452,7 +452,7 @@ export function SoftwareList() {
           {query.isError ? <div className="text-destructive">软件列表加载失败</div> : null}
           {!query.isLoading && !query.isError && query.data?.items.length === 0 ? <div className="text-muted-foreground">暂无软件</div> : null}
           {query.data && query.data.items.length > 0 ? (
-            <Table>
+            <Table className="[&_td]:whitespace-nowrap">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-10">
@@ -670,7 +670,7 @@ export function SoftwareList() {
             {versionsModal.versions.length === 0 ? (
               <div className="text-sm text-muted-foreground">暂无版本记录</div>
             ) : (
-              <Table>
+              <Table className="[&_td]:whitespace-nowrap">
                 <TableHeader><TableRow><TableHead>版本号</TableHead><TableHead>文件大小</TableHead><TableHead>下载次数</TableHead><TableHead>创建时间</TableHead><TableHead>操作</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {versionsModal.versions.map((ver) => (
