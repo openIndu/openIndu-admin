@@ -433,7 +433,7 @@ export function DocumentList() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
+                      <div className="flex items-center gap-1">
                         <Button size="sm" variant="outline" onClick={() => openEdit(item)}>编辑</Button>
                         <Button size="sm" variant="outline" onClick={() => handleDownload(item)}>下载</Button>
                         <Button
