@@ -10,7 +10,7 @@ openIndu Admin is the unified management dashboard for the [openIndu](https://op
 
 | Layer          | Technology                       |
 | -------------- | -------------------------------- |
-| Framework      | React 19                         |
+| Framework      | React 18                         |
 | Language       | TypeScript 5.6                   |
 | Build Tool     | Vite 6                           |
 | Styling        | Tailwind CSS 4 + shadcn/ui       |
@@ -25,8 +25,8 @@ openIndu Admin is the unified management dashboard for the [openIndu](https://op
 
 ### Prerequisites
 
-- Node.js 18+
-- pnpm (recommended) or npm
+- Node.js 20+
+- npm
 - Running [openIndu Backend](https://github.com/openIndu/openIndu-backend) (API on `localhost:8004`)
 
 ### Development
@@ -51,6 +51,15 @@ The dev server proxies `/api` requests to `http://localhost:8004` automatically.
 npm run build    # Output to dist/
 npm run preview  # Preview production build
 ```
+
+Copy `.env.example` to `.env` for local overrides. Real credentials must never
+be committed; `.env` variants are ignored by Git.
+
+## Contributing and security
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow. Please
+report vulnerabilities through GitHub's private vulnerability reporting flow
+as described in [SECURITY.md](SECURITY.md), rather than a public issue.
 
 ### Docker
 
