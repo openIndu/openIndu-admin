@@ -448,6 +448,7 @@ export interface DashboardStats {
   month_pv: number
   month_uv: number
   month_new_users: number
+  month_new_members: number
   month_new_docs: number
   month_new_software: number
   monthly_registrations: Array<{ date: string; count: number }>
@@ -460,11 +461,15 @@ export interface DashboardStats {
   yearly_visitors: Array<{ date: string; count: number }>
   yearly_pv: Array<{ date: string; count: number }>
   yearly_uv: Array<{ date: string; count: number }>
+  yearly_registrations: Array<{ date: string; count: number }>
+  yearly_new_members: Array<{ date: string; count: number }>
 }
 
 export const statsApi = {
   online: () => unwrap<OnlineStats>(api.get('/stats/online')),
   dashboard: () => unwrap<DashboardStats>(api.get('/stats/dashboard')),
+  geoDistribution: (range: 'day' | 'month' | 'year') =>
+    unwrap<{ geo_distribution: DashboardStats['geo_distribution'] }>(api.get('/stats/geo-distribution', { params: { range } })),
   loginHistory: (params: { page?: number; size?: number; keyword?: string; status?: string } = {}) => unwrap<PageResult<Record<string, unknown>>>(api.get('/stats/login-history', { params })),
   visitLogs: (params: { page?: number; size?: number; keyword?: string; authed?: string; include_local?: boolean; sort_by?: string; sort_order?: 'asc' | 'desc' } = {}) => unwrap<PageResult<Record<string, unknown>>>(api.get('/stats/visit-logs', { params })),
   chatKnowledgeGaps: () => unwrap<{ disliked: KnowledgeGapItem[]; fallbacks: KnowledgeGapItem[] }>(api.get('/stats/chat/knowledge-gaps')),
