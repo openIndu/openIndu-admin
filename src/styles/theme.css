@@ -130,6 +130,24 @@
 
   html {
     font-size: var(--font-size);
+    /* Always reserve the scrollbar track. Without this, opening a Radix
+       dialog/dropdown locks scroll and the track disappears, so html's own
+       clientWidth grows by its width -- shifting anything centered
+       relative to html/body. (scrollbar-gutter:stable alone doesn't help:
+       it's a no-op while html's own computed overflow is visible.) */
+    overflow-y: scroll;
+  }
+
+  /* Radix's scroll-lock (react-remove-scroll) also sets
+     margin-right:<scrollbar-width> !important on body to visually
+     compensate for the vanished scrollbar -- but that shrinks body's own
+     auto-computed content width, so anything mx-auto-centered as a normal
+     -flow descendant of body recenters and visibly shifts. Neutralize it;
+     the rule above already keeps the gutter reserved, so no compensation
+     is needed. Selector is intentionally more specific than Radix's
+     `body[data-scroll-locked]` so it wins regardless of injection order. */
+  html body[data-scroll-locked] {
+    margin-right: 0 !important;
   }
 
   h1 {
