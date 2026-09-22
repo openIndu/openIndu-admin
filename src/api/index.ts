@@ -112,13 +112,6 @@ export interface SoftwareItem extends Omit<ResourceItem, 'series'> {
   is_published?: boolean
 }
 
-export interface SystemConfig {
-  config_key: string
-  config_value: string
-  description?: string
-  updated_at?: string
-}
-
 export interface SyncLog {
   id: number
   document_id?: number | null
@@ -170,13 +163,6 @@ api.interceptors.request.use((config) => {
 const unwrap = async <T>(promise: Promise<{ data: ApiResponse<T> }>): Promise<T> => {
   const response = await promise
   return response.data.data
-}
-
-const unwrapItems = async <T>(promise: Promise<{ data: ApiResponse<T[] | { items?: T[] }> }>): Promise<T[]> => {
-  const response = await promise
-  const payload = response.data.data
-  if (Array.isArray(payload)) return payload
-  return payload.items ?? []
 }
 
 const normalizeLoginResponse = (payload: LoginResponse | NestedLoginResponse): LoginResponse => {
@@ -392,13 +378,6 @@ export const tagsApi = {
   create: (data: { type: string; value: string; label_zh: string; parent_value?: string; brand_value?: string; sort_order?: number }) => unwrap<ResourceTag>(api.post('/tags', data)),
   update: (id: number, data: { label_zh?: string; is_active?: boolean; sort_order?: number }) => unwrap<ResourceTag>(api.patch(`/tags/${id}`, data)),
   remove: (id: number) => unwrap(api.delete(`/tags/${id}`)),
-}
-
-export const configApi = {
-  list: () => unwrapItems<SystemConfig>(api.get('/config')),
-  update: (configs: Array<Pick<SystemConfig, 'config_key' | 'config_value'>>) => unwrap(api.put('/config', {
-    items: configs.map((item) => ({ key: item.config_key, value: item.config_value })),
-  })),
 }
 
 export const syncApi = {
