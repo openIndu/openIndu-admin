@@ -283,66 +283,6 @@ describe('API Client', () => {
     })
   })
 
-  describe('unwrapItems helper', () => {
-    it('extracts array directly when payload is array', async () => {
-      const mockedAxios = vi.mocked(axios)
-      mockedAxios.get.mockResolvedValueOnce({
-        data: {
-          code: 200,
-          data: [{ config_key: 'key1', config_value: 'val1' }],
-        },
-      })
-
-      const { configApi } = await import('@/api')
-      const result = await configApi.list()
-      expect(result).toEqual([{ config_key: 'key1', config_value: 'val1' }])
-    })
-
-    it('extracts items from wrapper when present', async () => {
-      const mockedAxios = vi.mocked(axios)
-      mockedAxios.get.mockResolvedValueOnce({
-        data: {
-          code: 200,
-          data: {
-            items: [{ config_key: 'key1', config_value: 'val1' }],
-          },
-        },
-      })
-
-      const { configApi } = await import('@/api')
-      const result = await configApi.list()
-      expect(result).toEqual([{ config_key: 'key1', config_value: 'val1' }])
-    })
-
-    it('returns empty array when items is not present', async () => {
-      const mockedAxios = vi.mocked(axios)
-      mockedAxios.get.mockResolvedValueOnce({
-        data: {
-          code: 200,
-          data: {},
-        },
-      })
-
-      const { configApi } = await import('@/api')
-      const result = await configApi.list()
-      expect(result).toEqual([])
-    })
-  })
-
-  describe('configApi', () => {
-    it('sends config updates using backend items/key/value schema', async () => {
-      const mockedAxios = vi.mocked(axios)
-      mockedAxios.put.mockResolvedValueOnce({ data: { code: 200, data: {} } })
-
-      const { configApi } = await import('@/api')
-      await configApi.update([{ config_key: 'rag_chunk_size', config_value: '512' }])
-
-      expect(mockedAxios.put).toHaveBeenCalledWith('/config', {
-        items: [{ key: 'rag_chunk_size', value: '512' }],
-      })
-    })
-  })
-
   describe('authApi methods', () => {
     it('sendCode calls correct endpoint', async () => {
       const mockedAxios = vi.mocked(axios)
@@ -808,6 +748,31 @@ describe('API Client', () => {
 
       expect(mockedAxios.get).toHaveBeenCalledWith('/stats/login-history', { params: { page: 1, size: 10 } })
     })
+
+    it('geoDistribution calls correct endpoint with the given range', async () => {
+      const mockedAxios = vi.mocked(axios)
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { code: 200, data: { geo_distribution: [] } },
+      })
+
+      const { statsApi } = await import('@/api')
+      await statsApi.geoDistribution('year')
+
+      expect(mockedAxios.get).toHaveBeenCalledWith('/stats/geo-distribution', { params: { range: 'year' } })
+    })
+
+    it('geoDistribution unwraps the geo_distribution array from the response envelope', async () => {
+      const mockedAxios = vi.mocked(axios)
+      const geoRow = { name: '上海', country_code: 'CN', lat: 31.2, lng: 121.5, visitors: 3, registrations: 1, online: 1, anonymous: 2 }
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { code: 200, data: { geo_distribution: [geoRow] } },
+      })
+
+      const { statsApi } = await import('@/api')
+      const result = await statsApi.geoDistribution('day')
+
+      expect(result.geo_distribution).toEqual([geoRow])
+    })
   })
 
   describe('API exports structure', () => {
@@ -818,7 +783,6 @@ describe('API Client', () => {
       expect(exports.documentApi).toBeDefined()
       expect(exports.softwareApi).toBeDefined()
       expect(exports.portalApi).toBeDefined()
-      expect(exports.configApi).toBeDefined()
       expect(exports.syncApi).toBeDefined()
       expect(exports.statsApi).toBeDefined()
       expect(exports.tokenStorage).toBeDefined()

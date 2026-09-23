@@ -2,11 +2,12 @@ import { useState } from 'react'
 import type { MouseEvent } from 'react'
 import { Link } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
-import { FileText, Settings, UploadCloud, Users, TrendingUp, UserPlus, Clock, CalendarDays } from 'lucide-react'
+import { FileText, Settings, UploadCloud, Users, TrendingUp, UserPlus, Award, Clock, CalendarDays } from 'lucide-react'
 import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from 'react-simple-maps'
 import { statsApi, type DashboardStats } from '@/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
+import { cn } from '../components/ui/utils'
 
 const WORLD_TOPO = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
 
@@ -117,6 +118,67 @@ function LineChart({
       {data.length > 0 && <text x={padL} y={H - 4} textAnchor="middle" fontSize="11" fill="#9ca3af">{data[0].date.slice(5)}</text>}
       {data.length > 1 && <text x={padL + innerW} y={H - 4} textAnchor="end" fontSize="11" fill="#9ca3af">{data[data.length - 1].date.slice(5)}</text>}
       {data.length > 2 && <text x={px(Math.floor((data.length - 1) / 2)).toFixed(1)} y={H - 4} textAnchor="middle" fontSize="11" fill="#9ca3af">{data[Math.floor((data.length - 1) / 2)].date.slice(5)}</text>}
+    </svg>
+  )
+}
+
+// Multi-series variant of LineChart, for comparing several metrics that share
+// an x-axis (12 trailing months) but differ wildly in absolute scale (PV/UV
+// in the hundreds-thousands vs. new-member counts that can be single digits).
+// Each series is normalized to ITS OWN peak (0-100% of that series' own max)
+// rather than a shared absolute y-axis, so a small series never gets flattened
+// into an invisible flat line by a big one. The real absolute value is still
+// available per point via the native <title> hover tooltip.
+function MultiLineChart({
+  series,
+}: {
+  series: Array<{ data: Array<{ date: string; count: number }>; color: string; label: string }>
+}) {
+  const withData = series.filter((s) => s.data.length > 0)
+  if (!withData.length) return <div className="py-8 text-center text-sm text-muted-foreground">暂无数据</div>
+
+  const W = 800
+  const H = 240
+  const padL = 44
+  const padR = 16
+  const padT = 16
+  const padB = 32
+  const innerW = W - padL - padR
+  const innerH = H - padT - padB
+
+  const pointCount = Math.max(...withData.map((s) => s.data.length))
+  const labels = withData.find((s) => s.data.length === pointCount)?.data ?? []
+
+  const px = (i: number) => padL + (i / Math.max(pointCount - 1, 1)) * innerW
+  const py = (v: number, ownMax: number) => padT + innerH - (ownMax > 0 ? (v / ownMax) * innerH : 0)
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }}>
+      {[0, 0.25, 0.5, 0.75, 1].map((f, i) => (
+        <line key={i} x1={padL} y1={(padT + innerH * (1 - f)).toFixed(1)} x2={padL + innerW} y2={(padT + innerH * (1 - f)).toFixed(1)} stroke="#e5e7eb" strokeWidth="1" />
+      ))}
+      {withData.map((s) => {
+        const ownMax = Math.max(...s.data.map((d) => d.count), 1)
+        const linePath = s.data.map((d, i) => `${i === 0 ? 'M' : 'L'}${px(i).toFixed(1)},${py(d.count, ownMax).toFixed(1)}`).join(' ')
+        return (
+          <g key={s.label}>
+            <path d={linePath} fill="none" stroke={s.color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+            {s.data.map((d, i) => (
+              <g key={i}>
+                <circle cx={px(i).toFixed(1)} cy={py(d.count, ownMax).toFixed(1)} r="3.5" fill={s.color} />
+                <circle cx={px(i).toFixed(1)} cy={py(d.count, ownMax).toFixed(1)} r="10" fill="transparent" style={{ cursor: 'pointer' }}>
+                  <title>{s.label} {d.date}：{d.count}</title>
+                </circle>
+              </g>
+            ))}
+          </g>
+        )
+      })}
+      <text x={padL - 4} y={padT + 4} textAnchor="end" fontSize="12" fill="#9ca3af">峰值</text>
+      <text x={padL - 4} y={padT + innerH + 4} textAnchor="end" fontSize="12" fill="#9ca3af">0</text>
+      {labels.length > 0 && <text x={padL} y={H - 4} textAnchor="middle" fontSize="11" fill="#9ca3af">{labels[0].date.slice(5)}</text>}
+      {labels.length > 1 && <text x={padL + innerW} y={H - 4} textAnchor="end" fontSize="11" fill="#9ca3af">{labels[labels.length - 1].date.slice(5)}</text>}
+      {labels.length > 2 && <text x={px(Math.floor((labels.length - 1) / 2)).toFixed(1)} y={H - 4} textAnchor="middle" fontSize="11" fill="#9ca3af">{labels[Math.floor((labels.length - 1) / 2)].date.slice(5)}</text>}
     </svg>
   )
 }
@@ -303,13 +365,51 @@ const quickLinks = [
   { to: '/settings', label: '系统配置', description: '维护 Embedding、分块和同步参数', icon: Settings },
 ]
 
+type GeoRange = 'day' | 'month' | 'year'
+
+const GEO_RANGE_OPTIONS: Array<{ value: GeoRange; label: string }> = [
+  { value: 'day', label: '过去一天' },
+  { value: 'month', label: '过去一月' },
+  { value: 'year', label: '过去一年' },
+]
+
+const GEO_RANGE_DESCRIPTION: Record<GeoRange, string> = {
+  day: '过去一天匿名访问 + 登录用户的访问人数地理分布（按访客所在地汇总）',
+  month: '本月匿名访问 + 登录用户的访问人数地理分布（按访客所在地汇总）',
+  year: '过去一年匿名访问 + 登录用户的访问人数地理分布（按访客所在地汇总）',
+}
+
+// Field keys on DashboardStats that back the combined "过去一年趋势" chart —
+// restricted to the 4 yearly_* array fields so the lookup below stays typed
+// without a cast.
+type YearlySeriesField = 'yearly_uv' | 'yearly_pv' | 'yearly_registrations' | 'yearly_new_members'
+
+const YEARLY_TREND_SERIES: Array<{ key: string; label: string; color: string; field: YearlySeriesField }> = [
+  { key: 'uv', label: 'UV', color: '#f59e0b', field: 'yearly_uv' },
+  { key: 'pv', label: 'PV', color: '#10b981', field: 'yearly_pv' },
+  { key: 'reg', label: '新增用户', color: '#3b82f6', field: 'yearly_registrations' },
+  { key: 'mem', label: '新增会员', color: '#a855f7', field: 'yearly_new_members' },
+]
+
 export function Dashboard() {
   const dashQuery = useQuery({ queryKey: ['dashboard', 'stats'], queryFn: statsApi.dashboard })
   const d = dashQuery.data
 
   const num = (v: number | undefined) => (dashQuery.isLoading ? '加载中' : dashQuery.isError ? '--' : (v ?? 0))
 
-  const geoData = d?.geo_distribution ?? []
+  // "过去一月" (the default) reuses the geo_distribution already embedded in
+  // the dashboard query response instead of firing a redundant request on
+  // first paint. Only day/year enable the dedicated endpoint, and react-query
+  // caches by queryKey, so switching back to month — or back to a
+  // previously-visited range — never re-fetches.
+  const [geoRange, setGeoRange] = useState<GeoRange>('month')
+  const geoQuery = useQuery({
+    queryKey: ['stats', 'geo-distribution', geoRange],
+    queryFn: () => statsApi.geoDistribution(geoRange),
+    enabled: geoRange !== 'month',
+  })
+  const geoData = geoRange === 'month' ? (d?.geo_distribution ?? []) : (geoQuery.data?.geo_distribution ?? [])
+  const geoLoading = geoRange === 'month' ? dashQuery.isLoading : geoQuery.isLoading
   const visibleGeoCount = geoData.filter((g) => g.name !== '本地开发' && g.name !== '未知').length
 
   return (
@@ -486,7 +586,7 @@ export function Dashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">总会员人数</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">总用户数</CardTitle>
               <UserPlus className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
@@ -539,22 +639,72 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.monthly_registrations ?? []} color="#3b82f6" id="reg" />}</CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-amber-600" />过去一年 UV 趋势</CardTitle>
-            <CardDescription>过去 12 个月每月独立访客数（client_id 优先，历史按 IP）</CardDescription>
+        <Card className="flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">本月新增会员</CardTitle>
+            <Award className="h-4 w-4 text-purple-600" />
           </CardHeader>
-          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.yearly_uv ?? []} color="#f59e0b" id="year-uv" />}</CardContent>
+          {/* This grid has no items-stretch override, so as a grid item this Card
+              stretches to the row's height (set by the taller chart cards next to
+              it) by default CSS grid behavior. flex-1 + justify-center on the
+              content keeps the number/description centered instead of pinned to
+              the top with dead space below. */}
+          <CardContent className="flex flex-1 flex-col justify-center">
+            <div className="text-3xl font-semibold">{num(d?.month_new_members)}</div>
+            <p className="mt-1 text-xs text-muted-foreground">本月新增会员数量（审核通过）</p>
+          </CardContent>
         </Card>
       </div>
 
-      <Card className="overflow-hidden">
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><Users className="h-4 w-4 text-rose-600" />访问地域分布</CardTitle>
-          <CardDescription>本月匿名访问 + 登录用户的访问人数地理分布（按访客所在地汇总）</CardDescription>
+          <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-amber-600" />过去一年趋势</CardTitle>
+          <CardDescription>过去 12 个月 UV / PV / 新增用户 / 新增会员对比</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {dashQuery.isLoading ? (
+            <div className="text-muted-foreground text-sm">加载中...</div>
+          ) : (
+            <>
+              <div className="mb-4 flex flex-wrap items-center gap-4 text-[11px] text-slate-500">
+                {YEARLY_TREND_SERIES.map((s) => (
+                  <span key={s.key} className="flex items-center gap-1.5">
+                    <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
+                    {s.label}
+                  </span>
+                ))}
+              </div>
+              <MultiLineChart series={YEARLY_TREND_SERIES.map((s) => ({ data: d?.[s.field] ?? [], color: s.color, label: s.label }))} />
+              <p className="mt-2 text-xs text-muted-foreground">各指标按自身 12 个月峰值百分比显示，悬停查看具体数值</p>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="overflow-hidden">
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base"><Users className="h-4 w-4 text-rose-600" />访问地域分布</CardTitle>
+            <CardDescription>{GEO_RANGE_DESCRIPTION[geoRange]}</CardDescription>
+          </div>
+          <div className="inline-flex w-fit rounded-md border p-0.5">
+            {GEO_RANGE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setGeoRange(opt.value)}
+                className={cn(
+                  'rounded px-3 py-1 text-xs font-medium transition-colors',
+                  geoRange === opt.value ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </CardHeader>
         <CardContent className="p-0">
-          {dashQuery.isLoading ? <div className="p-6 text-muted-foreground text-sm">加载中...</div> : visibleGeoCount === 0 ? <div className="py-12 text-center text-muted-foreground text-sm">暂无访问数据</div> : <WorldMap data={geoData} />}
+          {geoLoading ? <div className="p-6 text-muted-foreground text-sm">加载中...</div> : visibleGeoCount === 0 ? <div className="py-12 text-center text-muted-foreground text-sm">暂无访问数据</div> : <WorldMap data={geoData} />}
         </CardContent>
       </Card>
 
