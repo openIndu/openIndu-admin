@@ -35,12 +35,14 @@
     "@types/react-dom": "^18.3.0",
     "@types/react-simple-maps": "^3.0.6",
     "@vitejs/plugin-react": "^4.7.0",
-    "@vitest/coverage-v8": "^4.1.9",
+    "@vitest/coverage-v8": "^4.1.11",
+    "baseline-browser-mapping": "^2.11.22",
+    "browserslist": "^4.28.9",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4.1.12",
     "typescript": "~5.6.2",
     "vite": "^6.3.5",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "d3-color": "3.1.0"
