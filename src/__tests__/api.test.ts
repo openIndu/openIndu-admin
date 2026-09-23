@@ -748,6 +748,31 @@ describe('API Client', () => {
 
       expect(mockedAxios.get).toHaveBeenCalledWith('/stats/login-history', { params: { page: 1, size: 10 } })
     })
+
+    it('geoDistribution calls correct endpoint with the given range', async () => {
+      const mockedAxios = vi.mocked(axios)
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { code: 200, data: { geo_distribution: [] } },
+      })
+
+      const { statsApi } = await import('@/api')
+      await statsApi.geoDistribution('year')
+
+      expect(mockedAxios.get).toHaveBeenCalledWith('/stats/geo-distribution', { params: { range: 'year' } })
+    })
+
+    it('geoDistribution unwraps the geo_distribution array from the response envelope', async () => {
+      const mockedAxios = vi.mocked(axios)
+      const geoRow = { name: '上海', country_code: 'CN', lat: 31.2, lng: 121.5, visitors: 3, registrations: 1, online: 1, anonymous: 2 }
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { code: 200, data: { geo_distribution: [geoRow] } },
+      })
+
+      const { statsApi } = await import('@/api')
+      const result = await statsApi.geoDistribution('day')
+
+      expect(result.geo_distribution).toEqual([geoRow])
+    })
   })
 
   describe('API exports structure', () => {
