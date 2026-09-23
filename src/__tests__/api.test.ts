@@ -283,66 +283,6 @@ describe('API Client', () => {
     })
   })
 
-  describe('unwrapItems helper', () => {
-    it('extracts array directly when payload is array', async () => {
-      const mockedAxios = vi.mocked(axios)
-      mockedAxios.get.mockResolvedValueOnce({
-        data: {
-          code: 200,
-          data: [{ config_key: 'key1', config_value: 'val1' }],
-        },
-      })
-
-      const { configApi } = await import('@/api')
-      const result = await configApi.list()
-      expect(result).toEqual([{ config_key: 'key1', config_value: 'val1' }])
-    })
-
-    it('extracts items from wrapper when present', async () => {
-      const mockedAxios = vi.mocked(axios)
-      mockedAxios.get.mockResolvedValueOnce({
-        data: {
-          code: 200,
-          data: {
-            items: [{ config_key: 'key1', config_value: 'val1' }],
-          },
-        },
-      })
-
-      const { configApi } = await import('@/api')
-      const result = await configApi.list()
-      expect(result).toEqual([{ config_key: 'key1', config_value: 'val1' }])
-    })
-
-    it('returns empty array when items is not present', async () => {
-      const mockedAxios = vi.mocked(axios)
-      mockedAxios.get.mockResolvedValueOnce({
-        data: {
-          code: 200,
-          data: {},
-        },
-      })
-
-      const { configApi } = await import('@/api')
-      const result = await configApi.list()
-      expect(result).toEqual([])
-    })
-  })
-
-  describe('configApi', () => {
-    it('sends config updates using backend items/key/value schema', async () => {
-      const mockedAxios = vi.mocked(axios)
-      mockedAxios.put.mockResolvedValueOnce({ data: { code: 200, data: {} } })
-
-      const { configApi } = await import('@/api')
-      await configApi.update([{ config_key: 'rag_chunk_size', config_value: '512' }])
-
-      expect(mockedAxios.put).toHaveBeenCalledWith('/config', {
-        items: [{ key: 'rag_chunk_size', value: '512' }],
-      })
-    })
-  })
-
   describe('authApi methods', () => {
     it('sendCode calls correct endpoint', async () => {
       const mockedAxios = vi.mocked(axios)
@@ -843,7 +783,6 @@ describe('API Client', () => {
       expect(exports.documentApi).toBeDefined()
       expect(exports.softwareApi).toBeDefined()
       expect(exports.portalApi).toBeDefined()
-      expect(exports.configApi).toBeDefined()
       expect(exports.syncApi).toBeDefined()
       expect(exports.statsApi).toBeDefined()
       expect(exports.tokenStorage).toBeDefined()

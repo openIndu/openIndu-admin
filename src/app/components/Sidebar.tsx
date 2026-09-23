@@ -9,7 +9,6 @@ import {
   Clock,
   FileText,
   MessageSquare,
-  Settings,
   Shield,
   SlidersHorizontal,
   Tag,
@@ -28,7 +27,6 @@ const mainNavItems = [
 ]
 
 const settingsSubItems = [
-  { to: '/settings', label: '配置管理', icon: Settings, end: true },
   { to: '/settings/tags', label: '品牌与分类', icon: Tag },
   { to: '/stats', label: '访问日志', icon: Clock, end: true },
   { to: '/stats/audit', label: '审计日志', icon: Shield },
