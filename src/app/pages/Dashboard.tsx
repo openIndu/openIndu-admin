@@ -122,67 +122,6 @@ function LineChart({
   )
 }
 
-// Multi-series variant of LineChart, for comparing several metrics that share
-// an x-axis (12 trailing months) but differ wildly in absolute scale (PV/UV
-// in the hundreds-thousands vs. new-member counts that can be single digits).
-// Each series is normalized to ITS OWN peak (0-100% of that series' own max)
-// rather than a shared absolute y-axis, so a small series never gets flattened
-// into an invisible flat line by a big one. The real absolute value is still
-// available per point via the native <title> hover tooltip.
-function MultiLineChart({
-  series,
-}: {
-  series: Array<{ data: Array<{ date: string; count: number }>; color: string; label: string }>
-}) {
-  const withData = series.filter((s) => s.data.length > 0)
-  if (!withData.length) return <div className="py-8 text-center text-sm text-muted-foreground">暂无数据</div>
-
-  const W = 800
-  const H = 240
-  const padL = 44
-  const padR = 16
-  const padT = 16
-  const padB = 32
-  const innerW = W - padL - padR
-  const innerH = H - padT - padB
-
-  const pointCount = Math.max(...withData.map((s) => s.data.length))
-  const labels = withData.find((s) => s.data.length === pointCount)?.data ?? []
-
-  const px = (i: number) => padL + (i / Math.max(pointCount - 1, 1)) * innerW
-  const py = (v: number, ownMax: number) => padT + innerH - (ownMax > 0 ? (v / ownMax) * innerH : 0)
-
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }}>
-      {[0, 0.25, 0.5, 0.75, 1].map((f, i) => (
-        <line key={i} x1={padL} y1={(padT + innerH * (1 - f)).toFixed(1)} x2={padL + innerW} y2={(padT + innerH * (1 - f)).toFixed(1)} stroke="#e5e7eb" strokeWidth="1" />
-      ))}
-      {withData.map((s) => {
-        const ownMax = Math.max(...s.data.map((d) => d.count), 1)
-        const linePath = s.data.map((d, i) => `${i === 0 ? 'M' : 'L'}${px(i).toFixed(1)},${py(d.count, ownMax).toFixed(1)}`).join(' ')
-        return (
-          <g key={s.label}>
-            <path d={linePath} fill="none" stroke={s.color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-            {s.data.map((d, i) => (
-              <g key={i}>
-                <circle cx={px(i).toFixed(1)} cy={py(d.count, ownMax).toFixed(1)} r="3.5" fill={s.color} />
-                <circle cx={px(i).toFixed(1)} cy={py(d.count, ownMax).toFixed(1)} r="10" fill="transparent" style={{ cursor: 'pointer' }}>
-                  <title>{s.label} {d.date}：{d.count}</title>
-                </circle>
-              </g>
-            ))}
-          </g>
-        )
-      })}
-      <text x={padL - 4} y={padT + 4} textAnchor="end" fontSize="12" fill="#9ca3af">峰值</text>
-      <text x={padL - 4} y={padT + innerH + 4} textAnchor="end" fontSize="12" fill="#9ca3af">0</text>
-      {labels.length > 0 && <text x={padL} y={H - 4} textAnchor="middle" fontSize="11" fill="#9ca3af">{labels[0].date.slice(5)}</text>}
-      {labels.length > 1 && <text x={padL + innerW} y={H - 4} textAnchor="end" fontSize="11" fill="#9ca3af">{labels[labels.length - 1].date.slice(5)}</text>}
-      {labels.length > 2 && <text x={px(Math.floor((labels.length - 1) / 2)).toFixed(1)} y={H - 4} textAnchor="middle" fontSize="11" fill="#9ca3af">{labels[Math.floor((labels.length - 1) / 2)].date.slice(5)}</text>}
-    </svg>
-  )
-}
-
 const REFERENCE_CITIES: Array<[number, number, string]> = [
   // North America (13)
   [40.7, -74.0, '纽约'], [34.1, -118.2, '洛杉矶'], [41.9, -87.6, '芝加哥'],
@@ -379,16 +318,13 @@ const GEO_RANGE_DESCRIPTION: Record<GeoRange, string> = {
   year: '过去一年匿名访问 + 登录用户的访问人数地理分布（按访客所在地汇总）',
 }
 
-// Field keys on DashboardStats that back the combined "过去一年趋势" chart —
-// restricted to the 4 yearly_* array fields so the lookup below stays typed
-// without a cast.
 type YearlySeriesField = 'yearly_uv' | 'yearly_pv' | 'yearly_registrations' | 'yearly_new_members'
 
-const YEARLY_TREND_SERIES: Array<{ key: string; label: string; color: string; field: YearlySeriesField }> = [
-  { key: 'uv', label: 'UV', color: '#f59e0b', field: 'yearly_uv' },
-  { key: 'pv', label: 'PV', color: '#10b981', field: 'yearly_pv' },
-  { key: 'reg', label: '新增用户', color: '#3b82f6', field: 'yearly_registrations' },
-  { key: 'mem', label: '新增会员', color: '#a855f7', field: 'yearly_new_members' },
+const YEARLY_TREND_SERIES: Array<{ key: string; label: string; description: string; color: string; field: YearlySeriesField }> = [
+  { key: 'uv', label: 'UV', description: '过去 12 个月每月独立访客数', color: '#f59e0b', field: 'yearly_uv' },
+  { key: 'pv', label: 'PV', description: '过去 12 个月每月页面访问次数', color: '#10b981', field: 'yearly_pv' },
+  { key: 'reg', label: '新增用户', description: '过去 12 个月每月新增注册用户数', color: '#3b82f6', field: 'yearly_registrations' },
+  { key: 'mem', label: '新增会员', description: '过去 12 个月每月审核通过会员数', color: '#a855f7', field: 'yearly_new_members' },
 ]
 
 export function Dashboard() {
@@ -591,7 +527,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-semibold">{num(d?.total_users)}</div>
-              <p className="mt-1 text-xs text-muted-foreground">累计注册用户数</p>
+              <p className="mt-1 text-xs text-muted-foreground">当前用户数（不含已删除）</p>
             </CardContent>
           </Card>
           <Card>
@@ -639,47 +575,34 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.monthly_registrations ?? []} color="#3b82f6" id="reg" />}</CardContent>
         </Card>
-        <Card className="flex flex-col">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">本月新增会员</CardTitle>
-            <Award className="h-4 w-4 text-purple-600" />
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base"><Award className="h-4 w-4 text-purple-600" />本月新增会员趋势</CardTitle>
+            <CardDescription>本月每日审核通过会员数量（无数据日默认为 0）</CardDescription>
           </CardHeader>
-          {/* This grid has no items-stretch override, so as a grid item this Card
-              stretches to the row's height (set by the taller chart cards next to
-              it) by default CSS grid behavior. flex-1 + justify-center on the
-              content keeps the number/description centered instead of pinned to
-              the top with dead space below. */}
-          <CardContent className="flex flex-1 flex-col justify-center">
-            <div className="text-3xl font-semibold">{num(d?.month_new_members)}</div>
-            <p className="mt-1 text-xs text-muted-foreground">本月新增会员数量（审核通过）</p>
-          </CardContent>
+          <CardContent>{dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.monthly_new_members ?? []} color="#a855f7" id="member-month" />}</CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-amber-600" />过去一年趋势</CardTitle>
-          <CardDescription>过去 12 个月 UV / PV / 新增用户 / 新增会员对比</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {dashQuery.isLoading ? (
-            <div className="text-muted-foreground text-sm">加载中...</div>
-          ) : (
-            <>
-              <div className="mb-4 flex flex-wrap items-center gap-4 text-[11px] text-slate-500">
-                {YEARLY_TREND_SERIES.map((s) => (
-                  <span key={s.key} className="flex items-center gap-1.5">
-                    <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
-                    {s.label}
-                  </span>
-                ))}
-              </div>
-              <MultiLineChart series={YEARLY_TREND_SERIES.map((s) => ({ data: d?.[s.field] ?? [], color: s.color, label: s.label }))} />
-              <p className="mt-2 text-xs text-muted-foreground">各指标按自身 12 个月峰值百分比显示，悬停查看具体数值</p>
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <div>
+        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-muted-foreground"><TrendingUp className="h-4 w-4" />过去一年趋势</h3>
+        <div className="grid gap-4 md:grid-cols-2">
+          {YEARLY_TREND_SERIES.map((series) => (
+            <Card key={series.key}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: series.color }} />
+                  过去一年 {series.label} 趋势
+                </CardTitle>
+                <CardDescription>{series.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {dashQuery.isLoading ? <div className="text-muted-foreground text-sm">加载中...</div> : <LineChart data={d?.[series.field] ?? []} color={series.color} id={`year-${series.key}`} />}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
 
       <Card className="overflow-hidden">
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

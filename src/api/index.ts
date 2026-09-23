@@ -413,6 +413,7 @@ export interface DashboardStats {
   month_new_docs: number
   month_new_software: number
   monthly_registrations: Array<{ date: string; count: number }>
+  monthly_new_members: Array<{ date: string; count: number }>
   monthly_visitors: Array<{ date: string; count: number }>
   monthly_pv: Array<{ date: string; count: number }>
   monthly_uv: Array<{ date: string; count: number }>
