@@ -527,7 +527,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-semibold">{num(d?.total_users)}</div>
-              <p className="mt-1 text-xs text-muted-foreground">累计注册用户数</p>
+              <p className="mt-1 text-xs text-muted-foreground">当前用户数（不含已删除）</p>
             </CardContent>
           </Card>
           <Card>
