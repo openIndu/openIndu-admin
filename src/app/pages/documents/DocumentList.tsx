@@ -100,6 +100,10 @@ function ChipBar({ label, chips, selected, onSelect }: { label: string; chips: {
   )
 }
 
+// `deleted` shares the display badge with pending/syncing but never polls (terminal state)
+const PENDING_SYNC_DISPLAY = new Set(['pending', 'syncing', 'deleted'])
+const PENDING_SYNC_ACTIVE = new Set(['pending', 'syncing'])
+
 export function DocumentList() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
@@ -177,7 +181,7 @@ export function DocumentList() {
     queryFn: () => documentApi.list(params),
     refetchInterval: (query) => {
       const items = query.state.data?.items ?? []
-      return items.some((i) => i.sync_status === 'pending' || i.sync_status === 'syncing') ? 5_000 : false
+      return items.some((i) => PENDING_SYNC_ACTIVE.has(i.sync_status ?? 'pending')) ? 5_000 : false
     },
   })
   const deleteMutation = useMutation({ mutationFn: documentApi.delete, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) })
@@ -424,7 +428,7 @@ export function DocumentList() {
                     <TableCell>{item.download_count ?? 0}</TableCell>
                     <TableCell>
                       <Badge variant={item.sync_status === 'synced' ? 'success' : item.sync_status === 'failed' ? 'destructive' : 'warning'}>
-                        {item.sync_status ?? 'pending'}
+                        {PENDING_SYNC_DISPLAY.has(item.sync_status ?? 'pending') ? '待同步' : item.sync_status}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -443,7 +447,7 @@ export function DocumentList() {
                           disabled={ragSyncDisabled || item.sync_status === 'syncing' || (syncMutation.isPending && syncMutation.variables === item.id)}
                           title={ragSyncDisabled ? '本环境已关闭 RAG 同步，请在离线环境同步后导入向量' : undefined}
                         >
-                          {syncMutation.isPending && syncMutation.variables === item.id ? '启动中...' : item.sync_status === 'syncing' ? '同步中...' : '同步'}
+                          {(syncMutation.isPending && syncMutation.variables === item.id) || item.sync_status === 'syncing' ? '同步中...' : '同步'}
                         </Button>
                         <Button
                           size="sm"
