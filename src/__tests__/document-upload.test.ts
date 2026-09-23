@@ -19,7 +19,7 @@ describe('DocumentUpload — optimistic cache update', () => {
     // Seed the cache with an existing page of documents
     queryClient.setQueryData(['documents', { page: 1, size: 10 }], {
       items: [
-        { id: 1, brand: 'siemens', category: 'plc-manual', original_name: 'old.pdf', sync_status: 'synced' },
+        { id: 1, brand: 'siemens', category: 'plc-manual', original_name: 'old.pdf' },
       ],
       total: 1,
       page: 1,
@@ -31,7 +31,6 @@ describe('DocumentUpload — optimistic cache update', () => {
       brand: 'omron',
       category: 'hmi-manual',
       original_name: 'new.pdf',
-      sync_status: 'pending',
     }
 
     // Simulate the onSuccess handler from DocumentUpload

@@ -298,10 +298,10 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
 }
 
 const quickLinks = [
-  { to: '/documents', label: '文档管理', description: '上传、筛选、删除和同步文档', icon: FileText },
+  { to: '/documents', label: '文档管理', description: '上传、筛选、发布和删除文档', icon: FileText },
   { to: '/software', label: '软件管理', description: '软件包上传和版本维护', icon: UploadCloud },
   { to: '/users', label: '用户管理', description: '角色、拉黑、强制登出', icon: Users },
-  { to: '/settings', label: '系统配置', description: '维护 Embedding、分块和同步参数', icon: Settings },
+  { to: '/settings/tags', label: '标签管理', description: '维护品牌、分类和系列标签', icon: Settings },
 ]
 
 type GeoRange = 'day' | 'month' | 'year'

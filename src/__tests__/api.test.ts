@@ -682,50 +682,6 @@ describe('API Client', () => {
     })
   })
 
-  describe('syncApi methods', () => {
-    it('trigger calls correct endpoint with default mode', async () => {
-      const mockedAxios = vi.mocked(axios)
-      mockedAxios.post.mockResolvedValueOnce({ data: { code: 200, data: true } })
-
-      const { syncApi } = await import('@/api')
-      await syncApi.trigger()
-
-      expect(mockedAxios.post).toHaveBeenCalledWith('/sync/trigger', { mode: 'incremental' })
-    })
-
-    it('trigger calls correct endpoint with full mode', async () => {
-      const mockedAxios = vi.mocked(axios)
-      mockedAxios.post.mockResolvedValueOnce({ data: { code: 200, data: true } })
-
-      const { syncApi } = await import('@/api')
-      await syncApi.trigger('full')
-
-      expect(mockedAxios.post).toHaveBeenCalledWith('/sync/trigger', { mode: 'full' })
-    })
-
-    it('status calls correct endpoint', async () => {
-      const mockedAxios = vi.mocked(axios)
-      mockedAxios.get.mockResolvedValueOnce({ data: { code: 200, data: {} } })
-
-      const { syncApi } = await import('@/api')
-      await syncApi.status()
-
-      expect(mockedAxios.get).toHaveBeenCalledWith('/sync/status')
-    })
-
-    it('logs calls correct endpoint with params', async () => {
-      const mockedAxios = vi.mocked(axios)
-      mockedAxios.get.mockResolvedValueOnce({
-        data: { code: 200, data: { items: [], total: 0, page: 1, size: 20 } },
-      })
-
-      const { syncApi } = await import('@/api')
-      await syncApi.logs({ page: 1, size: 10 })
-
-      expect(mockedAxios.get).toHaveBeenCalledWith('/sync/logs', { params: { page: 1, size: 10 } })
-    })
-  })
-
   describe('statsApi methods', () => {
     it('online calls correct endpoint', async () => {
       const mockedAxios = vi.mocked(axios)
@@ -783,7 +739,6 @@ describe('API Client', () => {
       expect(exports.documentApi).toBeDefined()
       expect(exports.softwareApi).toBeDefined()
       expect(exports.portalApi).toBeDefined()
-      expect(exports.syncApi).toBeDefined()
       expect(exports.statsApi).toBeDefined()
       expect(exports.tokenStorage).toBeDefined()
       expect(exports.api).toBeDefined()

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Copy, ListChecks, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
-import { documentApi, syncApi, tagsApi, type ResourceItem, type ResourceTag } from '@/api'
+import { ListChecks, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { documentApi, tagsApi, type ResourceItem, type ResourceTag } from '@/api'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
@@ -54,16 +54,6 @@ const PAGE_SIZE_OPTIONS = [
   { value: '50', label: '50 条/页' },
 ]
 
-// Sync-log action codes → Chinese labels. "scan" is a whole-library scan
-// performed once per sync cycle and is not tied to any single document, so its
-// document-id column is intentionally empty (shown as 全部).
-const SYNC_ACTION_LABELS: Record<string, string> = {
-  scan: '全库扫描',
-  add: '新增',
-  update: '更新',
-  delete: '删除',
-}
-
 const formatSize = (size?: number) => (size ? `${(size / 1024 / 1024).toFixed(2)} MB` : '-')
 const formatDate = (iso?: string) =>
   iso
@@ -100,10 +90,6 @@ function ChipBar({ label, chips, selected, onSelect }: { label: string; chips: {
   )
 }
 
-// `deleted` shares the display badge with pending/syncing but never polls (terminal state)
-const PENDING_SYNC_DISPLAY = new Set(['pending', 'syncing', 'deleted'])
-const PENDING_SYNC_ACTIVE = new Set(['pending', 'syncing'])
-
 export function DocumentList() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
@@ -125,8 +111,6 @@ export function DocumentList() {
   const [editCategory, setEditCategory] = useState('')
   const [editSeries, setEditSeries] = useState('')
   const [editDescription, setEditDescription] = useState('')
-  const [logPage, setLogPage] = useState(1)
-  const [copiedId, setCopiedId] = useState<number | null>(null)
 
   const handleSort = (key: string) => {
     if (sortBy === key) {
@@ -176,14 +160,7 @@ export function DocumentList() {
     () => ({ page, size, brand: brand || undefined, category: category || undefined, series: series || undefined, keyword: keyword || undefined, sort_by: sortBy, sort_order: sortOrder }),
     [brand, category, series, keyword, page, size, sortBy, sortOrder],
   )
-  const query = useQuery({
-    queryKey: ['documents', params],
-    queryFn: () => documentApi.list(params),
-    refetchInterval: (query) => {
-      const items = query.state.data?.items ?? []
-      return items.some((i) => PENDING_SYNC_ACTIVE.has(i.sync_status ?? 'pending')) ? 5_000 : false
-    },
-  })
+  const query = useQuery({ queryKey: ['documents', params], queryFn: () => documentApi.list(params) })
   const deleteMutation = useMutation({ mutationFn: documentApi.delete, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) })
   const publishMutation = useMutation({ mutationFn: documentApi.publishToggle, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) })
 
@@ -208,27 +185,11 @@ export function DocumentList() {
       queryClient.invalidateQueries({ queryKey: ['documents'] })
     },
   })
-  const syncMutation = useMutation({ mutationFn: documentApi.sync, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) })
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Parameters<typeof documentApi.update>[1] }) => documentApi.update(id, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['documents'] }); setEditing(null) },
   })
 
-  const syncStatusQuery = useQuery({ queryKey: ['sync', 'status'], queryFn: syncApi.status, refetchInterval: 10_000 })
-  const syncLogsQuery = useQuery({ queryKey: ['sync', 'logs', logPage], queryFn: () => syncApi.logs({ page: logPage, size: 10 }) })
-  const triggerSyncMutation = useMutation({
-    mutationFn: () => syncApi.trigger(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sync', 'status'] })
-      queryClient.invalidateQueries({ queryKey: ['sync', 'logs'] })
-    },
-  })
-
-  const statusData = syncStatusQuery.data as Record<string, unknown> | undefined
-  // Backend reports rag_sync_enabled=false on resource-constrained nodes where
-  // embedding must not run. Disable the sync buttons so a click can't fire a
-  // request that the server would only reject with 503.
-  const ragSyncDisabled = statusData?.rag_sync_enabled === false
   const totalPages = query.data ? Math.ceil(query.data.total / size) : 0
   const currentItems = query.data?.items ?? []
   const currentItemIds = currentItems.map((item) => item.id)
@@ -273,13 +234,6 @@ export function DocumentList() {
 
   const publishFiltered = (publish: boolean) => {
     bulkPublishMutation.mutate({ brand: brand || undefined, category: category || undefined, series: series || undefined, keyword: keyword || undefined, publish })
-  }
-
-  const handleCopyError = (logId: number, text: string) => {
-    void navigator.clipboard.writeText(text).then(() => {
-      setCopiedId(logId)
-      setTimeout(() => setCopiedId(null), 1500)
-    })
   }
 
   const openEdit = (item: ResourceItem) => {
@@ -408,7 +362,6 @@ export function DocumentList() {
                     currentSortOrder={sortOrder}
                     onSort={handleSort}
                   />
-                  <TableHead>同步状态</TableHead>
                   <TableHead>发布状态</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
@@ -427,11 +380,6 @@ export function DocumentList() {
                     <TableCell className="whitespace-nowrap">{formatDate(item.upload_time)}</TableCell>
                     <TableCell>{item.download_count ?? 0}</TableCell>
                     <TableCell>
-                      <Badge variant={item.sync_status === 'synced' ? 'success' : item.sync_status === 'failed' ? 'destructive' : 'warning'}>
-                        {PENDING_SYNC_DISPLAY.has(item.sync_status ?? 'pending') ? '待同步' : item.sync_status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
                       <Badge variant={item.is_published ? 'success' : 'secondary'}>
                         {item.is_published ? '已发布' : '未发布'}
                       </Badge>
@@ -440,15 +388,6 @@ export function DocumentList() {
                       <div className="flex items-center gap-1">
                         <Button size="sm" variant="outline" onClick={() => openEdit(item)}>编辑</Button>
                         <Button size="sm" variant="outline" onClick={() => handleDownload(item)}>下载</Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => syncMutation.mutate(item.id)}
-                          disabled={ragSyncDisabled || item.sync_status === 'syncing' || (syncMutation.isPending && syncMutation.variables === item.id)}
-                          title={ragSyncDisabled ? '本环境已关闭 RAG 同步，请在离线环境同步后导入向量' : undefined}
-                        >
-                          {(syncMutation.isPending && syncMutation.variables === item.id) || item.sync_status === 'syncing' ? '同步中...' : '同步'}
-                        </Button>
                         <Button
                           size="sm"
                           variant={item.is_published ? 'outline' : 'default'}
@@ -492,109 +431,6 @@ export function DocumentList() {
               </div>
             </div>
           ) : null}
-        </CardContent>
-      </Card>
-
-      {/* 同步管理 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>同步管理</CardTitle>
-          <CardDescription>触发文档同步并查看同步状态和日志。</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4 flex flex-wrap items-center gap-4">
-            <Button
-              onClick={() => triggerSyncMutation.mutate()}
-              disabled={ragSyncDisabled || triggerSyncMutation.isPending}
-              title={ragSyncDisabled ? '本环境已关闭 RAG 同步，请在离线环境同步后导入向量' : undefined}
-            >
-              {triggerSyncMutation.isPending ? '触发中...' : '立即同步全库'}
-            </Button>
-            {ragSyncDisabled ? (
-              <span className="text-sm text-amber-600">
-                本环境已关闭 RAG 同步（资源受限），请在离线环境同步后导入向量
-              </span>
-            ) : statusData?.pending_count !== undefined ? (
-              <span className="text-sm text-muted-foreground">
-                待同步 / 失败：<span className="font-medium text-foreground">{String(statusData.pending_count)}</span> 个文档
-              </span>
-            ) : null}
-          </div>
-          <div>
-            <h4 className="mb-2 text-sm font-medium">同步日志</h4>
-            {syncLogsQuery.isLoading ? <div className="text-sm text-muted-foreground">正在加载日志...</div> : null}
-            {syncLogsQuery.isError ? <div className="text-sm text-destructive">日志加载失败</div> : null}
-            {!syncLogsQuery.isLoading && !syncLogsQuery.isError && syncLogsQuery.data?.items.length === 0 ? <div className="text-sm text-muted-foreground">暂无同步日志</div> : null}
-            {syncLogsQuery.data && syncLogsQuery.data.items.length > 0 ? (
-              <>
-                <Table className="[&_td]:whitespace-nowrap">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>文档 ID</TableHead>
-                      <TableHead>文件名称</TableHead>
-                      <TableHead>操作</TableHead>
-                      <TableHead>状态</TableHead>
-                      <TableHead>错误信息</TableHead>
-                      <TableHead>同步时间</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {syncLogsQuery.data.items.map((log) => (
-                      <TableRow key={log.id}>
-                        <TableCell>
-                          {log.action === 'scan' ? (
-                            <span className="text-muted-foreground" title="全库扫描，不针对单个文档">全部</span>
-                          ) : (
-                            log.document_id ?? '-'
-                          )}
-                        </TableCell>
-                        <TableCell className="max-w-[220px] truncate" title={log.document_name ?? ''}>
-                          {log.action === 'scan' ? (
-                            <span className="text-muted-foreground">全部</span>
-                          ) : (
-                            log.document_name ?? '-'
-                          )}
-                        </TableCell>
-                        <TableCell>{SYNC_ACTION_LABELS[log.action] ?? log.action}</TableCell>
-                        <TableCell>
-                          <Badge variant={log.status === 'success' ? 'success' : 'destructive'}>{log.status}</Badge>
-                        </TableCell>
-                        <TableCell className="max-w-xs">
-                          {log.error_message ? (
-                            <div className="group relative flex items-center gap-1">
-                              <span className="truncate">{log.error_message}</span>
-                              <div className="absolute bottom-full left-0 z-20 mb-1 hidden w-96 rounded-md border bg-popover p-3 text-xs shadow-lg group-hover:block">
-                                <pre className="whitespace-pre-wrap break-all">{log.error_message}</pre>
-                              </div>
-                              <button
-                                onClick={() => handleCopyError(log.id, log.error_message ?? '')}
-                                className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                                title="复制错误信息"
-                              >
-                                {copiedId === log.id ? (
-                                  <span className="text-[10px] text-green-600">已复制</span>
-                                ) : (
-                                  <Copy className="h-3 w-3" />
-                                )}
-                              </button>
-                            </div>
-                          ) : '-'}
-                        </TableCell>
-                        <TableCell>{log.sync_time ?? '-'}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-                  <span>共 {syncLogsQuery.data.total} 条</span>
-                  <div className="space-x-2">
-                    <Button size="sm" variant="outline" disabled={logPage <= 1} onClick={() => setLogPage(logPage - 1)}>上一页</Button>
-                    <Button size="sm" variant="outline" disabled={logPage * 10 >= syncLogsQuery.data.total} onClick={() => setLogPage(logPage + 1)}>下一页</Button>
-                  </div>
-                </div>
-              </>
-            ) : null}
-          </div>
         </CardContent>
       </Card>
 
