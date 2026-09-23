@@ -77,7 +77,6 @@ export interface ResourceItem {
   description?: string
   file_size?: number
   download_count?: number
-  sync_status?: 'pending' | 'syncing' | 'synced' | 'failed' | string
   is_published?: boolean
   upload_time?: string
   created_at?: string
@@ -110,16 +109,6 @@ export interface SoftwareItem extends Omit<ResourceItem, 'series'> {
   version_download_count?: number
   is_active?: boolean
   is_published?: boolean
-}
-
-export interface SyncLog {
-  id: number
-  document_id?: number | null
-  document_name?: string | null
-  action: string
-  status: string
-  error_message?: string
-  sync_time?: string
 }
 
 export interface OnlineStats {
@@ -328,7 +317,6 @@ export const documentApi = {
   get: (id: number) => unwrap<ResourceItem>(api.get(`/documents/${id}`)),
   update: (id: number, data: Partial<Pick<ResourceItem, 'original_name' | 'brand' | 'category' | 'series' | 'description'>>) => unwrap<ResourceItem>(api.patch(`/documents/${id}`, data)),
   delete: (id: number) => unwrap(api.delete(`/documents/${id}`)),
-  sync: (id: number) => unwrap<ResourceItem>(api.post(`/documents/${id}/sync`)),
   publishToggle: (id: number) => unwrap<ResourceItem>(api.patch(`/documents/${id}/publish`)),
   bulkPublish: (data: { ids?: number[]; brand?: string; category?: string; series?: string; keyword?: string; publish?: boolean }) => unwrap<{ count: number; publish: boolean }>(api.patch('/documents/publish/bulk', data)),
   downloadLink: (id: number) => unwrap<{ download_url: string; filename?: string; expires_in?: number }>(api.get(`/documents/${id}/download-link`)),
@@ -378,12 +366,6 @@ export const tagsApi = {
   create: (data: { type: string; value: string; label_zh: string; parent_value?: string; brand_value?: string; sort_order?: number }) => unwrap<ResourceTag>(api.post('/tags', data)),
   update: (id: number, data: { label_zh?: string; is_active?: boolean; sort_order?: number }) => unwrap<ResourceTag>(api.patch(`/tags/${id}`, data)),
   remove: (id: number) => unwrap(api.delete(`/tags/${id}`)),
-}
-
-export const syncApi = {
-  trigger: (mode: 'full' | 'incremental' = 'incremental') => unwrap(api.post('/sync/trigger', { mode })),
-  status: () => unwrap<Record<string, unknown>>(api.get('/sync/status')),
-  logs: (params: { page?: number; size?: number } = {}) => unwrap<PageResult<SyncLog>>(api.get('/sync/logs', { params })),
 }
 
 export interface DashboardStats {

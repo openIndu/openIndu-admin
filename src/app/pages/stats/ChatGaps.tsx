@@ -112,7 +112,7 @@ export function ChatGaps() {
         <Pagination page={page} pageSize={pageSize} total={disliked.length} onPageChange={setPage} onPageSizeChange={handlePageSizeChange} />
       )}
       <p className="mt-2 text-xs text-gray-400">
-        建议：针对上述提问补充相关文档，上传至后台"文档管理"并同步向量库。
+        建议：针对上述提问补充相关文档，上传至后台“文档管理”；向量索引由 openIndu Studio 维护。
       </p>
     </div>
   )
