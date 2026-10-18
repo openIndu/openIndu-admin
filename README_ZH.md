@@ -27,14 +27,14 @@ openIndu Admin 是 [openIndu](https://openindu.com) 开源工业自动化生态�
 
 - Node.js 18+
 - pnpm（推荐）或 npm
-- 已启动的 [openIndu Backend](https://github.com/openIndu/openIndu-backend)（API 在 `localhost:8004`）
+- 已启动的 [openIndu Backend](https://github.com/openIndu/openindu-backend)（API 在 `localhost:8004`）
 
 ### 开发
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/openIndu/openIndu-admin.git
-cd openIndu-admin
+git clone https://github.com/openIndu/openindu-admin.git
+cd openindu-admin
 
 # 2. 安装依赖
 npm install
@@ -62,7 +62,7 @@ docker run -p 3001:80 openindu-admin
 ## 项目结构
 
 ```
-openIndu-admin/
+openindu-admin/
 ├── src/
 │   ├── app/
 │   │   ├── App.tsx         # 根组件

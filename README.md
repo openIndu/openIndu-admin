@@ -27,14 +27,14 @@ openIndu Admin is the unified management dashboard for the [openIndu](https://op
 
 - Node.js 20+
 - npm
-- Running [openIndu Backend](https://github.com/openIndu/openIndu-backend) (API on `localhost:8004`)
+- Running [openIndu Backend](https://github.com/openIndu/openindu-backend) (API on `localhost:8004`)
 
 ### Development
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/openIndu/openIndu-admin.git
-cd openIndu-admin
+git clone https://github.com/openIndu/openindu-admin.git
+cd openindu-admin
 
 # 2. Install dependencies
 npm install
@@ -71,7 +71,7 @@ docker run -p 3001:80 openindu-admin
 ## Project Structure
 
 ```
-openIndu-admin/
+openindu-admin/
 ├── src/
 │   ├── app/
 │   │   ├── App.tsx         # Root component
