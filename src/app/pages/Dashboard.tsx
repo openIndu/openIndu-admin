@@ -333,19 +333,20 @@ export function Dashboard() {
 
   const num = (v: number | undefined) => (dashQuery.isLoading ? '加载中' : dashQuery.isError ? '--' : (v ?? 0))
 
-  // "过去一月" (the default) reuses the geo_distribution already embedded in
-  // the dashboard query response instead of firing a redundant request on
-  // first paint. Only day/year enable the dedicated endpoint, and react-query
-  // caches by queryKey, so switching back to month — or back to a
-  // previously-visited range — never re-fetches.
+  // Every range — including the default month — hits the dedicated
+  // /stats/geo-distribution endpoint. The dashboard payload also embeds a
+  // month-scoped geo_distribution, but it is only as fresh as the dashboard
+  // query itself (nothing refetches it while the tab stays open), so reusing
+  // it made the month view lag behind day/year after a toggle — "过去一月"
+  // could miss visits that "过去一天" already showed. react-query still caches
+  // per queryKey, so revisiting a range within staleTime stays cheap.
   const [geoRange, setGeoRange] = useState<GeoRange>('month')
   const geoQuery = useQuery({
     queryKey: ['stats', 'geo-distribution', geoRange],
     queryFn: () => statsApi.geoDistribution(geoRange),
-    enabled: geoRange !== 'month',
   })
-  const geoData = geoRange === 'month' ? (d?.geo_distribution ?? []) : (geoQuery.data?.geo_distribution ?? [])
-  const geoLoading = geoRange === 'month' ? dashQuery.isLoading : geoQuery.isLoading
+  const geoData = geoQuery.data?.geo_distribution ?? []
+  const geoLoading = geoQuery.isLoading
   const visibleGeoCount = geoData.filter((g) => g.name !== '本地开发' && g.name !== '未知').length
 
   return (
