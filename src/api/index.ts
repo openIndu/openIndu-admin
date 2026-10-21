@@ -293,8 +293,16 @@ api.interceptors.response.use(
   },
 )
 
+export interface CaptchaChallenge {
+  captcha_id: number
+  image: string
+  expires_in: number
+}
+
 export const authApi = {
-  sendCode: (phone: string) => unwrap(api.post('/auth/send-code', { phone })),
+  getCaptcha: () => unwrap<CaptchaChallenge>(api.get('/auth/captcha')),
+  sendCode: (phone: string, captchaId: number, captchaText: string) =>
+    unwrap(api.post('/auth/send-code', { phone, captcha_id: captchaId, captcha_text: captchaText })),
   login: async (phone: string, code: string) => normalizeLoginResponse(await unwrap<LoginResponse | NestedLoginResponse>(api.post('/auth/login', { phone, code }))),
   register: async (phone: string, code: string) => normalizeLoginResponse(await unwrap<LoginResponse | NestedLoginResponse>(api.post('/auth/register', { phone, code }))),
   refresh: async (refreshToken: string) => normalizeLoginResponse(await unwrap<LoginResponse | NestedLoginResponse>(api.post('/auth/refresh', { refresh_token: refreshToken }))),

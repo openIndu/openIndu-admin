@@ -1,6 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
-import { authApi } from '@/api'
+import { authApi, type CaptchaChallenge } from '@/api'
 import { useAuth } from '@/store/auth'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
@@ -15,11 +15,22 @@ export function Login() {
   const [bannerVisible, setBannerVisible] = useState(false)
   const [phone, setPhone] = useState('')
   const [code, setCode] = useState('')
+  const [captcha, setCaptcha] = useState<CaptchaChallenge | null>(null)
+  const [captchaText, setCaptchaText] = useState('')
   const [countdown, setCountdown] = useState(0)
   const [isSending, setIsSending] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+
+  const refreshCaptcha = useCallback(async () => {
+    setCaptchaText('')
+    try {
+      setCaptcha(await authApi.getCaptcha())
+    } catch {
+      setCaptcha(null)
+    }
+  }, [])
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -44,6 +55,10 @@ export function Login() {
     return () => window.clearInterval(timer)
   }, [countdown])
 
+  useEffect(() => {
+    void refreshCaptcha()
+  }, [refreshCaptcha])
+
   const isValidPhone = /^1\d{10}$/.test(phone)
   const isValidCode = /^\d{6}$/.test(code)
 
@@ -52,17 +67,24 @@ export function Login() {
       setError('请输入 11 位中国大陆手机号')
       return
     }
+    if (!captcha || !captchaText.trim()) {
+      setError('请输入图形验证码')
+      return
+    }
     setIsSending(true)
     setError(null)
     setMessage(null)
     try {
-      await authApi.sendCode(phone)
+      await authApi.sendCode(phone, captcha.captcha_id, captchaText.trim())
       setCountdown(60)
       setMessage('验证码已发送，请查收短信')
     } catch (err) {
-      setError(err instanceof Error ? err.message : '验证码发送失败')
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      setError(detail || (err instanceof Error ? err.message : '验证码发送失败'))
     } finally {
       setIsSending(false)
+      // The challenge is consumed whether the send succeeded or not.
+      void refreshCaptcha()
     }
   }
 
@@ -120,6 +142,23 @@ export function Login() {
             <div className="space-y-2">
               <label htmlFor="phone">手机号</label>
               <Input id="phone" value={phone} onChange={(event) => setPhone(event.target.value)} maxLength={11} placeholder="请输入 11 位手机号" inputMode="numeric" />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="captcha">图形验证码</label>
+              <div className="flex gap-2">
+                <Input id="captcha" value={captchaText} onChange={(event) => setCaptchaText(event.target.value)} maxLength={4} placeholder="4 位字符" className="w-28 shrink-0" autoComplete="off" />
+                {captcha ? (
+                  <img
+                    src={captcha.image}
+                    alt="图形验证码"
+                    title="看不清？点击刷新"
+                    className="h-9 flex-1 cursor-pointer rounded-md border"
+                    onClick={() => void refreshCaptcha()}
+                  />
+                ) : (
+                  <div className="flex h-9 flex-1 items-center justify-center rounded-md border text-xs text-muted-foreground">加载中...</div>
+                )}
+              </div>
             </div>
             <div className="space-y-2">
               <label htmlFor="code">验证码</label>

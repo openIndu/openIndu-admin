@@ -284,14 +284,18 @@ describe('API Client', () => {
   })
 
   describe('authApi methods', () => {
-    it('sendCode calls correct endpoint', async () => {
+    it('sendCode calls correct endpoint with captcha fields', async () => {
       const mockedAxios = vi.mocked(axios)
       mockedAxios.post.mockResolvedValueOnce({ data: { code: 200, data: true } })
 
       const { authApi } = await import('@/api')
-      await authApi.sendCode('13800138000')
+      await authApi.sendCode('13800138000', 42, 'AB2C')
 
-      expect(mockedAxios.post).toHaveBeenCalledWith('/auth/send-code', { phone: '13800138000' })
+      expect(mockedAxios.post).toHaveBeenCalledWith('/auth/send-code', {
+        phone: '13800138000',
+        captcha_id: 42,
+        captcha_text: 'AB2C',
+      })
     })
 
     it('refresh calls correct endpoint', async () => {
