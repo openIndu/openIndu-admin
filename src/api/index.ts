@@ -293,16 +293,20 @@ api.interceptors.response.use(
   },
 )
 
-export interface CaptchaChallenge {
-  captcha_id: number
-  image: string
+export interface SliderChallenge {
+  challenge_id: number
+  background: string
+  piece: string
+  piece_y: number
   expires_in: number
 }
 
 export const authApi = {
-  getCaptcha: () => unwrap<CaptchaChallenge>(api.get('/auth/captcha')),
-  sendCode: (phone: string, captchaId: number, captchaText: string) =>
-    unwrap(api.post('/auth/send-code', { phone, captcha_id: captchaId, captcha_text: captchaText })),
+  getSliderCaptcha: () => unwrap<SliderChallenge>(api.get('/auth/slider-captcha')),
+  verifySlider: (challengeId: number, x: number) =>
+    unwrap<{ ticket: string; expires_in: number }>(api.post('/auth/slider-captcha/verify', { challenge_id: challengeId, x })),
+  sendCode: (phone: string, sliderTicket: string) =>
+    unwrap(api.post('/auth/send-code', { phone, slider_ticket: sliderTicket })),
   login: async (phone: string, code: string) => normalizeLoginResponse(await unwrap<LoginResponse | NestedLoginResponse>(api.post('/auth/login', { phone, code }))),
   register: async (phone: string, code: string) => normalizeLoginResponse(await unwrap<LoginResponse | NestedLoginResponse>(api.post('/auth/register', { phone, code }))),
   refresh: async (refreshToken: string) => normalizeLoginResponse(await unwrap<LoginResponse | NestedLoginResponse>(api.post('/auth/refresh', { refresh_token: refreshToken }))),
