@@ -284,17 +284,30 @@ describe('API Client', () => {
   })
 
   describe('authApi methods', () => {
-    it('sendCode calls correct endpoint with captcha fields', async () => {
+    it('sendCode calls correct endpoint with the slider ticket', async () => {
       const mockedAxios = vi.mocked(axios)
       mockedAxios.post.mockResolvedValueOnce({ data: { code: 200, data: true } })
 
       const { authApi } = await import('@/api')
-      await authApi.sendCode('13800138000', 42, 'AB2C')
+      await authApi.sendCode('13800138000', 'ticket-abc')
 
       expect(mockedAxios.post).toHaveBeenCalledWith('/auth/send-code', {
         phone: '13800138000',
-        captcha_id: 42,
-        captcha_text: 'AB2C',
+        slider_ticket: 'ticket-abc',
+      })
+    })
+
+    it('verifySlider posts the drag offset and returns the ticket', async () => {
+      const mockedAxios = vi.mocked(axios)
+      mockedAxios.post.mockResolvedValueOnce({ data: { code: 200, data: { ticket: 't-1', expires_in: 300 } } })
+
+      const { authApi } = await import('@/api')
+      const result = await authApi.verifySlider(7, 213)
+
+      expect(result).toEqual({ ticket: 't-1', expires_in: 300 })
+      expect(mockedAxios.post).toHaveBeenCalledWith('/auth/slider-captcha/verify', {
+        challenge_id: 7,
+        x: 213,
       })
     })
 
