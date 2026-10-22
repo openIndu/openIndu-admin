@@ -99,6 +99,9 @@ export function DocumentList() {
   const [category, setCategory] = useState('')
   const [series, setSeries] = useState('')
   const [keyword, setKeyword] = useState('')
+  const [submissionStatus, setSubmissionStatus] = useState('')
+  const [rejecting, setRejecting] = useState<ResourceItem | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
   const [sortBy, setSortBy] = useState<string>('upload_time')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [selectedIds, setSelectedIds] = useState<number[]>([])
@@ -157,12 +160,20 @@ export function DocumentList() {
   }, [allSeriesQuery.data, seriesQuery.data, editSeriesQuery.data])
 
   const params = useMemo(
-    () => ({ page, size, brand: brand || undefined, category: category || undefined, series: series || undefined, keyword: keyword || undefined, sort_by: sortBy, sort_order: sortOrder }),
-    [brand, category, series, keyword, page, size, sortBy, sortOrder],
+    () => ({ page, size, brand: brand || undefined, category: category || undefined, series: series || undefined, keyword: keyword || undefined, submission_status: submissionStatus || undefined, sort_by: sortBy, sort_order: sortOrder }),
+    [brand, category, series, keyword, submissionStatus, page, size, sortBy, sortOrder],
   )
   const query = useQuery({ queryKey: ['documents', params], queryFn: () => documentApi.list(params) })
   const deleteMutation = useMutation({ mutationFn: documentApi.delete, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) })
   const publishMutation = useMutation({ mutationFn: documentApi.publishToggle, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }) })
+  const reviewMutation = useMutation({
+    mutationFn: ({ id, action, reason }: { id: number; action: 'publish' | 'reject'; reason?: string }) => documentApi.review(id, action, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] })
+      setRejecting(null)
+      setRejectReason('')
+    },
+  })
 
   const handleDownload = async (item: ResourceItem) => {
     try {
@@ -225,7 +236,7 @@ export function DocumentList() {
   useEffect(() => {
     setSelectedIds([])
     setSelectAllMatching(false)
-  }, [brand, category, series])
+  }, [brand, category, series, submissionStatus])
 
   const publishSelected = (publish: boolean) => {
     if (selectedIds.length === 0) return
@@ -279,6 +290,12 @@ export function DocumentList() {
                 onSelect={(v) => { setSeries(v); setPage(1) }}
               />
             ) : null}
+            <ChipBar
+              label="审核状态："
+              chips={[{ value: 'pending', label: '待审核' }, { value: 'rejected', label: '已驳回' }]}
+              selected={submissionStatus}
+              onSelect={(v) => { setSubmissionStatus(v); setPage(1) }}
+            />
             <div className="flex flex-wrap items-center gap-2">
               <Input
                 className="h-8 max-w-xs"
@@ -380,22 +397,44 @@ export function DocumentList() {
                     <TableCell className="whitespace-nowrap">{formatDate(item.upload_time)}</TableCell>
                     <TableCell>{item.download_count ?? 0}</TableCell>
                     <TableCell>
-                      <Badge variant={item.is_published ? 'success' : 'secondary'}>
-                        {item.is_published ? '已发布' : '未发布'}
-                      </Badge>
+                      {item.submission_status === 'pending' ? (
+                        <Badge variant="warning">待审核</Badge>
+                      ) : item.submission_status === 'rejected' ? (
+                        <Badge variant="destructive" title={item.rejected_reason ?? undefined}>已驳回</Badge>
+                      ) : (
+                        <Badge variant={item.is_published ? 'success' : 'secondary'}>
+                          {item.is_published ? '已发布' : '未发布'}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <Button size="sm" variant="outline" onClick={() => openEdit(item)}>编辑</Button>
                         <Button size="sm" variant="outline" onClick={() => handleDownload(item)}>下载</Button>
-                        <Button
-                          size="sm"
-                          variant={item.is_published ? 'outline' : 'default'}
-                          onClick={() => publishMutation.mutate(item.id)}
-                          disabled={publishMutation.isPending}
-                        >
-                          {item.is_published ? '取消发布' : '发布'}
-                        </Button>
+                        {(item.submission_status === 'pending' || item.submission_status === 'rejected') ? (
+                          // Review flow: publishing a member submission goes
+                          // through /review so the submission state is cleared.
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => reviewMutation.mutate({ id: item.id, action: 'publish' })}
+                            disabled={reviewMutation.isPending}
+                          >
+                            通过并发布
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant={item.is_published ? 'outline' : 'default'}
+                            onClick={() => publishMutation.mutate(item.id)}
+                            disabled={publishMutation.isPending}
+                          >
+                            {item.is_published ? '取消发布' : '发布'}
+                          </Button>
+                        )}
+                        {item.submission_status === 'pending' ? (
+                          <Button size="sm" variant="outline" onClick={() => { setRejecting(item); setRejectReason('') }}>驳回</Button>
+                        ) : null}
                         <Button size="sm" variant="destructive" onClick={() => setDeleting(item)}>删除</Button>
                       </div>
                     </TableCell>
@@ -508,6 +547,38 @@ export function DocumentList() {
           setConfirmBulk(null)
         }}
       />
+
+      {/* Reject modal */}
+      {rejecting ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl border bg-card p-6 shadow-lg">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold">驳回投稿 - {displayName(rejecting)}</h3>
+              <Button variant="ghost" size="sm" onClick={() => setRejecting(null)}>关闭</Button>
+            </div>
+            <label className="block space-y-1 text-sm">
+              <span>驳回理由（会员可见，必填）</span>
+              <textarea
+                className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="例如：缺少系列信息，请补充后重新提交"
+              />
+            </label>
+            {reviewMutation.isError ? <div className="mt-2 text-sm text-destructive">操作失败，请重试</div> : null}
+            <div className="mt-5 flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setRejecting(null)}>取消</Button>
+              <Button
+                variant="destructive"
+                disabled={!rejectReason.trim() || reviewMutation.isPending}
+                onClick={() => reviewMutation.mutate({ id: rejecting.id, action: 'reject', reason: rejectReason.trim() })}
+              >
+                {reviewMutation.isPending ? '提交中...' : '确认驳回'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <ConfirmDialog
         open={deleting !== null}
