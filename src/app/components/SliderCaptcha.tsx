@@ -97,14 +97,17 @@ export function SliderCaptcha({ open, onClose, onPass }: SliderCaptchaProps) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="安全验证"
+      onClick={(event) => {
+        // Dismiss only when the backdrop itself is clicked (not the card).
+        if (event.target === event.currentTarget) onClose()
+      }}
+      role="presentation"
     >
       <div
         className="w-[352px] max-w-full rounded-lg bg-white p-4 shadow-2xl"
-        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="安全验证"
       >
         <div className="mb-3 flex items-center justify-between">
           <p className="text-sm font-medium text-gray-800">安全验证</p>
