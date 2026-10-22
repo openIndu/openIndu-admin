@@ -188,7 +188,7 @@ function WorldMap({ data }: { data: DashboardStats['geo_distribution'] }) {
 
   return (
     <div className="relative overflow-hidden rounded-xl border bg-[#d4dfe6]">
-      <div className="h-[650px] w-full">
+      <div className="h-[360px] w-full sm:h-[650px]">
         <ComposableMap
           projection="geoMercator"
           projectionConfig={{ scale: 180, center: [15, 15] }}
@@ -314,7 +314,7 @@ const GEO_RANGE_OPTIONS: Array<{ value: GeoRange; label: string }> = [
 
 const GEO_RANGE_DESCRIPTION: Record<GeoRange, string> = {
   day: '过去一天匿名访问 + 登录用户的访问人数地理分布（按访客所在地汇总）',
-  month: '本月匿名访问 + 登录用户的访问人数地理分布（按访客所在地汇总）',
+  month: '过去 30 天（含今天）匿名访问 + 登录用户的访问人数地理分布（按访客所在地汇总）',
   year: '过去一年匿名访问 + 登录用户的访问人数地理分布（按访客所在地汇总）',
 }
 
@@ -333,17 +333,13 @@ export function Dashboard() {
 
   const num = (v: number | undefined) => (dashQuery.isLoading ? '加载中' : dashQuery.isError ? '--' : (v ?? 0))
 
-  // Every range — including the default month — hits the dedicated
-  // /stats/geo-distribution endpoint. The dashboard payload also embeds a
-  // month-scoped geo_distribution, but it is only as fresh as the dashboard
-  // query itself (nothing refetches it while the tab stays open), so reusing
-  // it made the month view lag behind day/year after a toggle — "过去一月"
-  // could miss visits that "过去一天" already showed. react-query still caches
-  // per queryKey, so revisiting a range within staleTime stays cheap.
+  // Fetch each selected window from its own endpoint; the dashboard payload
+  // retains a calendar-month snapshot for the other dashboard metrics.
   const [geoRange, setGeoRange] = useState<GeoRange>('month')
   const geoQuery = useQuery({
     queryKey: ['stats', 'geo-distribution', geoRange],
     queryFn: () => statsApi.geoDistribution(geoRange),
+    refetchInterval: 30_000,
   })
   const geoData = geoQuery.data?.geo_distribution ?? []
   const geoLoading = geoQuery.isLoading
@@ -611,14 +607,14 @@ export function Dashboard() {
             <CardTitle className="flex items-center gap-2 text-base"><Users className="h-4 w-4 text-rose-600" />访问地域分布</CardTitle>
             <CardDescription>{GEO_RANGE_DESCRIPTION[geoRange]}</CardDescription>
           </div>
-          <div className="inline-flex w-fit rounded-md border p-0.5">
+          <div className="inline-flex w-full rounded-md border p-0.5 sm:w-fit">
             {GEO_RANGE_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
                 onClick={() => setGeoRange(opt.value)}
                 className={cn(
-                  'rounded px-3 py-1 text-xs font-medium transition-colors',
+                  'flex-1 rounded px-3 py-2 text-xs font-medium transition-colors sm:flex-none',
                   geoRange === opt.value ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                 )}
               >
@@ -628,7 +624,7 @@ export function Dashboard() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {geoLoading ? <div className="p-6 text-muted-foreground text-sm">加载中...</div> : visibleGeoCount === 0 ? <div className="py-12 text-center text-muted-foreground text-sm">暂无访问数据</div> : <WorldMap data={geoData} />}
+          {geoQuery.isError ? <div role="alert" className="p-6 text-destructive text-sm">访问地域数据加载失败，请稍后重试。</div> : geoLoading ? <div className="p-6 text-muted-foreground text-sm">加载中...</div> : visibleGeoCount === 0 ? <div className="py-12 text-center text-muted-foreground text-sm">暂无访问数据</div> : <WorldMap data={geoData} />}
         </CardContent>
       </Card>
 

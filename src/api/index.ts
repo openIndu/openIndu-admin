@@ -483,6 +483,7 @@ export interface MemberApplicationItem {
   phone?: string
   nickname?: string
   current_role?: string
+  sms_notified?: boolean
 }
 
 export const memberApplicationApi = {

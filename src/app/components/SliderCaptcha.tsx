@@ -27,6 +27,7 @@ export function SliderCaptcha({ open, onClose, onPass }: SliderCaptchaProps) {
   const [dragX, setDragX] = useState(0)
   const [status, setStatus] = useState<Status>('loading')
   const dragRef = useRef<{ startX: number; baseX: number } | null>(null)
+  const trackRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
     setStatus('loading')
@@ -69,7 +70,8 @@ export function SliderCaptcha({ open, onClose, onPass }: SliderCaptchaProps) {
   function onPointerMove(event: React.PointerEvent<HTMLDivElement>) {
     if (!dragRef.current || status !== 'ready') return
     const max = PUZZLE_W - PIECE_BOX
-    const next = Math.min(max, Math.max(0, dragRef.current.baseX + (event.clientX - dragRef.current.startX)))
+    const trackWidth = trackRef.current?.clientWidth ?? PUZZLE_W
+    const next = Math.min(max, Math.max(0, dragRef.current.baseX + (event.clientX - dragRef.current.startX) * PUZZLE_W / trackWidth))
     setDragX(next)
   }
 
@@ -132,7 +134,7 @@ export function SliderCaptcha({ open, onClose, onPass }: SliderCaptchaProps) {
             </button>
           </div>
         </div>
-        <div className="relative overflow-hidden rounded-md border border-gray-200 bg-gray-100" style={{ width: PUZZLE_W, height: PUZZLE_H, maxWidth: '100%' }}>
+        <div className="relative w-full overflow-hidden rounded-md border border-gray-200 bg-gray-100" style={{ aspectRatio: `${PUZZLE_W} / ${PUZZLE_H}` }}>
           {challenge ? (
             <>
               <img
@@ -140,14 +142,14 @@ export function SliderCaptcha({ open, onClose, onPass }: SliderCaptchaProps) {
                 alt=""
                 draggable={false}
                 className="select-none"
-                style={{ width: PUZZLE_W, height: PUZZLE_H }}
+                style={{ width: '100%', height: '100%' }}
               />
               <img
                 src={challenge.piece}
                 alt=""
                 draggable={false}
                 className="absolute select-none"
-                style={{ top: challenge.piece_y, left: dragX, width: PIECE_BOX, height: PIECE_BOX }}
+                style={{ top: `${challenge.piece_y / PUZZLE_H * 100}%`, left: `${dragX / PUZZLE_W * 100}%`, width: `${PIECE_BOX / PUZZLE_W * 100}%`, height: `${PIECE_BOX / PUZZLE_H * 100}%` }}
               />
               {status === 'verifying' && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white/40">
@@ -161,10 +163,10 @@ export function SliderCaptcha({ open, onClose, onPass }: SliderCaptchaProps) {
             </div>
           )}
         </div>
-        <div className="relative mt-3 select-none rounded-md bg-gray-100" style={{ width: PUZZLE_W, height: 40, maxWidth: '100%' }}>
+        <div ref={trackRef} className="relative mt-3 w-full select-none rounded-md bg-gray-100" style={{ height: 40 }}>
           <div
             className={`absolute inset-y-0 left-0 rounded-md ${status === 'success' ? 'bg-emerald-100' : status === 'fail' ? 'bg-red-100' : 'bg-sky-100'}`}
-            style={{ width: dragX + PIECE_BOX }}
+            style={{ width: `${(dragX + PIECE_BOX) / PUZZLE_W * 100}%` }}
           />
           <div className="absolute inset-0 flex items-center justify-center text-xs">
             <span className={status === 'success' ? 'text-emerald-700' : status === 'fail' ? 'text-red-600' : 'text-gray-500'}>{hint}</span>
@@ -179,14 +181,14 @@ export function SliderCaptcha({ open, onClose, onPass }: SliderCaptchaProps) {
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
-            className={`absolute inset-y-0 flex cursor-grab items-center justify-center rounded-md border shadow-sm active:cursor-grabbing ${
+            className={`absolute inset-y-0 flex cursor-grab touch-none items-center justify-center rounded-md border shadow-sm active:cursor-grabbing ${
               status === 'success'
                 ? 'border-emerald-300 bg-emerald-500 text-white'
                 : status === 'fail'
                   ? 'border-red-300 bg-red-500 text-white'
                   : 'border-gray-200 bg-white text-gray-500'
             }`}
-            style={{ left: dragX, width: PIECE_BOX }}
+            style={{ left: `${dragX / PUZZLE_W * 100}%`, width: `${PIECE_BOX / PUZZLE_W * 100}%` }}
           >
             {status === 'success' ? <Check className="h-5 w-5" /> : <ChevronsRight className="h-5 w-5" />}
           </div>

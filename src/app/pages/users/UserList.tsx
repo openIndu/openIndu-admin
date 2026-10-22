@@ -110,6 +110,7 @@ export function UserList() {
   } | null>(null)
   const [pendingApprove, setPendingApprove] = useState<UserItem | null>(null)
   const [pendingReject, setPendingReject] = useState<UserItem | null>(null)
+  const [approvalNotice, setApprovalNotice] = useState<{ text: string; warning: boolean } | null>(null)
 
   const handleSort = (key: string) => {
     if (sortBy === key) {
@@ -145,7 +146,20 @@ export function UserList() {
   const unblacklistMutation = useMutation({ mutationFn: userApi.unblacklist, onSuccess: invalidate })
   const forceLogoutMutation = useMutation({ mutationFn: userApi.forceLogout, onSuccess: invalidate })
   const deleteMutation = useMutation({ mutationFn: userApi.delete, onSuccess: invalidate })
-  const approveMutation = useMutation({ mutationFn: (id: number) => memberApplicationApi.approve(id), onSuccess: invalidate })
+  const approveMutation = useMutation({
+    mutationFn: (id: number) => memberApplicationApi.approve(id),
+    onSuccess: (result) => {
+      void invalidate()
+      setApprovalNotice({
+        text: result.sms_notified ? '会员审核已通过，短信通知已发送。' : '会员审核已通过，但短信通知未发出，请检查短信服务配置或日志。',
+        warning: !result.sms_notified,
+      })
+    },
+    onError: (error: unknown) => {
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      setApprovalNotice({ text: `会员审核失败：${detail || (error instanceof Error ? error.message : '请稍后重试')}`, warning: true })
+    },
+  })
   const rejectMutation = useMutation({ mutationFn: (id: number) => memberApplicationApi.reject(id), onSuccess: invalidate })
 
   const handleConfirm = () => {
@@ -161,6 +175,7 @@ export function UserList() {
 
   return (
     <div className="space-y-6">
+      {approvalNotice && <div role="status" className={`rounded-md border p-3 text-sm ${approvalNotice.warning ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-green-300 bg-green-50 text-green-900'}`}>{approvalNotice.text}</div>}
       <Card>
         <CardHeader>
           <CardTitle>用户管理</CardTitle>

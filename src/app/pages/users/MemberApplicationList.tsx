@@ -76,6 +76,7 @@ export function MemberApplicationList() {
   const [sortBy, setSortBy] = useState<string>('created_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [pendingApprove, setPendingApprove] = useState<MemberApplicationItem | null>(null)
+  const [approvalNotice, setApprovalNotice] = useState<{ text: string; warning: boolean } | null>(null)
   const size = 20
 
   const handleSort = (key: string) => {
@@ -99,7 +100,17 @@ export function MemberApplicationList() {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['member-applications'] })
   const approveMutation = useMutation({
     mutationFn: (id: number) => memberApplicationApi.approve(id),
-    onSuccess: invalidate,
+    onSuccess: (result) => {
+      void invalidate()
+      setApprovalNotice({
+        text: result.sms_notified ? '会员审核已通过，短信通知已发送。' : '会员审核已通过，但短信通知未发出，请检查短信服务配置或日志。',
+        warning: !result.sms_notified,
+      })
+    },
+    onError: (error: unknown) => {
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      setApprovalNotice({ text: `会员审核失败：${detail || (error instanceof Error ? error.message : '请稍后重试')}`, warning: true })
+    },
   })
 
   const data = query.data
@@ -108,6 +119,7 @@ export function MemberApplicationList() {
 
   return (
     <div className="space-y-4">
+      {approvalNotice && <div role="status" className={`rounded-md border p-3 text-sm ${approvalNotice.warning ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-green-300 bg-green-50 text-green-900'}`}>{approvalNotice.text}</div>}
       <Card>
         <CardHeader>
           <CardTitle>会员申请</CardTitle>
