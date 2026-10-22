@@ -286,10 +286,13 @@ describe('API Client', () => {
   describe('authApi methods', () => {
     it('sendCode calls correct endpoint with the slider ticket', async () => {
       const mockedAxios = vi.mocked(axios)
-      mockedAxios.post.mockResolvedValueOnce({ data: { code: 200, data: true } })
+      mockedAxios.post.mockResolvedValueOnce({ data: { code: 200, biz_code: 'AUTH_SMS_SENT', message: 'sent', data: {} } })
 
       const { authApi } = await import('@/api')
-      await authApi.sendCode('13800138000', 'ticket-abc')
+      const response = await authApi.sendCode('13800138000', 'ticket-abc')
+
+      expect(response.biz_code).toBe('AUTH_SMS_SENT')
+      expect(response.message).toBe('sent')
 
       expect(mockedAxios.post).toHaveBeenCalledWith('/auth/send-code', {
         phone: '13800138000',

@@ -17,6 +17,7 @@ export type Role = 'user' | 'member' | 'admin'
 
 export interface ApiResponse<T> {
   code: number
+  biz_code?: string
   message?: string
   detail?: string
   data: T
@@ -192,12 +193,12 @@ const emitToast = (detail: string) => {
   }
 }
 
-const redirectToLogin = (detail = '') => {
+const redirectToLogin = (detail = '', bizCode?: string) => {
   tokenStorage.clear()
   if (window.location.pathname !== '/login') {
-    const isForceLogout = detail.includes('已被撤销') || detail.includes('强制登出')
+    const isForceLogout = bizCode === 'AUTH_FORCED_LOGOUT' || bizCode === 'AUTH_TOKEN_REVOKED'
     window.location.href = isForceLogout
-      ? '/login?reason=force_logout&msg=' + encodeURIComponent(detail || 'Token 已被撤销，您已被强制退出')
+      ? '/login?reason=force_logout&msg=' + encodeURIComponent(detail)
       : '/login'
   }
 }
@@ -244,6 +245,7 @@ api.interceptors.response.use(
     const original = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined
     const status = error.response?.status
     const detail = (error.response?.data as { detail?: string })?.detail ?? ''
+    const bizCode = error.response?.data?.biz_code
 
     if (status !== 401 || !original) {
       return Promise.reject(error)
@@ -252,21 +254,21 @@ api.interceptors.response.use(
     // 401 from the refresh endpoint itself → refresh token invalid → log out.
     if ((original.url ?? '').includes(AUTH_REFRESH_PATH)) {
       emitToast(detail)
-      redirectToLogin(detail)
+      redirectToLogin(detail, bizCode)
       return Promise.reject(error)
     }
 
     // Already retried once after a successful refresh and still 401 → give up.
     if (original._retry) {
       emitToast(detail)
-      redirectToLogin(detail)
+      redirectToLogin(detail, bizCode)
       return Promise.reject(error)
     }
 
     // No refresh token to spend → log out immediately.
     if (!tokenStorage.getRefreshToken()) {
       emitToast(detail)
-      redirectToLogin(detail)
+      redirectToLogin(detail, bizCode)
       return Promise.reject(error)
     }
 
@@ -289,7 +291,8 @@ api.interceptors.response.use(
       return api.request(original)
     } catch (refreshError) {
       flushQueue(refreshError, null)
-      redirectToLogin(detail)
+      const refreshBizCode = (refreshError as AxiosError<ApiResponse<unknown>>)?.response?.data?.biz_code
+      redirectToLogin(detail, refreshBizCode ?? bizCode)
       return Promise.reject(refreshError)
     } finally {
       isRefreshing = false
@@ -310,7 +313,7 @@ export const authApi = {
   verifySlider: (challengeId: number, x: number) =>
     unwrap<{ ticket: string; expires_in: number }>(api.post('/auth/slider-captcha/verify', { challenge_id: challengeId, x })),
   sendCode: (phone: string, sliderTicket: string) =>
-    unwrap(api.post('/auth/send-code', { phone, slider_ticket: sliderTicket })),
+    api.post<ApiResponse<Record<string, never>>>('/auth/send-code', { phone, slider_ticket: sliderTicket }).then((response) => response.data),
   login: async (phone: string, code: string) => normalizeLoginResponse(await unwrap<LoginResponse | NestedLoginResponse>(api.post('/auth/login', { phone, code }))),
   register: async (phone: string, code: string) => normalizeLoginResponse(await unwrap<LoginResponse | NestedLoginResponse>(api.post('/auth/register', { phone, code }))),
   refresh: async (refreshToken: string) => normalizeLoginResponse(await unwrap<LoginResponse | NestedLoginResponse>(api.post('/auth/refresh', { refresh_token: refreshToken }))),

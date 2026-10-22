@@ -32,8 +32,7 @@ export function Login() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('reason') === 'force_logout') {
-      const msg = params.get('msg') || 'Token 已被撤销，您已被强制退出'
-      setForceLogoutMsg(msg)
+      setForceLogoutMsg(params.get('msg'))
       setTimeout(() => setBannerVisible(true), 50)
       const timer = setTimeout(() => setBannerVisible(false), 5000)
       return () => clearTimeout(timer)
@@ -66,9 +65,9 @@ export function Login() {
     setError(null)
     setMessage(null)
     try {
-      await authApi.sendCode(phone, ticket)
+      const response = await authApi.sendCode(phone, ticket)
       setCountdown(60)
-      setMessage('验证码已发送，请查收短信')
+      setMessage(response.message ?? null)
     } catch (err) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
       setError(detail || (err instanceof Error ? err.message : '验证码发送失败'))
@@ -90,11 +89,11 @@ export function Login() {
       await loginWithResponse(response)
       navigate('/dashboard', { replace: true })
     } catch (err) {
-      const axErr = err as { response?: { status?: number; data?: { detail?: string; message?: string } } }
-      const status = axErr.response?.status
+      const axErr = err as { response?: { data?: { detail?: string; message?: string; biz_code?: string } } }
+      const bizCode = axErr.response?.data?.biz_code
       const detail = axErr.response?.data?.detail || axErr.response?.data?.message
-      if (status === 409) {
-        setError('该手机号已注册，请直接登录')
+      if (bizCode === 'AUTH_USER_EXISTS') {
+        setError(detail || (err instanceof Error ? err.message : ''))
         setMode('login')
       } else {
         setError(detail || (err instanceof Error ? err.message : '操作失败，请稍后重试'))
