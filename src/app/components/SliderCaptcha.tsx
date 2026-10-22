@@ -77,7 +77,9 @@ export function SliderCaptcha({ open, onClose, onPass }: SliderCaptchaProps) {
     if (!dragRef.current || status !== 'ready') return
     dragRef.current = null
     // A tiny nudge is treated as an accident and does not burn the challenge.
-    if (dragX >= 4) void verify(dragX)
+    // Math.round: backend wants an integer x; fractional pointer coords
+    // would be rejected with 422 and shown as "misaligned".
+    if (dragX >= 4) void verify(Math.round(dragX))
   }
 
   useEffect(() => {
