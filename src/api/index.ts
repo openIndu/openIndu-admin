@@ -78,6 +78,10 @@ export interface ResourceItem {
   file_size?: number
   download_count?: number
   is_published?: boolean
+  // Member submission review state (software + documents)
+  submitted_by?: number | null
+  submission_status?: 'pending' | 'published' | 'rejected'
+  rejected_reason?: string | null
   upload_time?: string
   created_at?: string
 }
@@ -324,13 +328,14 @@ export const userApi = {
 }
 
 export const documentApi = {
-  list: (params: { page?: number; size?: number; brand?: string; category?: string; series?: string; keyword?: string; sort_by?: string; sort_order?: 'asc' | 'desc' } = {}) => unwrap<PageResult<ResourceItem>>(api.get('/documents', { params })),
+  list: (params: { page?: number; size?: number; brand?: string; category?: string; series?: string; keyword?: string; submission_status?: string; sort_by?: string; sort_order?: 'asc' | 'desc' } = {}) => unwrap<PageResult<ResourceItem>>(api.get('/documents', { params })),
   upload: (formData: FormData, onUploadProgress?: (e: AxiosProgressEvent) => void) => unwrap<ResourceItem>(api.post('/documents/upload', formData, uploadConfig(onUploadProgress))),
   get: (id: number) => unwrap<ResourceItem>(api.get(`/documents/${id}`)),
   update: (id: number, data: Partial<Pick<ResourceItem, 'original_name' | 'brand' | 'category' | 'series' | 'description'>>) => unwrap<ResourceItem>(api.patch(`/documents/${id}`, data)),
   delete: (id: number) => unwrap(api.delete(`/documents/${id}`)),
   publishToggle: (id: number) => unwrap<ResourceItem>(api.patch(`/documents/${id}/publish`)),
   bulkPublish: (data: { ids?: number[]; brand?: string; category?: string; series?: string; keyword?: string; publish?: boolean }) => unwrap<{ count: number; publish: boolean }>(api.patch('/documents/publish/bulk', data)),
+  review: (id: number, action: 'publish' | 'reject', reason?: string) => unwrap<ResourceItem>(api.patch(`/documents/${id}/review`, { action, reason: reason ?? undefined })),
   downloadLink: (id: number) => unwrap<{ download_url: string; filename?: string; expires_in?: number }>(api.get(`/documents/${id}/download-link`)),
   brands: () => unwrap<Array<{ value: string; label: string }> | string[]>(api.get('/documents/brands/list')),
   categories: () => unwrap<Array<{ value: string; label: string }> | string[]>(api.get('/documents/categories/list')),
@@ -352,7 +357,7 @@ export interface SoftwareUploadPart {
 }
 
 export const softwareApi = {
-  list: (params: { page?: number; size?: number; brand?: string; category?: string; keyword?: string; expand_versions?: boolean; sort_by?: string; sort_order?: 'asc' | 'desc' } = {}) => unwrap<PageResult<SoftwareItem>>(api.get('/software', { params })),
+  list: (params: { page?: number; size?: number; brand?: string; category?: string; keyword?: string; submission_status?: string; expand_versions?: boolean; sort_by?: string; sort_order?: 'asc' | 'desc' } = {}) => unwrap<PageResult<SoftwareItem>>(api.get('/software', { params })),
   upload: (formData: FormData, onUploadProgress?: (e: AxiosProgressEvent) => void) => unwrap<SoftwareItem>(api.post('/software/upload', formData, uploadConfig(onUploadProgress))),
   uploadInit: (meta: { filename: string; brand: string; category: string; version: string; description?: string; content_type?: string; size: number; software_id?: number }) =>
     unwrap<SoftwareUploadInit>(api.post('/software/upload/init', meta)),
@@ -363,6 +368,7 @@ export const softwareApi = {
   update: (id: number, data: Partial<Pick<SoftwareItem, 'original_name' | 'brand' | 'category' | 'description'>>) => unwrap<SoftwareItem>(api.patch(`/software/${id}`, data)),
   delete: (id: number) => unwrap(api.delete(`/software/${id}`)),
   publishToggle: (id: number) => unwrap<SoftwareItem>(api.patch(`/software/${id}/publish`)),
+  review: (id: number, action: 'publish' | 'reject', reason?: string) => unwrap<SoftwareItem>(api.patch(`/software/${id}/review`, { action, reason: reason ?? undefined })),
   publishVersionToggle: (id: number, versionId: number) => unwrap(api.patch(`/software/${id}/versions/${versionId}/publish`)),
   bulkPublish: (data: { ids?: number[]; version_ids?: number[]; brand?: string; category?: string; keyword?: string; publish?: boolean }) => unwrap<{ count: number; publish: boolean }>(api.patch('/software/publish/bulk', data)),
   bulkDelete: (data: { ids?: number[]; version_ids?: number[]; brand?: string; category?: string; keyword?: string }) => unwrap<{ count: number }>(api.delete('/software/bulk', { data })),
