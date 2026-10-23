@@ -7,6 +7,7 @@ import { Input } from '../../components/ui/input'
 import { Select } from '../../components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
 import { ShieldAlert, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { auditActionLabel, auditActionOptions } from './auditActions'
 
 function SortableHead({
   label,
@@ -44,14 +45,6 @@ function SortableHead({
     </TableHead>
   )
 }
-
-const actionOptions = [
-  { value: '', label: '全部操作' },
-  { value: 'role_change', label: '修改角色' },
-  { value: 'blacklist', label: '拉黑用户' },
-  { value: 'unblacklist', label: '解除拉黑' },
-  { value: 'force_logout', label: '强制登出' },
-]
 
 export function AuditLogs() {
   const [page, setPage] = useState(1)
@@ -155,10 +148,10 @@ export function AuditLogs() {
               className="w-44"
             />
             <Select
-              options={actionOptions}
+              options={auditActionOptions}
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
-              className="w-36"
+              className="w-56"
             />
             <Button variant="outline" onClick={handleSearch}>搜索</Button>
             {(searchParams.adminKeyword || searchParams.targetKeyword || searchParams.action) && (
@@ -200,8 +193,8 @@ export function AuditLogs() {
                         {String(log.target_user ?? (log.target_user_id ? `ID:${log.target_user_id}` : '-'))}
                       </TableCell>
                       <TableCell>
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
-                          {String(log.action ?? '-')}
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium" title={String(log.action ?? '')}>
+                          {auditActionLabel(String(log.action ?? '-'))}
                         </span>
                       </TableCell>
                       <TableCell className="max-w-xs truncate" title={String(log.detail ?? '')}>
