@@ -468,11 +468,24 @@ export interface KnowledgeGapItem {
 }
 
 export const adminApi = {
+  submissionEvents: (params: { page?: number; page_size?: number; actor_keyword?: string; resource_type?: string; action?: string } = {}) =>
+    unwrap<{ items: SubmissionEvent[]; total: number; page: number; page_size: number }>(api.get('/admin/submission-events', { params })),
   auditLogs: (params: { page?: number; page_size?: number; admin_keyword?: string; target_keyword?: string; action?: string; sort_by?: string; sort_order?: 'asc' | 'desc' } = {}) =>
     api.get('/admin/audit-logs', { params }).then((r) => {
       const data = (r.data.data ?? r.data) as { items?: Record<string, unknown>[]; total?: number }
       return data
     }),
+}
+
+export interface SubmissionEvent {
+  id: number
+  actor: string
+  resource_type: 'software' | 'document'
+  resource_id: number
+  resource_name: string
+  action: 'submitted' | 'version_added' | 'withdrawn'
+  version: string | null
+  created_at: string
 }
 
 export interface MemberApplicationItem {

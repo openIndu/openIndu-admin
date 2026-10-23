@@ -6,6 +6,14 @@ import { auditActionLabels } from '@/app/pages/stats/auditActions'
 
 vi.mock('@/api', () => ({
   adminApi: {
+    submissionEvents: vi.fn().mockResolvedValue({
+      total: 1,
+      items: [{
+        id: 7, actor: '139****1111', resource_type: 'document', resource_id: 42,
+        resource_name: 'manual.pdf', action: 'withdrawn', version: null,
+        created_at: '2026-10-23T09:00:00Z',
+      }],
+    }),
     auditLogs: vi.fn().mockResolvedValue({
       total: 3,
       items: [
@@ -48,6 +56,12 @@ function renderPage() {
 }
 
 describe('AuditLogs page', () => {
+  it('shows withdrawn submissions alongside administrator actions', async () => {
+    renderPage()
+    expect((await screen.findByText('manual.pdf')).textContent).toBe('manual.pdf')
+    expect(screen.getByRole('cell', { name: '撤回投稿' })).toBeTruthy()
+    expect(screen.getByText('投稿记录')).toBeTruthy()
+  })
   // The filter <select> carries the same labels as <option>s, so the table cells are found by their
   // title (the raw action code) instead of by text.
   it('shows known actions by label with the raw code as tooltip, and unknown ones as they are', async () => {
@@ -60,7 +74,7 @@ describe('AuditLogs page', () => {
   it('offers every known action in the filter', async () => {
     renderPage()
     await screen.findByTitle('software.toggle_publish')
-    const select = screen.getByRole('combobox') as HTMLSelectElement
+    const select = screen.getAllByRole('combobox').at(-1) as HTMLSelectElement
     expect(Array.from(select.options).map((option) => option.value)).toEqual(['', ...Object.keys(auditActionLabels)])
   })
 })
