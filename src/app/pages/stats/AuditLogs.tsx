@@ -8,6 +8,7 @@ import { Select } from '../../components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
 import { ShieldAlert, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { auditActionLabel, auditActionOptions } from './auditActions'
+import { SubmissionEvents } from './SubmissionEvents'
 
 function SortableHead({
   label,
@@ -122,6 +123,7 @@ export function AuditLogs() {
         <p className="text-muted-foreground">管理员操作记录与审计追踪，手机号已脱敏显示。</p>
       </div>
 
+      <SubmissionEvents />
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
